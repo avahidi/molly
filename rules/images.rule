@@ -1,0 +1,34 @@
+
+class DlinkFirmwareHeader {
+	var magic = String(0, 4);
+	var bootnameadr = Byte(7);
+	var BootName = String(bootnameadr + 12);
+
+	if magic == { 0x54, 0xa3, 0xa4, 0x17};
+	action echo("Found Dlink Firmware");
+};
+
+
+
+class SeattleImageFirmwareHeader {
+	var magic = Long(0, endian=big);
+	var reserved = Short(4, endian=big);
+	var MetaSize = Short(6, endian = big);
+	var ImageSize = Long(8, endian = big);
+
+	if (reserved == 0) && (ImageSize > 0);
+}
+
+class UImage {
+	var $endian = big;
+	var magic = Long(0, endian = big);
+	var crc = Long(4, endian= big);
+	var data = Long(8 endian= big);
+	var size = Long(12, endian= big);
+	var address = Long(16, endian= big);
+	var entry = Long(20, endian= big);
+	var crc = Long(24, endian= big);
+
+	if (magic == 0x27051956) && (size > 0);
+	action echo("found uimage");
+}

@@ -1,0 +1,11 @@
+
+TODO
+====
+
+ 0. add enviorment variables (endianendianness, file size, file lengtm, ...) to class/scope/envioment?
+ 1. add string expressions
+ 2. add unary operations
+ 3. add logic operations
+ 4. add better action support
+    4.a add proper printf support to echo action
+    4.b add extract action
