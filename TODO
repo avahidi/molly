@@ -2,10 +2,27 @@
 TODO
 ====
 
- 0. add enviorment variables (endianendianness, file size, file lengtm, ...) to class/scope/envioment?
- 1. add string expressions
- 2. add unary operations
- 3. add logic operations
- 4. add better action support
-    4.a add proper printf support to echo action
-    4.b add extract action
+
+
+
+
+ * add better action support
+    * add proper printf support to echo action
+    * add extract action
+
+ * add function calls
+   - int: ?
+   - string: len?
+
+ * run minimizer on expressions before saving them?
+
+ * add parsing code....
+  * ....
+
+DONE
+====
+
+* add enviorment variables (endianendianness, file size, file lengt, ...) to class/scope/envioment?
+* add string expressions
+* add unary operations
+* add logic operations

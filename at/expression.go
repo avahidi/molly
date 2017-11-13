@@ -3,29 +3,59 @@ package at
 import (
 	"fmt"
 	"os"
+
+	"bitbucket.org/vahidi/molly/prim"
 )
 
 type Expression interface {
 	Eval(env *Env) (Expression, error)
+	Get() interface{}
 }
 
-type BooleanExpression struct {
-	Value bool
+// type assertions
+var _ Expression = (*ValueExpression)(nil)
+var _ Expression = (*VariableExpression)(nil)
+var _ Expression = (*BinaryExpression)(nil)
+var _ Expression = (*UnaryExpression)(nil)
+var _ Expression = (*ExtractExpression)(nil)
+
+type ValueExpression struct {
+	Value prim.Primitive
 }
 
-func NewBooleanExpression(value bool) *BooleanExpression {
-	return &BooleanExpression{Value: value}
+func NewValueExpression(val prim.Primitive) *ValueExpression {
+	return &ValueExpression{Value: val}
 }
 
-func (be *BooleanExpression) Eval(env *Env) (Expression, error) {
-	return be, nil
+func NewNumberExpression(val uint64, size int, format prim.Format) *ValueExpression {
+	nn := prim.NewNumber(size, format)
+	nn.Set(val)
+	return NewValueExpression(nn)
 }
 
-func (be *BooleanExpression) String() string {
-	if be.Value {
-		return "true"
+func NewBooleanExpression(val bool) *ValueExpression {
+	n := uint64(0)
+	if val {
+		n = ^n
 	}
-	return "false"
+	return NewNumberExpression(n, 8, prim.UBE)
+}
+func NewStringExpression(s string) *ValueExpression {
+	ss := prim.NewString()
+	ss.SetString(s)
+	return NewValueExpression(ss)
+}
+
+func (ve *ValueExpression) Eval(env *Env) (Expression, error) {
+	return ve, nil
+}
+
+func (ve ValueExpression) Get() interface{} {
+	return ve.Value
+}
+
+func (ve ValueExpression) String() string {
+	return fmt.Sprintf("%v", ve.Value)
 }
 
 // variable expression
@@ -34,6 +64,9 @@ type VariableExpression struct {
 }
 
 func (ve *VariableExpression) Eval(env *Env) (Expression, error) {
+	if env == nil {
+		return ve, nil
+	}
 	expr := env.Scope.Get(ve.Id)
 	if expr == nil {
 		return nil, fmt.Errorf("Could not find variable %s", ve.Id)
@@ -41,71 +74,19 @@ func (ve *VariableExpression) Eval(env *Env) (Expression, error) {
 	return expr, nil // TODO
 }
 
+func (ve VariableExpression) Get() interface{} {
+	return &ve
+}
+
 func (ve *VariableExpression) String() string {
 	return ve.Id
-}
-
-// number expression
-type NumberExpression struct {
-	Value uint64
-}
-
-func (ne *NumberExpression) Eval(env *Env) (Expression, error) {
-	return ne, nil
-}
-
-func (ne *NumberExpression) String() string {
-	return fmt.Sprintf("0x%x", ne.Value)
 }
 
 // binary expression
 type BinaryExpression struct {
 	Left      Expression
 	Right     Expression
-	Operation Operation
-}
-
-func binaryNumberOperation(l *NumberExpression, r *NumberExpression,
-	op Operation) (Expression, error) {
-	switch op {
-	case ADD:
-		return &NumberExpression{Value: l.Value + r.Value}, nil
-	case SUB:
-		return &NumberExpression{Value: l.Value - r.Value}, nil
-	case DIV:
-		if r.Value == 0 {
-			return nil, fmt.Errorf("division by zero")
-		}
-		return &NumberExpression{Value: l.Value / r.Value}, nil
-	case MUL:
-		return &NumberExpression{Value: l.Value * r.Value}, nil
-
-	case AND:
-		return &NumberExpression{Value: l.Value & r.Value}, nil
-	case OR:
-		return &NumberExpression{Value: l.Value | r.Value}, nil
-	case XOR:
-		return &NumberExpression{Value: l.Value ^ r.Value}, nil
-
-	case EQ:
-		return &BooleanExpression{Value: l.Value == r.Value}, nil
-	case NE:
-		return &BooleanExpression{Value: l.Value != r.Value}, nil
-	case GT:
-		return &BooleanExpression{Value: l.Value > r.Value}, nil
-	case LT:
-		return &BooleanExpression{Value: l.Value < r.Value}, nil
-
-		/*
-			case BAND:
-				return &BooleanExpression{Value: l.Value > r.Value}, nil
-			case BOR:
-				return &BooleanExpression{Value: l.Value < r.Value}, nil
-			case BXOR:
-				return &BooleanExpression{Value: l.Value > r.Value}, nil
-		*/
-	}
-	return nil, fmt.Errorf("Unknown number operation: %v", op)
+	Operation prim.Operation
 }
 
 func (be *BinaryExpression) Eval(env *Env) (Expression, error) {
@@ -118,25 +99,68 @@ func (be *BinaryExpression) Eval(env *Env) (Expression, error) {
 		return nil, err
 	}
 
-	switch n := left.(type) {
-	case *NumberExpression:
-		switch m := right.(type) {
-		case *NumberExpression:
-			return binaryNumberOperation(n, m, be.Operation)
+	// we need values to do more
+	v1, okay1 := left.(*ValueExpression)
+	v2, okay2 := right.(*ValueExpression)
+	if !okay1 || !okay2 {
+		if env == nil {
+			return be, nil
 		}
-
+		return nil, fmt.Errorf("Expected values in binary operation")
 	}
-	return nil, fmt.Errorf("Unknown binary expression")
+
+	k, err := v1.Value.Binary(v2.Value, be.Operation)
+	return NewValueExpression(k), err
+}
+
+func (be BinaryExpression) Get() interface{} {
+	return &be
+}
+
+// unary expression
+type UnaryExpression struct {
+	Value     Expression
+	Operation prim.Operation
+}
+
+func (ue *UnaryExpression) Eval(env *Env) (Expression, error) {
+	val, err := ue.Value.Eval(env)
+	if err != nil {
+		return nil, err
+	}
+
+	// we need values to do more
+	v1, okay1 := val.(*ValueExpression)
+	if !okay1 {
+		if env == nil {
+			return ue, nil
+		}
+		return nil, fmt.Errorf("Expected values in unary operation")
+	}
+
+	switch n := v1.Value.(type) {
+	case *prim.Number:
+		k, err := n.Unary(ue.Operation)
+		return NewValueExpression(k), err
+	}
+	return nil, fmt.Errorf("Unknown unary expression")
+}
+
+func (ue UnaryExpression) Get() interface{} {
+	return &ue
 }
 
 // extract expression
 type ExtractExpression struct {
 	Offset Expression
 	Size   Expression
-	Format Format
+	Format prim.Format
 }
 
 func (ee *ExtractExpression) Eval(env *Env) (Expression, error) {
+	if env == nil {
+		return ee, nil
+	}
 	o1, err := ee.Offset.Eval(env)
 	if err != nil {
 		return nil, err
@@ -146,8 +170,8 @@ func (ee *ExtractExpression) Eval(env *Env) (Expression, error) {
 	if err != nil {
 		return nil, err
 	}
-	o := o1.(*NumberExpression)
-	s := s1.(*NumberExpression)
+	o := o1.Get().(*prim.Number)
+	s := s1.Get().(*prim.Number)
 	if _, err := env.file.Seek(int64(o.Value), os.SEEK_SET); err != nil {
 		return nil, err
 	}
@@ -157,10 +181,12 @@ func (ee *ExtractExpression) Eval(env *Env) (Expression, error) {
 		return nil, err
 	}
 
-	// Assuming its (little endian, unsigned, number ) expression for now
-	ret := &NumberExpression{}
-	// TODO ret.Format = ee.Format
-	ret.Value = ee.Format.Extract(len(data), data)
+	n := prim.NewNumber(int(s.Value), ee.Format)
+	err = n.Extract(data)
+	return NewValueExpression(n), err
 
-	return ret, nil
+}
+
+func (ue ExtractExpression) Get() interface{} {
+	return &ue
 }

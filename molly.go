@@ -1,6 +1,8 @@
 package molly
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +16,16 @@ type Database struct {
 
 func NewDatabase() *Database {
 	return &Database{}
+}
+
+func (db Database) String() string {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+	for _, c := range db.Classes {
+		fmt.Fprintf(w, "%s\n", c)
+	}
+	w.Flush()
+	return buf.String()
 }
 
 func (db *Database) ScanFile(filename string) error {
@@ -31,10 +43,8 @@ func (db *Database) scanFile(filename string, info os.FileInfo, err_prev error) 
 	}
 	defer f.Close()
 
-	env := at.NewEnviorment(f)
-
 	for _, c := range db.Classes {
-		env.Reset()
+		env := at.NewEnvironmentFromFile(f, uint64(info.Size()), filename)
 		e, err := c.Eval(env)
 		if e {
 			fmt.Printf("Eval sucessful: %s\n", c.Id)

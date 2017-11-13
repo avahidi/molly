@@ -1,6 +1,12 @@
 package at
 
-import "fmt"
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+
+	"bitbucket.org/vahidi/molly/prim"
+)
 
 type Assignment struct {
 	Id   string
@@ -9,6 +15,13 @@ type Assignment struct {
 
 type Condition struct {
 	Expr Expression
+}
+
+func (c *Condition) Simplify() {
+	e2, err := c.Expr.Eval(nil)
+	if err != nil && e2 != nil {
+		c.Expr = e2
+	}
 }
 
 type Action struct {
@@ -40,6 +53,22 @@ func (c *Class) AddAction(id string, args ...string) {
 	c.Actions = append(c.Actions, &Action{Func: f, Args: args})
 }
 
+func (c *Class) Simplify() {
+	for _, a := range c.Assignments {
+		sim, err := a.Expr.Eval(nil)
+		if err == nil && sim != nil {
+			a.Expr = sim
+		}
+	}
+
+	for _, c := range c.Conditions {
+		sim, err := c.Expr.Eval(nil)
+		if err == nil && sim != nil {
+			c.Expr = sim
+		}
+	}
+}
+
 func (c *Class) Eval(env *Env) (bool, error) {
 	for _, a := range c.Assignments {
 		e, err := a.Expr.Eval(env)
@@ -53,12 +82,17 @@ func (c *Class) Eval(env *Env) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		eb, okay := e.(*BooleanExpression)
+
+		ve, okay := e.(*ValueExpression)
 		if !okay {
-			return false, fmt.Errorf("condition is not a logic expression")
+			return false, fmt.Errorf("condition is not a value expression")
 		}
-		if !eb.Value {
-			return eb.Value, nil
+		ne, okay1 := ve.Value.(*prim.Number)
+		if !okay1 {
+			return false, fmt.Errorf("condition is not a number expression")
+		}
+		if ne.Value == 0 {
+			return false, nil
 		}
 	}
 
@@ -69,4 +103,24 @@ func (c *Class) Eval(env *Env) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func (c Class) String() string {
+	var buf bytes.Buffer
+	w := bufio.NewWriter(&buf)
+
+	fmt.Fprintf(w, "Class %s {\n", c.Id)
+	for _, a := range c.Assignments {
+		fmt.Fprintf(w, "\tvar %s = %s;\n", a.Id, a.Expr)
+	}
+	for _, c := range c.Conditions {
+		fmt.Fprintf(w, "\tif %s;\n", c.Expr)
+	}
+
+	for _, a := range c.Actions {
+		fmt.Fprintf(w, "\taction %s %v;\n", a.Func, a.Args)
+	}
+	fmt.Fprintf(w, "}\n")
+	w.Flush()
+	return buf.String()
 }

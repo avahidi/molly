@@ -14,6 +14,8 @@ func Walk(e Expression, v Visitor) {
 	case *BinaryExpression:
 		Walk(n.Left, v)
 		Walk(n.Right, v)
+	case *UnaryExpression:
+		Walk(n.Value, v)
 	case *ExtractExpression:
 		Walk(n.Size, v)
 		Walk(n.Offset, v)

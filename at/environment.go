@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+
+	"bitbucket.org/vahidi/molly/prim"
 )
 
 type Scope struct {
 	Variables     map[string]Expression
-	DefaultFormat Format
+	DefaultFormat prim.Format
 }
 
 func NewScope() *Scope {
@@ -36,15 +39,15 @@ type Env struct {
 	Scope *Scope
 }
 
-func NewEnviorment(file io.ReadSeeker) *Env {
-	e := &Env{file: file}
-	e.Reset()
-	return e
-}
-
-func (e *Env) Reset() {
-	e.Scope = NewScope()
+func NewEnvironmentFromFile(file io.ReadSeeker, size uint64, filename string) *Env {
+	e := &Env{file: file, Scope: NewScope()}
 	e.file.Seek(0, os.SEEK_SET)
+
+	dir, name := path.Dir(filename), path.Base(filename)
+	e.Scope.Variables["base$"] = NewStringExpression(path.Join(dir, "DATA_"+name))
+	e.Scope.Variables["filename$"] = NewStringExpression(name)
+	e.Scope.Variables["filesize$"] = NewNumberExpression(size, 8, prim.UBE)
+	return e
 }
 
 func (e Env) Dump() {

@@ -5,7 +5,7 @@ class DlinkFirmwareHeader {
 	var BootName = String(bootnameadr + 12);
 
 	if magic == { 0x54, 0xa3, 0xa4, 0x17};
-	action echo("Found Dlink Firmware");
+	action extract("Found Dlink Firmware");
 };
 
 
@@ -20,15 +20,31 @@ class SeattleImageFirmwareHeader {
 }
 
 class UImage {
-	var $endian = big;
-	var magic = Long(0, endian = big);
-	var crc = Long(4, endian= big);
-	var data = Long(8 endian= big);
-	var size = Long(12, endian= big);
-	var address = Long(16, endian= big);
-	var entry = Long(20, endian= big);
-	var crc = Long(24, endian= big);
+	var endian$ = big;
+	var magic = Long(0);
+	var crc = Long(4);
+	var data = Long(8);
+	var size = Long(12);
+	var address = Long(16);
+	var entry = Long(20);
+	 var crc = Long(24);
+	var name = String(32, 32);
 
 	if (magic == 0x27051956) && (size > 0);
 	action echo("found uimage");
+
+	var header_size = 8 * 8 + 32;
+	action extract(name, header_size, size);
+}
+
+
+class UImage {
+	var endian$ = big;
+	var magic = Long(0);
+	var size = Long(12);
+	var name = String(32, 32);
+
+	if (magic == 0x27051956) && (size > 0);
+	action echo("found uimage");
+	action extract(name, 64, size);
 }
