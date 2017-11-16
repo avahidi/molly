@@ -1,6 +1,8 @@
 package prim
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 )
 
@@ -8,13 +10,19 @@ type String struct {
 	Value []byte
 }
 
-func NewString() *String {
-	return &String{}
+func NewStringRaw(val []byte) *String {
+	s := &String{}
+	s.Set(val)
+	return s
+}
+
+func NewString(str string) *String {
+	return NewStringRaw([]byte(str))
 }
 
 func (n String) Clone() *String {
 	ret := &String{}
-	*ret = n
+	ret.Set(n.Value)
 	return ret
 }
 
@@ -27,15 +35,6 @@ func (n *String) Set(data []byte) {
 	copy(n.Value, data)
 }
 
-func (n *String) Extract(data []byte) error {
-	n.Set(data)
-	return nil
-}
-
-func (n String) String() string {
-	return string(n.Value)
-}
-
 func (n String) equals(m String) bool {
 	if len(n.Value) != len(m.Value) {
 		return false
@@ -46,6 +45,34 @@ func (n String) equals(m String) bool {
 		}
 	}
 	return true
+}
+
+func (n String) isPrint() bool {
+	for _, c := range n.Value {
+		if c < ' ' || c >= 128 {
+			return false
+		}
+	}
+	return true
+}
+func (n String) String() string {
+	if n.isPrint() {
+		return string(n.Value)
+	} else {
+		var buf bytes.Buffer
+		w := bufio.NewWriter(&buf)
+
+		fmt.Fprintf(w, "{")
+		for i, c := range n.Value {
+			if i != 0 {
+				fmt.Fprintf(w, ", ")
+			}
+			fmt.Fprintf(w, "0x%02x", c)
+		}
+		fmt.Fprintf(w, "}")
+		w.Flush()
+		return buf.String()
+	}
 }
 
 func (n *String) Binary(o Primitive, op Operation) (Primitive, error) {
@@ -61,12 +88,10 @@ func (n *String) Binary(o Primitive, op Operation) (Primitive, error) {
 		return ret, nil
 
 	case EQ:
-		ret := NewBoolean()
-		ret.SetBoolean(n.equals(*m))
+		ret := NewBoolean(n.equals(*m))
 		return ret, nil
 	case NE:
-		ret := NewBoolean()
-		ret.SetBoolean(!n.equals(*m))
+		ret := NewBoolean(!n.equals(*m))
 		return ret, nil
 
 	}

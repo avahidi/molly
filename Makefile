@@ -8,7 +8,8 @@ build:
 
 run:
 	go build
-	cd app && go run *.go
+	rm -rf ~/tmp/fw_output
+	cd app && go run *.go -R ../rules -O ~/tmp/fw_output ~/tmp/fw/
 
 test:
 	go test

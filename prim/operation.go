@@ -1,5 +1,7 @@
 package prim
 
+import "unicode/utf8"
+
 type Operation int
 
 const (
@@ -55,9 +57,27 @@ var operationNames = [...]string{
 	BXOR: "~",
 
 	INV: "~",
-	NEG: "-",
+	NEG: "!",
 }
 
 func (o Operation) String() string {
 	return operationNames[int(o)]
+}
+
+var runeToOperationMap map[rune]Operation
+var stringToOperationMap map[string]Operation
+
+func RuneToOperation(r rune) Operation     { return runeToOperationMap[r] }
+func StringToOperation(s string) Operation { return stringToOperationMap[s] }
+
+func init() {
+	runeToOperationMap = make(map[rune]Operation)
+	stringToOperationMap = make(map[string]Operation)
+	for i, s := range operationNames {
+		stringToOperationMap[s] = Operation(i)
+		if len(s) == 1 {
+			r, _ := utf8.DecodeRuneInString(s)
+			runeToOperationMap[r] = Operation(i)
+		}
+	}
 }

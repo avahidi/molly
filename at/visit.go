@@ -1,5 +1,6 @@
 package at
 
+/*
 // Visitor can visit a node
 type Visitor interface {
 	Visit(Expression) Visitor
@@ -11,13 +12,15 @@ func Walk(e Expression, v Visitor) {
 		return
 	}
 	switch n := e.(type) {
-	case *BinaryExpression:
+	case *OperationExpression:
 		Walk(n.Left, v)
-		Walk(n.Right, v)
-	case *UnaryExpression:
-		Walk(n.Value, v)
+		if n.Right != nil {
+			Walk(n.Right, v)
+		}
 	case *ExtractExpression:
 		Walk(n.Size, v)
 		Walk(n.Offset, v)
 	}
 }
+
+*/

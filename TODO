@@ -3,21 +3,17 @@ TODO
 ====
 
 
-
-
-
- * add better action support
-    * add proper printf support to echo action
-    * add extract action
+ * export matches to json/whatever
+ * trace functions to record
 
  * add function calls
-   - int: ?
-   - string: len?
+   - conversion functions, eg int(), uint64(), string()
+   - len() or sizeof()
 
- * run minimizer on expressions before saving them?
 
- * add parsing code....
-  * ....
+
+
+ * Lazy extaction of variables in a class
 
 DONE
 ====
@@ -26,3 +22,17 @@ DONE
 * add string expressions
 * add unary operations
 * add logic operations
+
+* add better action support
+    * add proper printf support to echo action
+    * add extract action
+
+ * run minimizer on expressions before saving them?
+
+ * add parsing code....
+  * ....
+* callback API for when a match is found
+   - callback API for when a new file is created
+
+   - (as action) inject new file into the scanned set
+   - get name for a new file

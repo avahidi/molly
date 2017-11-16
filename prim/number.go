@@ -1,63 +1,36 @@
 package prim
 
 import (
-	"encoding/binary"
 	"fmt"
 )
 
-type Format int
-
-const (
-	UBE Format = iota
-	SBE
-	ULE
-	SLE
-)
-
-var formatNames = [...]string{
-	UBE: "UBE",
-	SBE: "SBE",
-	ULE: "ULE",
-	SLE: "SLE",
-}
-
-func (f Format) ByteOrder() binary.ByteOrder {
-	if f == UBE || f == SBE {
-		return binary.BigEndian
-	}
-	return binary.LittleEndian
-}
-
-func (f Format) Signed() bool {
-	return f == SBE || f == SLE
-}
-
-func (f Format) String() string {
-	return formatNames[int(f)]
-}
-
 type Number struct {
 	Value  uint64
-	Format Format
 	Size   int
+	Signed bool
 }
 
-func NewNumber(size int, format Format) *Number {
-	return &Number{Format: format, Size: size}
+func NewNumber(val uint64, size int, signed bool) *Number {
+	n := &Number{Value: 0, Size: size, Signed: signed}
+	n.Set(val)
+	return n
 }
 
-func NewBoolean() *Number {
-	return NewNumber(4, UBE)
+/*
+func NewBoolean(val bool) *Number {
+	n := NewNumber(0, 4, false)
+	n.SetBoolean(val)
+	return n
 }
-
+*/
 func (n Number) Clone() *Number {
 	ret := &Number{}
 	*ret = n
 	return ret
 }
 
-func (n *Number) Set(val uint64) {
-	if n.Format.Signed() {
+func (n *Number) Set(val uint64) *Number {
+	if n.Signed {
 		// sign extend
 		mask := uint64(0xFFFFFFFFFFFFFF80) << uint64(8*(n.Size-1))
 		if (mask & val) != 0 {
@@ -69,17 +42,12 @@ func (n *Number) Set(val uint64) {
 		val = val & ^mask
 	}
 	n.Value = val
+	return n
 }
 
-func (n *Number) SetBoolean(val bool) {
-	n.Value = 0
-	if val {
-		n.Value = ^n.Value
-	}
-}
-
+/*
 func (n *Number) Extract(data []byte) error {
-	bo := n.Format.ByteOrder()
+
 	val := uint64(0)
 	switch n.Size {
 	case 1:
@@ -97,11 +65,28 @@ func (n *Number) Extract(data []byte) error {
 	n.Set(val)
 	return nil
 }
-
+*/
 func (n *Number) Binary(o Primitive, op Operation) (Primitive, error) {
 	m := o.(*Number)
-	ret := n.Clone()
 
+	// comparision
+	switch op {
+	case EQ:
+		return NewBoolean(n.Value == m.Value), nil
+	case NE:
+		return NewBoolean(n.Value != m.Value), nil
+	case GT:
+		return NewBoolean(n.Value > m.Value), nil
+	case LT:
+		return NewBoolean(n.Value < m.Value), nil
+	case BAND:
+		return NewBoolean(n.Value != 0 && m.Value != 0), nil
+	case BOR:
+		return NewBoolean(n.Value != 0 || m.Value != 0), nil
+	}
+
+	// arith abd logic
+	ret := n.Clone()
 	switch op {
 	case ADD:
 		ret.Set(n.Value + m.Value)
@@ -121,18 +106,6 @@ func (n *Number) Binary(o Primitive, op Operation) (Primitive, error) {
 	case XOR:
 		ret.Set(n.Value ^ m.Value)
 
-	case EQ:
-		ret = NewBoolean()
-		ret.SetBoolean(n.Value == m.Value)
-	case NE:
-		ret = NewBoolean()
-		ret.SetBoolean(n.Value != m.Value)
-	case GT:
-		ret = NewBoolean()
-		ret.SetBoolean(n.Value > m.Value)
-	case LT:
-		ret = NewBoolean()
-		ret.SetBoolean(n.Value < m.Value)
 	default:
 		return nil, fmt.Errorf("Unknown number binary operation: %v", op)
 	}
@@ -154,8 +127,7 @@ func (n *Number) Unary(op Operation) (Primitive, error) {
 
 func (n *Number) Get() interface{} {
 
-	switch n.Format {
-	case UBE, ULE:
+	if n.Signed {
 		switch n.Size {
 		case 1:
 			return uint8(n.Value)
@@ -166,7 +138,7 @@ func (n *Number) Get() interface{} {
 		default:
 			return uint64(n.Value)
 		}
-	default:
+	} else {
 		switch n.Size {
 		case 1:
 			return int8(n.Value)

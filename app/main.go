@@ -1,104 +1,62 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-
-	"bitbucket.org/vahidi/molly/prim"
+	"strings"
 
 	"bitbucket.org/vahidi/molly"
-	"bitbucket.org/vahidi/molly/at"
 )
 
+// MultiFlag is used allow multiple values with flag:
+type MultiFlag []string
+
+// String implements flag.Value.String() for Multiflag
+func (mf MultiFlag) String() string {
+	return strings.Join(mf, " ")
+}
+
+// Set implements flag.Value.Set() for Multiflag
+func (mf *MultiFlag) Set(val string) error {
+	*mf = append(*mf, val)
+	return nil
+}
+
 func main() {
+	// 	parse arguments
+	var outbase string
+	var rfiles MultiFlag
+	flag.StringVar(&outbase, "O", ".", "output diectory")
+	flag.Var(&rfiles, "R", "rule files")
 
-	/*
-			// simplification test
-			c0 := at.NewClass("Test1")
+	flag.Parse()
+	ifiles := flag.Args()
 
-			c0.AddAssignment("dummy", &at.BinaryExpression{
-				Left:      at.NewNumberExpression(12, 8, prim.UBE),
-				Right:     at.NewNumberExpression(16, 8, prim.UBE),
-				Operation: prim.ADD,
-			})
+	// create database and scan rules
+	db := molly.New(outbase)
+	if err := db.ScanRules(rfiles); err != nil {
+		fmt.Println("ERROR while parsing rule file: ", err)
+	}
 
-			c0.AddAssignment("yummy", &at.BinaryExpression{
-				Left:      &at.VariableExpression{Id: "doesn't exist"},
-				Right:     at.NewNumberExpression(16, 8, prim.UBE),
-				Operation: prim.ADD,
-			})
-
-
-		fmt.Println("BEFORE", c0)
-		c0.Simplify()
-		fmt.Println("AFTER", c0)
-	*/
-	c := at.NewClass("DlinkFirmwareHeader")
-	c.AddAssignment("magic",
-		&at.ExtractExpression{
-			Offset: at.NewNumberExpression(0, 8, prim.UBE),
-			Size:   at.NewNumberExpression(4, 8, prim.UBE),
-		})
-
-	c.AddAssignment("bootnameadr",
-		&at.ExtractExpression{
-			Offset: at.NewNumberExpression(7, 8, prim.UBE),
-			Size:   at.NewNumberExpression(1, 8, prim.UBE),
-		})
-
-	c.AddAssignment("bootname", &at.ExtractExpression{
-		Offset: &at.BinaryExpression{
-			Left:      &at.VariableExpression{Id: "bootnameadr"},
-			Right:     at.NewNumberExpression(12, 8, prim.UBE),
-			Operation: prim.ADD,
-		},
-		Size: at.NewNumberExpression(4, 8, prim.UBE),
-	})
-
-	c.AddCondition(&at.BinaryExpression{
-		Left:      &at.VariableExpression{Id: "bootname"},
-		Right:     at.NewNumberExpression(0x54a3a417, 4, prim.UBE),
-		Operation: prim.EQ,
-	})
-
-	c2 := at.NewClass("UImage")
-	c2.AddAssignment("magic",
-		&at.ExtractExpression{
-			Offset: at.NewNumberExpression(0, 8, prim.UBE),
-			Size:   at.NewNumberExpression(4, 8, prim.UBE),
-		})
-
-	c2.AddAssignment("tragic",
-		&at.UnaryExpression{
-			Value:     &at.VariableExpression{Id: "filesize$"},
-			Operation: prim.NEG,
-		})
-
-	c2.AddAssignment("kragic",
-		&at.BinaryExpression{
-			Left: &at.BinaryExpression{
-				Left:      at.NewStringExpression("Zappa"),
-				Right:     at.NewStringExpression("Kappa"),
-				Operation: prim.ADD,
-			},
-			Right:     at.NewStringExpression("ZappaKappa"),
-			Operation: prim.EQ,
-		})
-
-	c2.AddCondition(&at.BinaryExpression{
-		Left:      &at.VariableExpression{Id: "magic"},
-		Right:     at.NewNumberExpression(0x27051956, 4, prim.UBE),
-		Operation: prim.EQ,
-	})
-
-	c2.AddAction("echo", "bla", "blabla")
-
-	db := molly.NewDatabase()
-	db.Classes = append(db.Classes, c)
-	db.Classes = append(db.Classes, c2)
-
-	fmt.Println("DB=", db)
-	err := db.ScanFile("/home/work/tmp/fw/")
+	// scan input files
+	ss, err := db.ScanFiles(ifiles, nil)
 	if err != nil {
-		fmt.Println("SCAN ERROR: ", err)
+		fmt.Println("SCAN while parsing file: ", err)
+	}
+
+	// show results
+	fmt.Println("SCAN RESULTS:")
+	for _, match := range ss.Results {
+		fmt.Printf("\t%s %s\n", match.Rule, match.Filename)
+		for k, v := range match.Vars {
+			fmt.Printf("\t\t%s : %T = %v\n", k, v, v)
+		}
+	}
+
+	if len(ss.Errors) > 0 {
+		fmt.Println("ERRORS:")
+		for _, e := range ss.Errors {
+			fmt.Printf("\t%s\n", e)
+		}
 	}
 }

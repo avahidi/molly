@@ -1,50 +1,55 @@
 
-class DlinkFirmwareHeader {
+
+rule DlinkFirmwareHeader {
 	var magic = String(0, 4);
 	var bootnameadr = Byte(7);
-	var BootName = String(bootnameadr + 12);
+	var BootName = String(bootnameadr + 12, 30);
 
 	if magic == { 0x54, 0xa3, 0xa4, 0x17};
-	action extract("Found Dlink Firmware");
-};
+
+	printf("Found Dlink Firmware\n");
+}
 
 
-
-class SeattleImageFirmwareHeader {
-	var magic = Long(0, endian=big);
-	var reserved = Short(4, endian=big);
-	var MetaSize = Short(6, endian = big);
-	var ImageSize = Long(8, endian = big);
+/*
+rule SeattleImageFirmwareHeader {
+	var magic = Long(0);
+	var reserved = Short(4);
+	var MetaSize = Short(6);
+	var ImageSize = Long(8);
 
 	if (reserved == 0) && (ImageSize > 0);
 }
+*/
 
-class UImage {
-	var endian$ = big;
+rule UImage {
+	var endian$ = 1;
 	var magic = Long(0);
 	var crc = Long(4);
 	var data = Long(8);
 	var size = Long(12);
 	var address = Long(16);
 	var entry = Long(20);
-	 var crc = Long(24);
-	var name = String(32, 32);
+	var crc = Long(24);
+	var os = Byte(28);
+	var arch = Byte(29);
+
+	var name = StringZ(32, 32);
 
 	if (magic == 0x27051956) && (size > 0);
-	action echo("found uimage");
 
-	var header_size = 8 * 8 + 32;
-	action extract(name, header_size, size);
+	var header_size = 32 + 32;
+
+	printf("found uimage: %s in %s\n", name, filename$);
+	extract(name, header_size, size, true);
 }
 
 
-class UImage {
-	var endian$ = big;
-	var magic = Long(0);
-	var size = Long(12);
-	var name = String(32, 32);
+rule UImageLinux : UImage {
+	if os == 5;
 
-	if (magic == 0x27051956) && (size > 0);
-	action echo("found uimage");
-	action extract(name, 64, size);
+	// TEST for now
+	system("/bin/echo", "filename", newfile("abcd"));
+	addfile("/etc/passwd");
 }
+
