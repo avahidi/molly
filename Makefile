@@ -1,27 +1,39 @@
 
-all: build
-	@echo valid targets are: build, test, fmt, clean and run
+# files to scan with make run
+FILES ?= ~/tmp/fw
 
-build:
-	go build
-	cd app && go build *.go
-	mv app/main mh
+all: compile
+	@echo valid targets are: compile, test, fmt, clean and run
 
-run:
-	go build
-	rm -rf ~/tmp/fw_output
-	cd app && go run *.go -R ../rules -O ~/tmp/fw_output ~/tmp/fw/
+compile: build/molly
+
+build/molly: build
+	go build -o build/molly
+
+run: compile
+	rm -rf build/extracted
+	rm -rf build/report
+	mkdir build/report
+	build/molly $(O) -R data/rules \
+		-outdir build/extracted  -logdir build/report \
+		-tagop "elf: ls {name}" \
+		-tagop "executable: echo executable {name} contains {size} bytes" \
+		$(FILES)
+	- python -m json.tool build/report/report.json > build/report/report.pretty.json
 
 test:
-	go test
+	go test ./...
 
 fmt:
 	go fmt
-	cd app && go fmt
 
+vet:
+	go tool vet .
 
+build:
+	mkdir build
 clean:
 	go clean
-	cd app && go clean
+	rm -rf build
 
-.PHYONY: fmt clean run build
+.PHYONY: fmt clean run compile test

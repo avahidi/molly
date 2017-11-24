@@ -1,0 +1,61 @@
+
+rule MicrosoftExe (tag = "executable", bigendian = false) {
+    if ($filesize % 512) == 0;
+    var magic = String(0, 2);
+    var extra = Short(2);
+    var blocks = Short(4);
+
+    if magic == "MZ" && (extra >= 0 && extra < 512);
+
+    // TODO: also consider the old MSDOS format?
+    // String(0, 8) == "MZ\x00\x00\x00\x00\x00\x00"
+    // ....
+}
+
+
+rule ELF (tag = "executable,elf") {
+    var magic = String(0, 4);
+    var class = Byte(4);
+    var data = Byte(5);
+    var version = Byte(6);
+    var osabi = Byte(7);
+
+    if magic== "\x7FELF" && (version == 1)
+        && (class == 1 || class == 2)
+        && (data == 1 || data == 2);
+
+    analyze("strings", "string_analysis");
+    analyze("histogram", "");
+}
+
+// big or little endian?
+rule ELF_le (bigendian = false) : ELF {
+    var machine = Short(18);
+    if data == 1;
+}
+
+rule ELF_be (bigendian = true) : ELF {
+    var machine = Short(18);
+    if data == 2;
+}
+
+// all architectures:
+rule ELF_x86 (tag = "x86") : ELF_le {
+    if machine == 0x0003;
+}
+
+rule ELF_x64 (tag = "x64") : ELF_le {
+    if machine == 0x003E;
+}
+
+rule ELF_mips (tag = "mips") : ELF_be {
+    if machine == 0x0008;
+}
+
+rule ELF_arm64 (tag = "arm64") : ELF_le {
+    if machine == 0x00B7;
+}
+
+rule ELF_arm (tag = "arm") : ELF_le {
+    if machine == 0x0028;
+}

@@ -1,0 +1,83 @@
+
+
+rule LZMANew (tag = "archive") {
+    var header = StringZ(0, 5);
+    var type = Byte(6) & 0x10;
+
+    if header == { 0xFF, 'L', 'Z', 'M', 'A'};
+}
+
+rule LZMA51 (tag = "archive")  {
+    var header = String(0, 3);
+    if header == { 0x51, 0x00, 0x00 };
+}
+
+rule LZMA5d (tag = "archive") {
+    var header = String(0, 3);
+
+    if header == { 0x5D, 0x00, 0x00 };
+}
+
+
+rule ZIP (bigendian = false, tag = "archive") {
+    var header = String(0, 4);
+    var csize = Long(18);
+    var usize = Long(22);
+
+    if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
+
+    decompress("zip", "");
+
+}
+
+rule TAR (tag = "archive")  {
+    var magic = String(257, 8);
+    var filename = StringZ(0, 100);
+
+    if magic[0:5] == { 'u', 's', 't', 'a', 'r', 0x00} ||
+        magic == { 'u', 's', 't', 'a', 'r', ' ', ' ', 0x00};
+
+    decompress("tar", "");
+}
+
+
+
+/*
+rule cpio_ascii_new  (tag = "archive") {
+    var magic = String(0, 6);
+    if magic == "070701" || magic == "070702";
+}
+*/
+
+rule cpio_ascii_old  (tag = "archive") {
+    if $filesize % 512 == 0;
+
+    var magic = String(0, 6);
+    if magic == "070707";
+
+    var namesize0 = String(59, 6);
+    var namesize = toInt(String(59, 6));
+    var filesize = String(65, 11);
+
+    // some minimal sanity checks for cpio
+    if namesize > 0 && namesize < 100;
+    var firstfile = StringZ(76, namesize + 1);
+    if len(firstfile) == namesize - 1; // zero teminated
+
+    decompress("cpio", "");
+}
+
+
+rule cpio_binary  (tag = "archive", bigendian = false) {
+    if $filesize % 512 == 0;
+
+    var magic = String(0, 2);
+    if magic == { 0xc7, 0x71 };
+
+    var namesize = Short(20);
+    var filesize = Long(22);
+    var firstfile = StringZ(26, namesize + 1);
+    if len(firstfile) == namesize - 1; // zero teminated
+
+    decompress("cpio", "");
+}

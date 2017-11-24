@@ -2,18 +2,25 @@
 TODO
 ====
 
+* Lazy evaluation of binary operations (e.f. TRUE || x will not need to evaluate x)
 
- * export matches to json/whatever
- * trace functions to record
+* DONE: record file extraction hierachy
+  - TODO: make sure children are stored with parents if they are container formats
+
+
+ * add support for decompressors:
+    - DONE: TAR, ZIP, zpio
+    - TODO: bz, gz
+
+
 
  * add function calls
    - conversion functions, eg int(), uint64(), string()
    - len() or sizeof()
-
-
-
-
- * Lazy extaction of variables in a class
+   - DONE: string functions
+   - DONE crc and hash functions
+   - a select function to select between two EXPRESSIONS (not values?)
+   x = select( a == 23, a, b)
 
 DONE
 ====
@@ -36,3 +43,24 @@ DONE
 
    - (as action) inject new file into the scanned set
    - get name for a new file
+
+* export matches to json/whatever
+* better error messages when scanning files (errors put in MatchReport)
+* fix input set so it doesn't depend on filewalk and search dirs only on pop
+
+* quit when an unknown variable is seen
+
+* Lazy extaction of variables in a class
+
+* decoding of strings:
+  * DONE: \\, \t, \n \r
+  * DONE: octal \nnn
+  * DONE: hex \xnn
+
+* DONE: add a global log / error manager
+
+
+* structure to create reports from a central location
+   - set output directory
+   - create stand-alone files
+   - create files associated with a scanned binary

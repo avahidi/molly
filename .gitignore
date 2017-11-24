@@ -3,4 +3,5 @@ build
 *.exe
 core
 main
-mh
+molly
+build

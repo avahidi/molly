@@ -1,0 +1,15 @@
+
+
+rule squashfs (tag="filesystem") {
+    var magic = String(0, 4);
+    var compression = Short(20) / 8;
+    var s_major = Short(28);
+    var s_minor = Short(30);
+
+    if magic == {0x73, 0x71, 0x73, 0x68 };
+    if compression > 0 && compression < 5;
+    if s_major >= 0 && s_major < 10 && s_minor < 10;
+
+    var dir = dir("");
+    system("unsquashfs -d %s %s", dir, $filename);
+}
