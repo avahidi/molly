@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"bitbucket.org/vahidi/molly"
@@ -22,23 +23,43 @@ func (mf *MultiFlag) Set(val string) error {
 	return nil
 }
 
+// flags and usage
+var outbase = flag.String("O", ".", "output directory")
+var allowSystem = flag.Bool("system", false, "allow system calls from rules")
+var rfiles MultiFlag
+
+func init() {
+	flag.Var(&rfiles, "R", "rule files")
+}
+
+func help(errmsg string, exitcode int) {
+	if errmsg != "" {
+		fmt.Printf("%s\n", errmsg)
+	}
+	flag.Usage()
+	fmt.Printf("  files\n\tinput files to be scanned\n")
+	os.Exit(exitcode)
+}
+
 func main() {
 	// 	parse arguments
-	var outbase string
-	var rfiles MultiFlag
-	flag.StringVar(&outbase, "O", ".", "output diectory")
-	flag.Var(&rfiles, "R", "rule files")
-
 	flag.Parse()
 	ifiles := flag.Args()
 
 	// create database and scan rules
-	db := molly.New(outbase)
+	db := molly.New(*outbase)
 	if err := db.ScanRules(rfiles); err != nil {
 		fmt.Println("ERROR while parsing rule file: ", err)
 	}
+	if len(db.Rules) == 0 {
+		help("No rules were loaded", 20)
+	}
 
 	// scan input files
+	if len(ifiles) == 0 {
+		help("No input files", 20)
+	}
+
 	ss, err := db.ScanFiles(ifiles, nil)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)

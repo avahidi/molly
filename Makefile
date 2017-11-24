@@ -1,10 +1,11 @@
 
-all:
+all: build
 	@echo valid targets are: build, test, fmt, clean and run
 
 build:
 	go build
 	cd app && go build *.go
+	mv app/main mh
 
 run:
 	go build
