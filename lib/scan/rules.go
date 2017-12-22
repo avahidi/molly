@@ -33,7 +33,7 @@ func precedence(op string) int {
 }
 
 func ParseRules(ins types.FileQueue, rs *types.RuleSet) error {
-	var listAll []types.Rule
+	var listAll []*types.Rule
 	parents := make(map[string]string)
 
 	for filename := ins.Pop(); filename != ""; filename = ins.Pop() {
@@ -52,7 +52,7 @@ func ParseRules(ins types.FileQueue, rs *types.RuleSet) error {
 			if err != nil {
 				return err
 			}
-			id := c.GetId()
+			id := c.ID
 			if _, found := rs.Flat[id]; found {
 				return fmt.Errorf("Multiple definitions of '%s' (last in %s)", id, filename)
 			}
@@ -69,26 +69,30 @@ func ParseRules(ins types.FileQueue, rs *types.RuleSet) error {
 	// from the flattened rs.map_ and parent relationship rs.parnetship build
 	// the rule hierarchy:
 	for _, klass := range listAll {
-		kid := klass.GetId()
+		kid := klass.ID
 		parent, has := parents[kid]
 		if has {
 			p, has := rs.Flat[parent]
 			if !has {
 				return fmt.Errorf("Rule %s is missing parent %s", kid, parent)
 			}
-			klass.SetParent(p)
+
+			// p is now parent to klass
+			klass.Parent = p
+			p.Children = append(p.Children, klass)
+			klass.Metadata.SetParent(p.Metadata)
 		} else {
 			rs.Top[kid] = klass
 		}
 	}
 	// now close all rules
 	for _, klass := range listAll {
-		klass.Close()
+		exp.RuleClose(klass)
 	}
 	return nil
 }
 
-func parseRule(p *parser) (types.Rule, string, error) {
+func parseRule(p *parser) (*types.Rule, string, error) {
 	if !p.acceptValue("rule") {
 		return nil, "", p.errorf("Unknown token, expected rule")
 	}
@@ -97,7 +101,7 @@ func parseRule(p *parser) (types.Rule, string, error) {
 	if !p.acceptToken(scanner.Ident, &id) {
 		return nil, "", p.errorf("Unknown token, expected rule identifier")
 	}
-	c := exp.NewRule(id)
+	c := types.NewRule(id)
 
 	// chec if we have rule metadata
 	if p.acceptToken('(', nil) {
@@ -118,7 +122,7 @@ func parseRule(p *parser) (types.Rule, string, error) {
 			if err != nil {
 				return nil, "", err
 			}
-			c.GetMetadata().Set(metaid, val)
+			c.Metadata.Set(metaid, val)
 
 			if p.acceptToken(')', nil) {
 				break
@@ -164,7 +168,7 @@ func parseRule(p *parser) (types.Rule, string, error) {
 	}
 }
 
-func parseAssignment(p *parser, c types.Rule) error {
+func parseAssignment(p *parser, c *types.Rule) error {
 	var id string
 	if !p.acceptToken(scanner.Ident, &id) {
 		return p.errorf("Unknown token, expected LHS in assignment")
@@ -178,20 +182,25 @@ func parseAssignment(p *parser, c types.Rule) error {
 	}
 	expr, err := parseExpression(p)
 	if err == nil {
-		err = c.AddVar(id, expr)
+		if _, exists := c.Variables[id]; exists {
+			err = fmt.Errorf("variable '%s' is already defined in %s", id, c.ID)
+		} else {
+			c.Variables[id] = expr
+		}
 	}
 	return err
 }
 
-func parseCondition(p *parser, c types.Rule) error {
+func parseCondition(p *parser, c *types.Rule) error {
 	expr, err := parseExpression(p)
-	if err == nil {
-		c.AddCondition(expr)
+	if err != nil {
+		return err
 	}
-	return err
+	c.Conditions = append(c.Conditions, exp.Simplify(expr))
+	return nil
 }
 
-func parseAction(p *parser, c types.Rule) error {
+func parseAction(p *parser, c *types.Rule) error {
 	var name string
 	if !p.acceptToken(scanner.Ident, &name) {
 		return p.errorf("Unknown token, expected function name in action")
@@ -200,7 +209,7 @@ func parseAction(p *parser, c types.Rule) error {
 	if err != nil {
 		return err
 	}
-	c.AddAction(expr)
+	c.Actions = append(c.Actions, exp.Simplify(expr))
 	return nil
 }
 

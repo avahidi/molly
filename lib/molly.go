@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
-	"bitbucket.org/vahidi/molly/lib/exp"
 	"bitbucket.org/vahidi/molly/lib/scan"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
@@ -77,11 +76,7 @@ type MatchCallback func(m *types.MatchEntry)
 
 // ScanRules reads rules from files
 func ScanRules(files []string) (*types.RuleSet, error) {
-	rs := &types.RuleSet{
-		Files: make(map[string][]types.Rule),
-		Top:   make(map[string]types.Rule),
-		Flat:  make(map[string]types.Rule),
-	}
+	rs := types.NewRuleSet()
 	ins := newfileset()
 	ins.Push(files...)
 	err := scan.ParseRules(ins, rs)
@@ -111,15 +106,16 @@ func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
 		}
 		inputs.Push(abs)
 	}
-	globals := util.NewRegister()
-	env := exp.NewEnvironment(globals)
+	// globals := util.NewRegister()
+	env := types.NewEnv()
+	globals := env.Globals
 	report := types.NewMatchReport()
 
 	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
 		fs := newFilesystem(filename, outputDir, inputs)
 
 		// prepare env and glonal variables for this file
-		env.SetFileSystem(fs)
+		env.FileSystem = fs
 		info, err := os.Stat(filename)
 		if err != nil {
 			report.Errors = append(report.Errors, err)
@@ -194,7 +190,7 @@ func extractTags(matches []*types.MatchEntry, rules *types.RuleSet) []string {
 	tagset := make(map[string]bool)
 	for _, match := range matches {
 		rule := rules.Flat[match.Rule]
-		if tagmeta, valid := rule.GetMetadata().GetString("tag", ""); valid {
+		if tagmeta, valid := rule.Metadata.GetString("tag", ""); valid {
 			tags := strings.Split(tagmeta, ",")
 			for _, tag := range tags {
 				if tag2 := strings.Trim(tag, " \t\n\r"); tag2 != "" {

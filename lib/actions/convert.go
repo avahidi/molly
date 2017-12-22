@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-func lenFunction(e types.Env, item interface{}) (interface{}, error) {
+func lenFunction(e *types.Env, item interface{}) (interface{}, error) {
 	switch n := item.(type) {
 	case string:
 		return len(n), nil
@@ -16,7 +16,7 @@ func lenFunction(e types.Env, item interface{}) (interface{}, error) {
 	}
 }
 
-func toIntFunction(e types.Env, str string) (interface{}, error) {
+func toIntFunction(e *types.Env, str string) (interface{}, error) {
 	return strconv.ParseInt(str, 10, 64)
 }
 

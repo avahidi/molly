@@ -14,14 +14,14 @@ run: compile
 	rm -rf build/extracted
 	rm -rf build/report
 	mkdir build/report
-	build/molly $(O) -R data/rules \
+	-build/molly $(O) -R data/rules \
 		-outdir build/extracted  -logdir build/report \
 		-tagop "elf: ls {name}" \
 		-tagop "executable: echo executable {name} contains {size} bytes" \
 		-enable create-file \
-		-enable execute-external \
+		-disable execute-external \
 		$(FILES)
-	- python -m json.tool build/report/report.json > build/report/report.pretty.json
+	python -m json.tool build/report/report.json > build/report/report.pretty.json
 
 test:
 	go test ./...

@@ -26,7 +26,7 @@ var analyzers = map[string]Analyzer{
 }
 
 // analyzeFunction performs some type of analysis on the current binary
-func analyzeFunction(e types.Env, typ string, prefix string, data ...interface{}) (string, error) {
+func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{}) (string, error) {
 	f, found := analyzers[typ]
 	if !found {
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)

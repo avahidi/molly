@@ -43,7 +43,7 @@ func (f Function) String() string {
 // Call does the actuall function call using golang reflection, after some
 // format and type checking.
 // This function will fatally fail if the parameter and return format do not match.
-func (f Function) Call(env Env, args []interface{}) (interface{}, error) {
+func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			logging.Fatalf("Call failed: %s", r)
@@ -97,7 +97,7 @@ func (f Function) Call(env Env, args []interface{}) (interface{}, error) {
 }
 
 // the prototype function is used for comparision with registered functions
-var prototype *Function = newFunction("dummy", func(e Env, args ...interface{}) (interface{}, error) { return nil, nil })
+var prototype *Function = newFunction("dummy", func(e *Env, args ...interface{}) (interface{}, error) { return nil, nil })
 
 var actionRegister = make(map[string]*Function)
 

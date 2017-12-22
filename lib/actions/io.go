@@ -9,7 +9,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-func extractFunction(e types.Env, filename string, offset int64, size int64, queue bool) (string, error) {
+func extractFunction(e *types.Env, filename string, offset int64, size int64, queue bool) (string, error) {
 	fmt.Printf("extracting %d bytes into %s...\n", size, filename)
 
 	// input file
@@ -18,7 +18,7 @@ func extractFunction(e types.Env, filename string, offset int64, size int64, que
 	}
 
 	// output file:
-	w, err := e.GetFileSystem().Create(filename)
+	w, err := e.FileSystem.Create(filename)
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +38,7 @@ func RegisterExtractor(typ string, extoractor func(types.FileSystem, string, str
 	extractorlist[typ] = extoractor
 }
 
-func decompressFunction(e types.Env, typ string, prefix string) (string, error) {
+func decompressFunction(e *types.Env, typ string, prefix string) (string, error) {
 	filename := types.FileName(e)
 	f, found := extractorlist[typ]
 	if !found {
@@ -46,27 +46,27 @@ func decompressFunction(e types.Env, typ string, prefix string) (string, error) 
 	}
 
 	fmt.Printf("Extracting '%s' file '%s'...\n", typ, filename)
-	return filename, f(e.GetFileSystem(), filename, prefix)
+	return filename, f(e.FileSystem, filename, prefix)
 }
 
-func fileFunction(e types.Env, prefix string) (string, error) {
-	return e.GetFileSystem().Name(prefix, true), nil
+func fileFunction(e *types.Env, prefix string) (string, error) {
+	return e.FileSystem.Name(prefix, true), nil
 }
 
-func dirFunction(e types.Env, prefix string) (string, error) {
-	path := e.GetFileSystem().Name(prefix, false)
-	err := e.GetFileSystem().Mkdir(prefix)
+func dirFunction(e *types.Env, prefix string) (string, error) {
+	path := e.FileSystem.Name(prefix, false)
+	err := e.FileSystem.Mkdir(prefix)
 	return path, err
 }
 
 // slice the current file
-func sliceFunction(e types.Env, prefix string, positions ...int64) (int64, error) {
+func sliceFunction(e *types.Env, prefix string, positions ...int64) (int64, error) {
 	if len(positions) == 0 || len(positions)%2 != 0 {
 		return 0, fmt.Errorf("Wrong number of parameters in slice()")
 	}
 
 	total := types.FileSize(e)
-	file, err := e.GetFileSystem().Create(prefix)
+	file, err := e.FileSystem.Create(prefix)
 	if err != nil {
 		return 0, err
 	}
@@ -86,10 +86,6 @@ func sliceFunction(e types.Env, prefix string, positions ...int64) (int64, error
 		}
 	}
 	return count, nil
-}
-
-func init() {
-	types.FunctionRegister("checksum", checksumFunction)
 }
 
 func init() {

@@ -99,7 +99,7 @@ func NewStringExpression(s string) *ValueExpression {
 	return NewValueExpression(ss)
 }
 
-func (ve *ValueExpression) Eval(env types.Env) (types.Expression, error) {
+func (ve *ValueExpression) Eval(env *types.Env) (types.Expression, error) {
 	return ve, nil
 }
 
@@ -112,11 +112,11 @@ type VariableExpression struct {
 	Id string
 }
 
-func (ve *VariableExpression) Eval(env types.Env) (types.Expression, error) {
+func (ve *VariableExpression) Eval(env *types.Env) (types.Expression, error) {
 	if env == nil {
 		return ve, nil
 	}
-	expr, found, err := env.Lookup(ve.Id)
+	expr, found, err := EnvLookup(env, ve.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ type SliceExpression struct {
 	End   types.Expression
 }
 
-func (se *SliceExpression) Eval(env types.Env) (types.Expression, error) {
+func (se *SliceExpression) Eval(env *types.Env) (types.Expression, error) {
 	expr, err := se.Expr.Eval(env)
 	if err != nil {
 		return nil, err
@@ -210,7 +210,7 @@ type OperationExpression struct {
 	Operation prim.Operation
 }
 
-func (oe *OperationExpression) Eval(env types.Env) (types.Expression, error) {
+func (oe *OperationExpression) Eval(env *types.Env) (types.Expression, error) {
 	left, err := oe.Left.Eval(env)
 	if err != nil {
 		return nil, err
@@ -318,7 +318,7 @@ func NewExtractExpression(o, s types.Expression, m *util.Register, f ExtractForm
 	return &ExtractExpression{Offset: o, Size: s, Metadata: m, Format: f}
 }
 
-func (ee *ExtractExpression) Eval(env types.Env) (types.Expression, error) {
+func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 	o1, err := ee.Offset.Eval(env)
 	if err != nil {
 		return nil, err
@@ -412,7 +412,7 @@ func NewFunctionExpression(name string, m *util.Register,
 	return &FunctionExpression{Name: name, Metadata: m, Func: f, Params: params}, nil
 }
 
-func (fe *FunctionExpression) Eval(env types.Env) (types.Expression, error) {
+func (fe *FunctionExpression) Eval(env *types.Env) (types.Expression, error) {
 	// simplify:
 	if env == nil {
 		c := &FunctionExpression{Name: fe.Name, Func: fe.Func,
