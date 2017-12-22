@@ -18,6 +18,8 @@ run: compile
 		-outdir build/extracted  -logdir build/report \
 		-tagop "elf: ls {name}" \
 		-tagop "executable: echo executable {name} contains {size} bytes" \
+		-enable create-file \
+		-enable execute-external \
 		$(FILES)
 	- python -m json.tool build/report/report.json > build/report/report.pretty.json
 

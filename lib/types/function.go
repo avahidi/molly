@@ -125,11 +125,10 @@ func FunctionFind(name string) (*Function, bool) {
 	return f, found
 }
 
-// FunctionHelp returns the signature for all registred functions
-func FunctionHelp() []string {
-	var ret []string
+// FunctionHelp prints help text including signature for all registred functions
+func FunctionHelp() {
+	fmt.Printf("Available functions are:\n")
 	for _, v := range actionRegister {
-		ret = append(ret, fmt.Sprintf("%20s: %v\t->%v", v.name, v.ins, v.outs))
+		fmt.Printf("%20s: %v\t->%v\n", v.name, v.ins, v.outs)
 	}
-	return ret
 }

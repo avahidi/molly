@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 func sprintfFunction(e types.Env, format string, args ...interface{}) (string, error) {
@@ -19,9 +19,8 @@ func printfFunction(e types.Env, format string, args ...interface{}) (string, er
 }
 
 func systemFunction(e types.Env, format string, args ...interface{}) (interface{}, error) {
-	if allowsys, _ := e.GetGlobals().GetBoolean("AllowSystemAction", false); !allowsys {
-		logging.Warningf("system action are not allowed, action ignored (%s)", e)
-		return "", nil
+	if !util.PermissionGet(util.ExecuteExternal) {
+		return "", fmt.Errorf("system actions are not allowed, action ignored (%s)", e)
 	}
 
 	cmd := strings.Split(fmt.Sprintf(format, args...), " ")
@@ -30,7 +29,6 @@ func systemFunction(e types.Env, format string, args ...interface{}) (interface{
 	// now execute it:
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err == nil {
-		fmt.Printf("%s\n", string(out))
 		return string(out), nil
 	}
 	fmt.Println(string(out), err)

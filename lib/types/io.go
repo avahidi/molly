@@ -16,8 +16,3 @@ type FileSystem interface {
 	Create(suggestedname string) (*os.File, error)
 	Mkdir(suggestedpath string) error
 }
-
-type InputSet interface {
-	FileQueue
-	Files() []string
-}

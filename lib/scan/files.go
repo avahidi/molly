@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
 // AnalyzeFile evaluates one rule against one file,
@@ -24,8 +23,7 @@ func AnalyzeFile(filename string, r types.Rule, e types.Env) (*types.MatchEntry,
 	var errors []error
 	r.Actions(func(r1 types.Rule, a types.Expression) error {
 		if _, err := a.Eval(e); err != nil {
-			err = fmt.Errorf("action failure in rule %s, file %s: %v", r.GetId(), filename, err)
-			logging.Fatal(err) // no point continuing after this...
+			err := fmt.Errorf("[action failure] %.100q...", err)
 			errors = append(errors, err)
 		}
 		return err

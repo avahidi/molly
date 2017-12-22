@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -42,6 +43,9 @@ func (fs *filesystem) Name(suggested string, addtopath bool) string {
 	return path
 }
 func (fs *filesystem) Mkdir(path string) error {
+	if !util.PermissionGet(util.CreateFile) {
+		return fmt.Errorf("Not allowed to create files (mkdir")
+	}
 	path = fs.Name(path, false)
 	err := os.MkdirAll(path, 0700)
 	if err == nil {
@@ -50,6 +54,10 @@ func (fs *filesystem) Mkdir(path string) error {
 	return err
 }
 func (fs *filesystem) Create(filename string) (*os.File, error) {
+	if !util.PermissionGet(util.CreateFile) {
+		return nil, fmt.Errorf("Not allowed to create files (mkdir")
+	}
+
 	filename = fs.Name(filename, false)
 
 	// make sure the path leading to it exist
@@ -67,20 +75,25 @@ func (fs *filesystem) Create(filename string) (*os.File, error) {
 // MatchCallback is the type of function called when a match is found
 type MatchCallback func(m *types.MatchEntry)
 
-// Molly is the main structure and contains the rule database and configuration
-type Molly struct {
-	Globals *util.Register
-	RuleSet *types.RuleSet
-
-	matchCallback MatchCallback
-	outputDir     string
-
-	// these are valid only during scanning
-	currInputs types.InputSet
-	currOutpus *types.MatchReport
+// ScanRules reads rules from files
+func ScanRules(files []string) (*types.RuleSet, error) {
+	rs := &types.RuleSet{
+		Files: make(map[string][]types.Rule),
+		Top:   make(map[string]types.Rule),
+		Flat:  make(map[string]types.Rule),
+	}
+	ins := newfileset()
+	ins.Push(files...)
+	err := scan.ParseRules(ins, rs)
+	return rs, err
 }
 
-func New(outputDir string, callback MatchCallback) *Molly {
+// ScanFiles scans a set of files for matches against the given rules
+// if any files are extracted they will be created within outputDir
+func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
+	callback MatchCallback) (*types.MatchReport, int, error) {
+
+	// prepare output directory
 	outputDir, err := filepath.Abs(outputDir)
 	if err != nil {
 		logging.Fatal(err)
@@ -89,125 +102,112 @@ func New(outputDir string, callback MatchCallback) *Molly {
 		logging.Fatalf("Could not create output directory: %v", err)
 	}
 
-	rs := &types.RuleSet{
-		Files: make(map[string][]types.Rule),
-		Top:   make(map[string]types.Rule),
-		Flat:  make(map[string]types.Rule),
-	}
-
-	m := &Molly{
-		Globals:       util.NewRegister(),
-		RuleSet:       rs,
-		outputDir:     outputDir,
-		matchCallback: callback,
-	}
-	m.Globals.Set("$outputdir", outputDir)
-	return m
-}
-
-func (m *Molly) ScanRules(files []string) error {
-	ins := newinputset()
-	ins.Push(files...)
-	return scan.ParseRules(ins, m.RuleSet)
-}
-
-func (m *Molly) ScanFiles(files []string) (types.InputSet, *types.MatchReport, error) {
-	env := exp.NewEnvironment(m.Globals)
-	m.currInputs = newinputset()
-	m.currOutpus = types.NewMatchReport()
-
+	// inputs
+	inputs := newfileset()
 	for _, file := range files {
 		abs, err := filepath.Abs(file)
 		if err != nil {
-			return nil, nil, err
+			return nil, 0, err
 		}
-		m.currInputs.Push(abs)
+		inputs.Push(abs)
 	}
+	globals := util.NewRegister()
+	env := exp.NewEnvironment(globals)
+	report := types.NewMatchReport()
 
-	for filename := m.currInputs.Pop(); filename != ""; filename = m.currInputs.Pop() {
-		fs := newFilesystem(filename, m.outputDir, m.currInputs)
+	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
+		fs := newFilesystem(filename, outputDir, inputs)
 
+		// prepare env and glonal variables for this file
 		env.SetFileSystem(fs)
 		info, err := os.Stat(filename)
 		if err != nil {
-			m.currOutpus.Errors = append(m.currOutpus.Errors, err)
+			report.Errors = append(report.Errors, err)
 			continue
 		}
+		dir, name := path.Dir(filename), path.Base(filename)
+		globals.SetString("$path", dir)
+		globals.SetString("$shortfilename", name)
+		globals.SetString("$filename", filename)
+		globals.SetNumber("$filesize", info.Size())
 
+		// compute the new output path for anything generated out of this file
+		var pathnew = filename
+		if filepath.HasPrefix(pathnew, outputDir) {
+			pathnew = pathnew[len(outputDir):]
+		}
+		pathnew = filepath.Join(outputDir, util.SanitizeFilename(pathnew, nil)) + "_"
+		globals.Set("$outdir", pathnew)
+		fs.outdir = pathnew
+
+		// open file and scan it
 		f, err := os.Open(filename)
 		if err != nil {
-			m.currOutpus.Errors = append(m.currOutpus.Errors, err)
+			report.Errors = append(report.Errors, err)
 			continue
 		}
 		defer f.Close()
 
-		// set the global variables for this file
-		dir, name := path.Dir(filename), path.Base(filename)
-		m.Globals.SetString("$path", dir)
-		m.Globals.SetString("$shortfilename", name)
-		m.Globals.SetString("$filename", filename)
-		m.Globals.SetNumber("$filesize", info.Size())
-
-		// compute the new output path for anything generated out of this file
-		var pathnew = filename
-		if filepath.HasPrefix(pathnew, m.outputDir) {
-			pathnew = pathnew[len(m.outputDir):]
-		}
-		pathnew = filepath.Join(m.outputDir, util.SanitizeFilename(pathnew, nil)) + "_"
-		m.Globals.Set("$outdir", pathnew)
-		fs.outdir = pathnew
-
 		env.StartFile(f)
-		for _, r := range m.RuleSet.Top {
+		for _, r := range rules.Top {
 			env.StartRule(r)
 			match, errs := scan.AnalyzeFile(filename, r, env)
 			if match != nil {
-				m.currOutpus.MatchTree = append(m.currOutpus.MatchTree, match)
+				report.MatchTree = append(report.MatchTree, match)
 			}
-			m.currOutpus.Errors = append(m.currOutpus.Errors, errs...)
+			report.Errors = append(report.Errors, errs...)
 		}
-		m.currOutpus.FileHierarchy[filename] = fs.generated
+		report.FileHierarchy[filename] = fs.generated
 	}
 
 	// populate tagged files
-	// 1. get a list of all files and their matches
-	filematch := make(map[string][]*types.MatchEntry)
-	for _, me := range m.currOutpus.MatchTree {
-		me.Walk(func(mc *types.MatchEntry) {
-			hits, _ := filematch[mc.Filename]
-			filematch[mc.Filename] = append(hits, mc)
-		})
-	}
-	// 2. for each matched files, get the tags
-	// get a list of all files and their matches
+	filematch := extractFilesFromReport(report)
 	for filename, matches := range filematch {
-		tagset := make(map[string]bool)
-		for _, match := range matches {
-			rule := m.RuleSet.Flat[match.Rule]
-			if tagmeta, valid := rule.GetMetadata().GetString("tag", ""); valid {
-				tags := strings.Split(tagmeta, ",")
-				for _, tag := range tags {
-					if tag2 := strings.Trim(tag, " \t\n\r"); tag2 != "" {
-						tagset[tag2] = true
-					}
-				}
-			}
-		}
-		if len(tagset) != 0 {
-			asarray := []string{}
-			for tag := range tagset {
-				asarray = append(asarray, tag)
-			}
-			m.currOutpus.TaggedFiles[filename] = asarray
-		}
+		tagset := extractTags(matches, rules)
+		report.TaggedFiles[filename] = tagset
 	}
 
 	// user callback?
-	if m.matchCallback != nil {
-		for _, me := range m.currOutpus.MatchTree {
-			me.Walk(m.matchCallback)
+	if callback != nil {
+		for _, me := range report.MatchTree {
+			me.Walk(callback)
 		}
 	}
 
-	return m.currInputs, m.currOutpus, nil
+	return report, len(inputs.processed), nil
+}
+
+// extractFilesFromReport gathers all files that have at least one match
+func extractFilesFromReport(report *types.MatchReport) map[string][]*types.MatchEntry {
+	files := make(map[string][]*types.MatchEntry)
+	for _, me := range report.MatchTree {
+		me.Walk(func(mc *types.MatchEntry) {
+			hits, _ := files[mc.Filename]
+			files[mc.Filename] = append(hits, mc)
+		})
+	}
+	return files
+}
+
+// extractTags is a very inefficient way of gathering all tags in a match tree list
+func extractTags(matches []*types.MatchEntry, rules *types.RuleSet) []string {
+	tagset := make(map[string]bool)
+	for _, match := range matches {
+		rule := rules.Flat[match.Rule]
+		if tagmeta, valid := rule.GetMetadata().GetString("tag", ""); valid {
+			tags := strings.Split(tagmeta, ",")
+			for _, tag := range tags {
+				if tag2 := strings.Trim(tag, " \t\n\r"); tag2 != "" {
+					tagset[tag2] = true
+				}
+			}
+		}
+	}
+
+	// convert map to array
+	ret := make([]string, 0, len(tagset))
+	for k := range tagset {
+		ret = append(ret, k)
+	}
+	return ret
 }

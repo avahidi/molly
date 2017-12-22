@@ -4,26 +4,25 @@ import (
 	"os"
 	"path/filepath"
 
+	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
-// inputs is a queue for files being parsed
-type inputs struct {
+// fileset is a queue for files being parsed
+type fileset struct {
 	processed []string
 	queue     []string
 	seen      map[string]bool
 }
 
-// newinputs creates an empty inputs given a output directory
-func newinputset() *inputs {
-	return &inputs{seen: make(map[string]bool)}
+var _ types.FileQueue = (*fileset)(nil)
+
+// newfileset creates an empty fileset given a output directory
+func newfileset() *fileset {
+	return &fileset{seen: make(map[string]bool)}
 }
 
-func (i inputs) Files() []string {
-	return i.processed
-}
-
-func (i *inputs) Push(paths ...string) {
+func (i *fileset) Push(paths ...string) {
 	for _, path := range paths {
 		if _, seen := i.seen[path]; !seen {
 			i.seen[path] = true
@@ -32,7 +31,7 @@ func (i *inputs) Push(paths ...string) {
 	}
 }
 
-func (i *inputs) popOne() (string, bool) {
+func (i *fileset) popOne() (string, bool) {
 	n := len(i.queue)
 	if n == 0 {
 		return "", false
@@ -42,8 +41,7 @@ func (i *inputs) popOne() (string, bool) {
 	return filename, true
 }
 
-func (i *inputs) Pop() string {
-
+func (i *fileset) Pop() string {
 	for {
 		path, valid := i.popOne()
 		if !valid {

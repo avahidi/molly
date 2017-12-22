@@ -27,7 +27,6 @@ rule ZIP (bigendian = false, tag = "archive") {
     if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
 
     decompress("zip", "");
-
 }
 
 rule TAR (tag = "archive")  {

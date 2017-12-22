@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/exp/prim"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
+	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
 func precedence(op string) int {
@@ -31,7 +32,7 @@ func precedence(op string) int {
 	return 0
 }
 
-func ParseRules(ins types.InputSet, rs *types.RuleSet) error {
+func ParseRules(ins types.FileQueue, rs *types.RuleSet) error {
 	var listAll []types.Rule
 	parents := make(map[string]string)
 
@@ -369,7 +370,6 @@ func parseConstant(p *parser) (interface{}, error) {
 }
 
 func parseCall(p *parser, id string) (types.Expression, error) {
-
 	if !p.acceptToken('(', nil) {
 		return nil, p.errorf("Unknown token, expected '(' in function call ")
 	}
@@ -414,6 +414,12 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 	expr, err := findExtractFunction(id, argv, metadata)
 	if err == nil && expr == nil {
 		// not an extract function? try a regular one
+		if _, found := types.FunctionFind(id); !found {
+			fmt.Printf("Unknown function '%s'. ", id)
+			types.FunctionHelp()
+			logging.Fatalf("Unknown function, cannot continue")
+		}
+
 		expr, err = exp.NewFunctionExpression(id, metadata, argv...)
 	}
 
