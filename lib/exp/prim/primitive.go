@@ -1,6 +1,6 @@
 package prim
 
-import "bitbucket.org/vahidi/molly/lib/util/logging"
+import "bitbucket.org/vahidi/molly/lib/util"
 
 type Primitive interface {
 	Get() interface{}
@@ -37,7 +37,7 @@ func ValueToPrimitive(i interface{}) Primitive {
 	case string:
 		return NewString(v)
 	default:
-		logging.Fatalf("Unknown value -> primitive conversio: %t %T", i, i)
+		util.RegisterFatalf("Unknown value -> primitive conversio: %t %T", i, i)
 		return nil // not reached
 	}
 }

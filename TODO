@@ -2,6 +2,9 @@
 TODO
 ====
 
+* scan streams (mostly for testing)
+* generate reports in different formats (json, xml, csv, text)
+
 * Lazy evaluation of binary operations (e.f. TRUE || x will not need to evaluate x)
 
 * DONE: record file extraction hierachy

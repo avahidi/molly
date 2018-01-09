@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // Analyzer is the type of functions that will be called in
@@ -35,7 +35,7 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 	filename := types.FileName(e)
 	path := fmt.Sprintf("%s_%s_%s", typ, prefix, filename)
 
-	w, err := logging.Create(path)
+	w, err := util.CreateLog(path)
 	if err != nil {
 		return "", err
 	}

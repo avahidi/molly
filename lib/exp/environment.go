@@ -3,7 +3,7 @@ package exp
 import (
 	"bitbucket.org/vahidi/molly/lib/exp/prim"
 	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // EnvLookup returns a variable either from current scope or
@@ -13,7 +13,7 @@ func EnvLookup(e *types.Env, id string) (types.Expression, bool, error) {
 
 	// lazy evaluation in progress?
 	if found && exp == nil {
-		logging.Fatalf("Circular dependency in %s (%s)", id, e)
+		util.RegisterFatalf("Circular dependency in %s (%s)", id, e)
 	}
 	// attempt resolve lazy evaluation
 	if !found {

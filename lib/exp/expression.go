@@ -10,7 +10,6 @@ import (
 	"bitbucket.org/vahidi/molly/lib/exp/prim"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
 func get(e types.Expression) interface{} {
@@ -122,7 +121,7 @@ func (ve *VariableExpression) Eval(env *types.Env) (types.Expression, error) {
 	}
 	if !found {
 		err := fmt.Errorf("Could not find variable '%s'", ve.Id)
-		logging.Fatal(err) // no point continuing after this...
+		util.RegisterFatal(err) // no point continuing after this...
 		return nil, err
 	}
 	return expr, nil
@@ -335,7 +334,7 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 	o := get(o1).(*prim.Number)
 	s := get(s1).(*prim.Number)
-	if _, err := env.Seek(int64(o.Value), os.SEEK_SET); err != nil {
+	if _, err := env.Reader.Seek(int64(o.Value), os.SEEK_SET); err != nil {
 		return nil, err
 	}
 
@@ -351,11 +350,11 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 		// zero terminated or fix size?
 		if ee.Format.Type == StringZ {
-			data, _, err = util.ReadUntil(env, 0, int(s.Value))
+			data, _, err = util.ReadUntil(env.Reader, 0, int(s.Value))
 		} else {
 			var n int
 			data = make([]byte, s.Value)
-			n, err = env.Read(data)
+			n, err = env.Reader.Read(data)
 			if n != len(data) {
 				err = fmt.Errorf("premature end of file in string")
 			}
@@ -369,7 +368,7 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 	} else {
 		data := make([]byte, s.Value)
-		if _, err := env.Read(data); err != nil {
+		if _, err := env.Reader.Read(data); err != nil {
 			return nil, err
 		}
 		val := uint64(0)

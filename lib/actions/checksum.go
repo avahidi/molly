@@ -38,7 +38,7 @@ func RegisterChecksumFunction(typ string, generator func() hash.Hash) {
 
 // checksumFunction computes checksum over a number of slices of the current file
 //
-func checksumFunction(e *types.Env, typ string, positions ...int64) ([]byte, error) {
+func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, error) {
 	total := types.FileSize(e)
 	hnew, found := hashlist[typ]
 	if !found {
@@ -56,10 +56,10 @@ func checksumFunction(e *types.Env, typ string, positions ...int64) ([]byte, err
 		if start < 0 || start >= end || end > total {
 			return nil, fmt.Errorf("invalid boundaries in checksum(): %d-%v", start, end)
 		}
-		if _, err := e.Seek(start, os.SEEK_SET); err != nil {
+		if _, err := e.Reader.Seek(int64(start), os.SEEK_SET); err != nil {
 			return nil, err
 		}
-		if _, err := io.CopyN(hash, e, end-start); err != nil {
+		if _, err := io.CopyN(hash, e.Reader, int64(end-start)); err != nil {
 			return nil, err
 		}
 	}

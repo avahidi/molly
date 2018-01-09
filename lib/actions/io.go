@@ -13,7 +13,7 @@ func extractFunction(e *types.Env, filename string, offset int64, size int64, qu
 	fmt.Printf("extracting %d bytes into %s...\n", size, filename)
 
 	// input file
-	if _, err := e.Seek(offset, os.SEEK_SET); err != nil {
+	if _, err := e.Reader.Seek(offset, os.SEEK_SET); err != nil {
 		return "", err
 	}
 
@@ -23,7 +23,7 @@ func extractFunction(e *types.Env, filename string, offset int64, size int64, qu
 		return "", err
 	}
 	defer w.Close()
-	_, err = io.CopyN(w, e, size)
+	_, err = io.CopyN(w, e.Reader, size)
 	return w.Name(), err
 }
 
@@ -50,17 +50,19 @@ func decompressFunction(e *types.Env, typ string, prefix string) (string, error)
 }
 
 func fileFunction(e *types.Env, prefix string) (string, error) {
-	return e.FileSystem.Name(prefix, true), nil
+	return e.FileSystem.Name(prefix, true)
 }
 
 func dirFunction(e *types.Env, prefix string) (string, error) {
-	path := e.FileSystem.Name(prefix, false)
-	err := e.FileSystem.Mkdir(prefix)
+	path, err := e.FileSystem.Name(prefix, false)
+	if err == nil {
+		err = e.FileSystem.Mkdir(prefix)
+	}
 	return path, err
 }
 
 // slice the current file
-func sliceFunction(e *types.Env, prefix string, positions ...int64) (int64, error) {
+func sliceFunction(e *types.Env, prefix string, positions ...uint64) (int64, error) {
 	if len(positions) == 0 || len(positions)%2 != 0 {
 		return 0, fmt.Errorf("Wrong number of parameters in slice()")
 	}
@@ -78,10 +80,10 @@ func sliceFunction(e *types.Env, prefix string, positions ...int64) (int64, erro
 		if start < 0 || start >= end || end > total {
 			return 0, fmt.Errorf("invalid boundaries in slice(): %d-%v", start, end)
 		}
-		if _, err := e.Seek(start, os.SEEK_SET); err != nil {
+		if _, err := e.Reader.Seek(int64(start), os.SEEK_SET); err != nil {
 			return 0, err
 		}
-		if _, err := io.CopyN(file, e, end-start); err != nil {
+		if _, err := io.CopyN(file, e.Reader, int64(end-start)); err != nil {
 			return 0, err
 		}
 	}

@@ -2,6 +2,7 @@ package scan
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"text/scanner"
 
@@ -9,7 +10,6 @@ import (
 	"bitbucket.org/vahidi/molly/lib/exp/prim"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
 func precedence(op string) int {
@@ -32,64 +32,110 @@ func precedence(op string) int {
 	return 0
 }
 
-func ParseRules(ins types.FileQueue, rs *types.RuleSet) error {
-	var listAll []*types.Rule
-	parents := make(map[string]string)
+// parsedRule represents a rule that has been parsed but
+// is yet to be added to the RuleSet
+type parsedRule struct {
+	filename   string
+	rule       *types.Rule
+	parentName string
+	parentRule *types.Rule
+}
 
-	for filename := ins.Pop(); filename != ""; filename = ins.Pop() {
-		listFile, _ := rs.Files[filename]
+func addParsedToSet(parsed []*parsedRule, rs *types.RuleSet) error {
+	// 1. check there are no doubles:
+	for _, pr := range parsed {
+		if _, found := rs.Flat[pr.rule.ID]; found {
+			return fmt.Errorf("Rule %s already exists (%s)", pr.rule.ID, pr.filename)
+		}
+	}
+	// 2. build hierarchy and check that the parents exist
+	newflat := make(map[string]*types.Rule)
+	for _, pr := range parsed {
+		newflat[pr.rule.ID] = pr.rule
+	}
+
+	for _, pr := range parsed {
+		if pr.parentName != "" {
+			var found bool
+			pr.parentRule, found = rs.Flat[pr.parentName]
+			if !found {
+				pr.parentRule, found = newflat[pr.parentName]
+			}
+			if !found {
+				return fmt.Errorf("Could not find parent %s for rule %s",
+					pr.parentName, pr.rule.ID)
+			}
+		}
+	}
+
+	// 3. all looks fine, build hierarchy and add then to the set
+	for _, pr := range parsed {
+		me, parent := pr.rule, pr.parentRule
+		rs.Files[pr.filename] = append(rs.Files[pr.filename], me)
+		rs.Flat[me.ID] = me
+		if parent == nil {
+			rs.Top[me.ID] = me
+		} else {
+			me.Parent = parent
+			parent.Children = append(parent.Children, me)
+			me.Metadata.SetParent(parent.Metadata)
+		}
+	}
+	// 4. close the new rules:
+	for _, pr := range parsed {
+		exp.RuleClose(pr.rule)
+	}
+
+	return nil
+}
+
+// ParseRuleStream reads rule from one stream (file or otherwise)
+func parseRuleStream(r io.Reader, filename string) ([]*parsedRule, error) {
+	var list []*parsedRule
+
+	p := newparser(r, filename)
+	p.next()
+	for !p.acceptToken(scanner.EOF, nil) {
+		c, parent, err := parseRule(p)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, &parsedRule{rule: c, parentName: parent, filename: filename})
+	}
+	return list, nil
+}
+
+// ParseRuleFiles loads rules from a set of files
+func ParseRuleFiles(rs *types.RuleSet, files ...string) error {
+	var list []*parsedRule
+
+	inputs := util.NewFileQueue()
+	inputs.Push(files...)
+
+	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
 		r, err := os.Open(filename)
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
-		// parse rules in a file and make sure they haven't been seen before
-		p := newparser(r, filename)
-		p.next()
-		for !p.acceptToken(scanner.EOF, nil) {
-			c, parent, err := parseRule(p)
-			if err != nil {
-				return err
-			}
-			id := c.ID
-			if _, found := rs.Flat[id]; found {
-				return fmt.Errorf("Multiple definitions of '%s' (last in %s)", id, filename)
-			}
-			listFile = append(listFile, c)
-			listAll = append(listAll, c)
-			rs.Flat[id] = c
-			if parent != "" {
-				parents[id] = parent
-			}
+		rules, err := parseRuleStream(r, filename)
+		if err != nil {
+			return err
 		}
-		rs.Files[filename] = listFile
+		list = append(list, rules...)
 	}
 
-	// from the flattened rs.map_ and parent relationship rs.parnetship build
-	// the rule hierarchy:
-	for _, klass := range listAll {
-		kid := klass.ID
-		parent, has := parents[kid]
-		if has {
-			p, has := rs.Flat[parent]
-			if !has {
-				return fmt.Errorf("Rule %s is missing parent %s", kid, parent)
-			}
+	return addParsedToSet(list, rs)
+}
 
-			// p is now parent to klass
-			klass.Parent = p
-			p.Children = append(p.Children, klass)
-			klass.Metadata.SetParent(p.Metadata)
-		} else {
-			rs.Top[kid] = klass
-		}
+// ParseRuleStream loads rules from a stream
+func ParseRuleStream(rs *types.RuleSet, r io.Reader) error {
+	rules, err := parseRuleStream(r, "")
+	if err != nil {
+		return err
 	}
-	// now close all rules
-	for _, klass := range listAll {
-		exp.RuleClose(klass)
-	}
-	return nil
+	return addParsedToSet(rules, rs)
 }
 
 func parseRule(p *parser) (*types.Rule, string, error) {
@@ -426,7 +472,7 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 		if _, found := types.FunctionFind(id); !found {
 			fmt.Printf("Unknown function '%s'. ", id)
 			types.FunctionHelp()
-			logging.Fatalf("Unknown function, cannot continue")
+			util.RegisterFatalf("Unknown function, cannot continue")
 		}
 
 		expr, err = exp.NewFunctionExpression(id, metadata, argv...)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"bitbucket.org/vahidi/molly/lib/util/logging"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // Function represents a call to a golang function with the following format
@@ -24,7 +24,7 @@ func newFunction(name string, fun interface{}) *Function {
 	f := &Function{fun: v, name: name, variadic: t.IsVariadic()}
 
 	if t.Kind() != reflect.Func {
-		logging.Fatalf("This interface is not a function: '%v'", fun)
+		util.RegisterFatalf("This interface is not a function: '%v'", fun)
 	}
 
 	for i := 0; i < t.NumOut(); i++ {
@@ -46,7 +46,7 @@ func (f Function) String() string {
 func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			logging.Fatalf("Call failed: %s", r)
+			util.RegisterFatalf("Call failed: %s", r)
 		}
 	}()
 
@@ -56,14 +56,14 @@ func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 	if f.variadic {
 		// check parameters in variadic functions
 		if len(f.ins)-2 > len(args) {
-			logging.Fatalf("Too few parameters in call to variadic to '%s'", f.name)
+			util.RegisterFatalf("Too few parameters in call to variadic to '%s'", f.name)
 		}
 		vart = f.ins[normalArgs-1].Elem()
 		normalArgs = normalArgs - 1
 	} else {
 		// check parameter count for normal functions
 		if len(f.ins) != len(args)+1 {
-			logging.Fatalf("Too few parameters in call to '%s'", f.name)
+			util.RegisterFatalf("Too few parameters in call to '%s'", f.name)
 		}
 	}
 	rargs := make([]reflect.Value, 1+len(args))
@@ -80,7 +80,7 @@ func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 		if t.ConvertibleTo(newt) {
 			v = v.Convert(newt)
 		} else {
-			logging.Fatalf("In call to '%s': cannot convert parameter %d from '%v' to '%v'",
+			util.RegisterFatalf("In call to '%s': cannot convert parameter %d from '%v' to '%v'",
 				f.name, i+1, t, newt)
 		}
 		rargs[i+1] = v

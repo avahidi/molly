@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 func writeReportFile(so *types.MatchReport) error {
-	w, err := logging.Create("report.json")
+	w, err := util.CreateLog("report.json")
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func dumpResult(so *types.MatchReport, verbose bool) {
 		}
 	}
 
-	es, ws := so.Errors, logging.Warnings()
+	es, ws := so.Errors, util.Warnings()
 	if len(es) > 0 {
 		fmt.Println("ERRORS:")
 		for _, e := range es {

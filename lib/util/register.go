@@ -25,10 +25,10 @@ func (r Register) Get(name string) (interface{}, bool) {
 	return i, f
 }
 
-func (r Register) GetNumber(name string, def int64) (int64, bool) {
+func (r Register) GetNumber(name string, def uint64) (uint64, bool) {
 	i, f := r.Get(name)
 	if f {
-		if n, o := i.(int64); o {
+		if n, o := i.(uint64); o {
 			return n, true
 		}
 	}
@@ -55,7 +55,7 @@ func (r Register) GetString(name string, def string) (string, bool) {
 	return def, false
 }
 
-func (r Register) SetNumber(name string, val int64) {
+func (r Register) SetNumber(name string, val uint64) {
 	r.Set(name, val)
 }
 

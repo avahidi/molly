@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,94 +13,160 @@ import (
 	"bitbucket.org/vahidi/molly/lib/scan"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
-type filesystem struct {
-	outdir    string
-	owner     string
-	queue     types.FileQueue
+// Config defines the configuration for scanning files
+type Config struct {
+	NewFile       func(string) (string, error)
+	MatchCallback func(m *types.MatchEntry)
+
+	// temporary variables set duing scanning
+	queue     *util.FileQueue
+	env       *types.Env
+	report    *types.MatchReport
 	generated []string
 }
 
-func newFilesystem(owner, outdir string, queue types.FileQueue) *filesystem {
-	_, owner = filepath.Split(owner)
-	return &filesystem{owner: owner, outdir: outdir, queue: queue}
+func (c *Config) recordFile(name string) {
+	c.generated = append(c.generated, name)
+	c.queue.Push(name)
 }
-
-func (fs *filesystem) record(path string) {
-	fs.generated = append(fs.generated, path)
-	fs.queue.Push(path)
-}
-func (fs *filesystem) Name(suggested string, addtopath bool) string {
-	if filepath.HasPrefix(suggested, fs.outdir) {
-		suggested = suggested[len(fs.outdir):]
+func (c *Config) Name(suggested string, addtopath bool) (string, error) {
+	newname, err := c.NewFile(suggested)
+	if err != nil {
+		return "", err
 	}
-
-	path := filepath.Join(fs.outdir, util.SanitizeFilename(suggested, nil))
 	if addtopath {
-		fs.record(path)
+		c.recordFile(newname)
 	}
-	return path
+	return newname, nil
 }
-func (fs *filesystem) Mkdir(path string) error {
+func (c *Config) Mkdir(path string) error {
 	if !util.PermissionGet(util.CreateFile) {
 		return fmt.Errorf("Not allowed to create files (mkdir")
 	}
-	path = fs.Name(path, false)
-	err := os.MkdirAll(path, 0700)
+	newpath, err := c.Name(path, false)
 	if err == nil {
-		fs.record(path)
+		err = os.MkdirAll(newpath, 0700)
+		if err == nil {
+			c.recordFile(newpath)
+		}
 	}
 	return err
 }
-func (fs *filesystem) Create(filename string) (*os.File, error) {
+func (c *Config) Create(filename string) (*os.File, error) {
 	if !util.PermissionGet(util.CreateFile) {
 		return nil, fmt.Errorf("Not allowed to create files (mkdir")
 	}
-
-	filename = fs.Name(filename, false)
+	newname, err := c.Name(filename, false)
+	if err != nil {
+		return nil, err
+	}
 
 	// make sure the path leading to it exist
-	dir, _ := filepath.Split(filename)
+	dir, _ := filepath.Split(newname)
 	os.MkdirAll(dir, 0700)
 
 	// open the file and record this event
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+	file, err := os.OpenFile(newname, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
 	if err == nil {
-		fs.record(filename)
+		c.recordFile(newname)
 	}
 	return file, err
 }
 
-// MatchCallback is the type of function called when a match is found
-type MatchCallback func(m *types.MatchEntry)
+// NewConfig create a new config
+func NewConfig() *Config {
+	return &Config{
+		NewFile: func(_ string) (string, error) { return "", fmt.Errorf("NewFile was not set in configuration") },
+		queue:   util.NewFileQueue(),
+		report:  types.NewMatchReport(),
+		env:     types.NewEnv(),
+	}
+}
 
-// ScanRules reads rules from files
-func ScanRules(files []string) (*types.RuleSet, error) {
-	rs := types.NewRuleSet()
-	ins := newfileset()
-	ins.Push(files...)
-	err := scan.ParseRules(ins, rs)
-	return rs, err
+// FileSystem implementation
+var _ types.FileSystem = (*Config)(nil)
+
+// LoadRules reads rules from files
+func LoadRules(db *types.RuleSet, files ...string) (*types.RuleSet, error) {
+	if db == nil {
+		db = types.NewRuleSet()
+	}
+	return db, scan.ParseRuleFiles(db, files...)
+}
+
+// LoadRuleText reads rules from a string
+func LoadRuleText(db *types.RuleSet, text string) (*types.RuleSet, error) {
+	if db == nil {
+		db = types.NewRuleSet()
+	}
+	return db, scan.ParseRuleStream(db, strings.NewReader(text))
+}
+
+/*
+func scanStream(config *Config, rules *types.RuleSet, data []byte) error {
+	return nil
+}
+
+func ScanData(config *Config, rules *types.RuleSet, data []byte) (*types.MatchReport, error) {
+
+	return nil, nil
+}
+*/
+
+func scanReader(config *Config, rules *types.RuleSet, r io.ReadSeeker) {
+	report := config.report
+	env := config.env
+	env.Reader = r
+
+	for _, rule := range rules.Top {
+		env.StartRule(rule)
+		match, errs := scan.AnalyzeFile(rule, env)
+		if match != nil {
+			report.MatchTree = append(report.MatchTree, match)
+		}
+		report.Errors = append(report.Errors, errs...)
+	}
+}
+
+// ScanData scans a a data stream for matches against the given rules
+// if any files are extracted they will be created within outputDir
+func ScanData(config *Config, rules *types.RuleSet, data []byte) (
+	*types.MatchReport, error) {
+	if config == nil {
+		config = NewConfig()
+	}
+
+	env := config.env
+	globals := env.Globals
+	globals.SetString("$path", "nopath/")
+	globals.SetString("$shortfilename", "nofile")
+	globals.SetString("$filename", "nopath/nofile")
+	globals.SetNumber("$filesize", uint64(len(data)))
+
+	scanReader(config, rules, bytes.NewReader(data))
+
+	// user callback?
+	if config.MatchCallback != nil {
+		for _, me := range config.report.MatchTree {
+			me.Walk(config.MatchCallback)
+		}
+	}
+
+	return config.report, nil
 }
 
 // ScanFiles scans a set of files for matches against the given rules
 // if any files are extracted they will be created within outputDir
-func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
-	callback MatchCallback) (*types.MatchReport, int, error) {
-
-	// prepare output directory
-	outputDir, err := filepath.Abs(outputDir)
-	if err != nil {
-		logging.Fatal(err)
-	}
-	if err := os.MkdirAll(outputDir, 0700); err != nil {
-		logging.Fatalf("Could not create output directory: %v", err)
+func ScanFiles(config *Config, rules *types.RuleSet, files []string) (
+	*types.MatchReport, int, error) {
+	if config == nil {
+		config = NewConfig()
 	}
 
-	// inputs
-	inputs := newfileset()
+	// add inputs
+	inputs := config.queue
 	for _, file := range files {
 		abs, err := filepath.Abs(file)
 		if err != nil {
@@ -106,36 +174,46 @@ func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
 		}
 		inputs.Push(abs)
 	}
-	// globals := util.NewRegister()
-	env := types.NewEnv()
+
+	/*
+		// prepare output directory
+		outputDir, err := filepath.Abs(outputDir)
+		if err != nil {
+			util.RegisterFatal(err)
+		}
+		if err := os.MkdirAll(outputDir, 0700); err != nil {
+			util.RegisterFatalf("Could not create output directory: %v", err)
+		}
+	*/
+
+	env := config.env
+	report := config.report
+	env.FileSystem = config
 	globals := env.Globals
-	report := types.NewMatchReport()
-
 	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
-		fs := newFilesystem(filename, outputDir, inputs)
 
-		// prepare env and glonal variables for this file
-		env.FileSystem = fs
 		info, err := os.Stat(filename)
 		if err != nil {
 			report.Errors = append(report.Errors, err)
 			continue
 		}
 		dir, name := path.Dir(filename), path.Base(filename)
+
 		globals.SetString("$path", dir)
 		globals.SetString("$shortfilename", name)
 		globals.SetString("$filename", filename)
-		globals.SetNumber("$filesize", info.Size())
+		globals.SetNumber("$filesize", uint64(info.Size()))
 
-		// compute the new output path for anything generated out of this file
-		var pathnew = filename
-		if filepath.HasPrefix(pathnew, outputDir) {
-			pathnew = pathnew[len(outputDir):]
-		}
-		pathnew = filepath.Join(outputDir, util.SanitizeFilename(pathnew, nil)) + "_"
-		globals.Set("$outdir", pathnew)
-		fs.outdir = pathnew
-
+		/*
+			// compute the new output path for anything generated out of this file
+			var pathnew = filename
+			if filepath.HasPrefix(pathnew, outputDir) {
+				pathnew = pathnew[len(outputDir):]
+			}
+			pathnew = filepath.Join(outputDir, util.SanitizeFilename(pathnew, nil)) + "_"
+			globals.Set("$outdir", pathnew)
+			fs.outdir = pathnew
+		*/
 		// open file and scan it
 		f, err := os.Open(filename)
 		if err != nil {
@@ -144,16 +222,9 @@ func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
 		}
 		defer f.Close()
 
-		env.StartFile(f)
-		for _, r := range rules.Top {
-			env.StartRule(r)
-			match, errs := scan.AnalyzeFile(filename, r, env)
-			if match != nil {
-				report.MatchTree = append(report.MatchTree, match)
-			}
-			report.Errors = append(report.Errors, errs...)
-		}
-		report.FileHierarchy[filename] = fs.generated
+		config.generated = nil
+		scanReader(config, rules, f)
+		report.FileHierarchy[filename] = config.generated
 	}
 
 	// populate tagged files
@@ -164,13 +235,13 @@ func ScanFiles(files []string, rules *types.RuleSet, outputDir string,
 	}
 
 	// user callback?
-	if callback != nil {
+	if config.MatchCallback != nil {
 		for _, me := range report.MatchTree {
-			me.Walk(callback)
+			me.Walk(config.MatchCallback)
 		}
 	}
 
-	return report, len(inputs.processed), nil
+	return report, inputs.Count(), nil
 }
 
 // extractFilesFromReport gathers all files that have at least one match

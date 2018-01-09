@@ -1,28 +1,30 @@
-package lib
+package util
 
 import (
 	"os"
 	"path/filepath"
-
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
-// fileset is a queue for files being parsed
-type fileset struct {
+// FileQueue is a queue where files can be added for later extraction
+// it discards files already added and traverses directories
+type FileQueue struct {
 	processed []string
 	queue     []string
 	seen      map[string]bool
 }
 
-var _ types.FileQueue = (*fileset)(nil)
-
-// newfileset creates an empty fileset given a output directory
-func newfileset() *fileset {
-	return &fileset{seen: make(map[string]bool)}
+// NewFileQueue creates an empty FileQueue given a output directory
+func NewFileQueue() *FileQueue {
+	return &FileQueue{seen: make(map[string]bool)}
 }
 
-func (i *fileset) Push(paths ...string) {
+// Count retruns number of files processed (POPed) in this queue
+func (i FileQueue) Count() int {
+	return len(i.processed)
+}
+
+// Push puts a file into the queue
+func (i *FileQueue) Push(paths ...string) {
 	for _, path := range paths {
 		if _, seen := i.seen[path]; !seen {
 			i.seen[path] = true
@@ -31,22 +33,17 @@ func (i *fileset) Push(paths ...string) {
 	}
 }
 
-func (i *fileset) popOne() (string, bool) {
-	n := len(i.queue)
-	if n == 0 {
-		return "", false
-	}
-	filename := i.queue[n-1]
-	i.queue = i.queue[:n-1]
-	return filename, true
-}
-
-func (i *fileset) Pop() string {
+// Pop takes a file from the queue
+func (i *FileQueue) Pop() string {
 	for {
-		path, valid := i.popOne()
-		if !valid {
+		// pop one from the queue
+		n := len(i.queue)
+		if n == 0 {
 			return ""
 		}
+		path := i.queue[n-1]
+		i.queue = i.queue[:n-1]
+
 		fi, err := os.Stat(path)
 		if err != nil {
 			return path // let someone else take care of the error
@@ -71,7 +68,7 @@ func (i *fileset) Pop() string {
 			i.processed = append(i.processed, path)
 			return path
 		} else {
-			logging.Warningf("ignoring unknown file type '%s'\n", path)
+			RegisterWarningf("ignoring unknown file type '%s'\n", path)
 		}
 	}
 }

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"bitbucket.org/vahidi/molly/lib"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"bitbucket.org/vahidi/molly/lib/util/logging"
 )
 
 // MultiFlag is used allow multiple values with flag:
@@ -59,8 +59,12 @@ func main() {
 	}
 	ifiles := flag.Args()
 
+	// prepade output directories
+	os.MkdirAll(*outbase, 0700)
+	os.MkdirAll(*logbase, 0700)
+
 	// set logoutput
-	logging.SetBase(*logbase)
+	util.SetLogBase(*logbase)
 
 	// update permissions
 	for i, list := range []MultiFlag{penable, pdisable} {
@@ -77,7 +81,7 @@ func main() {
 	}
 
 	//  scan rules
-	rules, err := lib.ScanRules(rfiles)
+	rules, err := lib.LoadRules(nil, rfiles...)
 	if err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
 	}
@@ -90,7 +94,19 @@ func main() {
 		help("No input files", 20)
 	}
 
-	report, n, err := lib.ScanFiles(ifiles, rules, *outbase, nil)
+	cfg := lib.NewConfig()
+
+	// create a function that decides what new files should be called:
+	cnt := 0
+	cfg.NewFile = func(suggestedName string) (string, error) {
+		_, name := filepath.Split(suggestedName)
+		cleanName := fmt.Sprintf("%08d_%s", cnt, util.SanitizeFilename(name, nil))
+		cnt++
+		return filepath.Join(*outbase, cleanName), nil
+	}
+
+	report, n, err := lib.ScanFiles(cfg, rules, ifiles)
+	// report, n, err := lib.ScanFiles(ifiles, rules, *outbase, nil)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}
@@ -111,7 +127,7 @@ func main() {
 	}
 
 	fmt.Printf("Scanned %d files, found %d matches...\n", n, len(report.MatchTree))
-	fmt.Printf("%d errors, %d warnings\n", len(report.Errors), len(logging.Warnings()))
+	fmt.Printf("%d errors, %d warnings\n", len(report.Errors), len(util.Warnings()))
 	if len(report.Errors) > 0 {
 		os.Exit(1)
 	}
