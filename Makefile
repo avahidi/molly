@@ -19,7 +19,7 @@ run: compile
 		-tagop "elf: ls {name}" \
 		-tagop "executable: echo executable {name} contains {size} bytes" \
 		-enable create-file \
-		-disable execute-external \
+		-disable execute \
 		$(FILES)
 	python -m json.tool build/report/report.json > build/report/report.pretty.json
 

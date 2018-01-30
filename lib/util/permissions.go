@@ -6,8 +6,8 @@ import "fmt"
 type Permission int
 
 const (
-	CreateFile = iota
-	ExecuteExternal
+	CreateFile Permission = iota
+	Execute
 )
 
 // permissions is the global variables that holds current permission set
@@ -30,7 +30,7 @@ func PermissionGet(p Permission) bool {
 // PermissionNames contains name mappings for all available permissions
 var PermissionNames = map[string]Permission{
 	"create-file":      CreateFile,
-	"execute-external": ExecuteExternal,
+	"execute": Execute,
 }
 
 // PermissionHelp prints help text for permissions

@@ -19,7 +19,7 @@ func printfFunction(e *types.Env, format string, args ...interface{}) (string, e
 }
 
 func systemFunction(e *types.Env, format string, args ...interface{}) (interface{}, error) {
-	if !util.PermissionGet(util.ExecuteExternal) {
+	if !util.PermissionGet(util.Execute) {
 		return "", fmt.Errorf("system actions are not allowed, action ignored (%s)", e)
 	}
 

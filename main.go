@@ -97,16 +97,30 @@ func main() {
 	cfg := lib.NewConfig()
 
 	// create a function that decides what new files should be called:
-	cnt := 0
-	cfg.NewFile = func(suggestedName string) (string, error) {
-		_, name := filepath.Split(suggestedName)
-		cleanName := fmt.Sprintf("%08d_%s", cnt, util.SanitizeFilename(name, nil))
-		cnt++
-		return filepath.Join(*outbase, cleanName), nil
+	bases, cnt := make(map[string]string), 0
+	cfg.NewFile = func(name, parent string) (string, error) {
+		base, found := bases[parent]
+		if ! found {
+			if strings.HasPrefix(parent, *outbase) {
+				parent = parent[len(*outbase):] + "_"
+			} else {
+				_, parent = filepath.Split(parent)
+				parent =  fmt.Sprintf("%08d_%s_", cnt, parent)
+				cnt++
+			}
+			base = filepath.Join(*outbase, parent)
+			bases[parent] = base
+		}
+		name = util.SanitizeFilename(name, nil)
+		newname := filepath.Join(base, name)
+		if _, err := os.Stat(newname); err == nil {
+			newname = filepath.Join(base, fmt.Sprintf("%04d_%s", cnt, name))
+			cnt ++
+		}
+		return newname, nil
 	}
 
 	report, n, err := lib.ScanFiles(cfg, rules, ifiles)
-	// report, n, err := lib.ScanFiles(ifiles, rules, *outbase, nil)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}

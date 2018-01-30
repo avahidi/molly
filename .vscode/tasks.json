@@ -4,19 +4,19 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "build",
+            "label": "build",
             "type": "shell",
             "command": "make compile",
             "problemMatcher":"$go"
         },
         {
-            "taskName": "run",
+            "label": "run",
             "type": "shell",
             "command": "make run",
-            "problemMatcher":"$go"
+            "problemMatcher":"$go",
         },
         {
-            "taskName": "test",
+            "label": "test",
             "type": "shell",
             "command": "make test",
             "problemMatcher":"$go"

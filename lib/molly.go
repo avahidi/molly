@@ -17,7 +17,7 @@ import (
 
 // Config defines the configuration for scanning files
 type Config struct {
-	NewFile       func(string) (string, error)
+	NewFile       func(string, string) (string, error)
 	MatchCallback func(m *types.MatchEntry)
 
 	// temporary variables set duing scanning
@@ -31,8 +31,9 @@ func (c *Config) recordFile(name string) {
 	c.generated = append(c.generated, name)
 	c.queue.Push(name)
 }
-func (c *Config) Name(suggested string, addtopath bool) (string, error) {
-	newname, err := c.NewFile(suggested)
+func (c *Config) Name(name string, addtopath bool) (string, error) {
+	parent, _ := c.env.Globals.GetString("$filename", "")
+	newname, err := c.NewFile(name, parent)
 	if err != nil {
 		return "", err
 	}
@@ -54,11 +55,11 @@ func (c *Config) Mkdir(path string) error {
 	}
 	return err
 }
-func (c *Config) Create(filename string) (*os.File, error) {
+func (c *Config) Create(name string) (*os.File, error) {
 	if !util.PermissionGet(util.CreateFile) {
 		return nil, fmt.Errorf("Not allowed to create files (mkdir")
 	}
-	newname, err := c.Name(filename, false)
+	newname, err := c.Name(name, false)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (c *Config) Create(filename string) (*os.File, error) {
 // NewConfig create a new config
 func NewConfig() *Config {
 	return &Config{
-		NewFile: func(_ string) (string, error) { return "", fmt.Errorf("NewFile was not set in configuration") },
+		NewFile: func(_, _ string) (string, error) { return "", fmt.Errorf("NewFile was not set in configuration") },
 		queue:   util.NewFileQueue(),
 		report:  types.NewMatchReport(),
 		env:     types.NewEnv(),
@@ -103,17 +104,6 @@ func LoadRuleText(db *types.RuleSet, text string) (*types.RuleSet, error) {
 	}
 	return db, scan.ParseRuleStream(db, strings.NewReader(text))
 }
-
-/*
-func scanStream(config *Config, rules *types.RuleSet, data []byte) error {
-	return nil
-}
-
-func ScanData(config *Config, rules *types.RuleSet, data []byte) (*types.MatchReport, error) {
-
-	return nil, nil
-}
-*/
 
 func scanReader(config *Config, rules *types.RuleSet, r io.ReadSeeker) {
 	report := config.report
