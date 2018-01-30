@@ -41,14 +41,14 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.MatchEntry, []error) 
 
 	// 4. call children
 	for _, cr := range rule.Children {
-		env.PushScope(cr)
+		env.PushRule(cr)
 		cm, errs := AnalyzeFile(cr, env)
 		if cm != nil {
 			m.Children = append(m.Children, cm)
 			cm.Parent = m
 		}
 		errors = append(errors, errs...) // record errors from this
-		env.PopScope()
+		env.PopRule()
 	}
 
 	return m, errors

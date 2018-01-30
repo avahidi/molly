@@ -2,7 +2,9 @@
 TODO
 ====
 
-* scan streams (mostly for testing)
+* structure to create reports
+  - generate reports from analyzer actions
+
 * generate reports in different formats (json, xml, csv, text)
 
 * Lazy evaluation of binary operations (e.f. TRUE || x will not need to evaluate x)
@@ -27,7 +29,7 @@ TODO
 
 DONE
 ====
-
+* scan streams (mostly for testing)
 * add enviorment variables (endianendianness, file size, file lengt, ...) to class/scope/envioment?
 * add string expressions
 * add unary operations

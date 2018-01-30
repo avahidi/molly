@@ -1,15 +1,16 @@
 package types
 
 import (
+	"bitbucket.org/vahidi/molly/lib/util"
 	"fmt"
 	"io"
-
-	"bitbucket.org/vahidi/molly/lib/util"
+	"path/filepath"
 )
 
 // Env is the current enviornment during scanning
 type Env struct {
 	Globals    *util.Register
+
 	FileSystem FileSystem
 
 	// these are valid while we are scanning a file
@@ -18,18 +19,20 @@ type Env struct {
 }
 
 func NewEnv() *Env {
-	return &Env{Globals: util.NewRegister()}
+	return &Env{
+		Globals: util.NewRegister(),
+	}
 }
 
 func (e *Env) StartRule(rule *Rule) {
 	e.Scope = NewScope(rule, nil)
 }
 
-func (e *Env) PushScope(newrule *Rule) {
+func (e *Env) PushRule(newrule *Rule) {
 	e.Scope = NewScope(newrule, e.Scope)
 }
 
-func (e *Env) PopScope() {
+func (e *Env) PopRule() {
 	if e.Scope == nil || e.Scope.Parent == nil {
 		util.RegisterFatalf("Internal error: no scope or scope hierarchy")
 	}
@@ -41,4 +44,16 @@ func (e Env) String() string {
 		return fmt.Sprintf("{%s:%s}", e.Scope.Rule.ID, filename)
 	}
 	return fmt.Sprintf("{%s}", e.Scope.Rule.ID)
+}
+
+func (e *Env) SetFile(filename string, filesize uint64) {
+	path, name := filepath.Split(filename)
+	e.Globals.SetString("$path", path)
+	e.Globals.SetString("$shortfilename", name)
+	e.Globals.SetString("$filename", filename)
+	e.Globals.SetNumber("$filesize", filesize)
+}
+
+func (e *Env) GetFilesystem() FileSystem {
+	return nil //
 }

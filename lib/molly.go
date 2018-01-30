@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,13 +16,11 @@ import (
 
 // Config defines the configuration for scanning files
 type Config struct {
-	NewFile       func(string, string) (string, error)
-	MatchCallback func(m *types.MatchEntry)
+	NewFile func(string, string) (string, error)
 
 	// temporary variables set duing scanning
 	queue     *util.FileQueue
 	env       *types.Env
-	report    *types.MatchReport
 	generated []string
 }
 
@@ -81,7 +78,6 @@ func NewConfig() *Config {
 	return &Config{
 		NewFile: func(_, _ string) (string, error) { return "", fmt.Errorf("NewFile was not set in configuration") },
 		queue:   util.NewFileQueue(),
-		report:  types.NewMatchReport(),
 		env:     types.NewEnv(),
 	}
 }
@@ -105,8 +101,8 @@ func LoadRuleText(db *types.RuleSet, text string) (*types.RuleSet, error) {
 	return db, scan.ParseRuleStream(db, strings.NewReader(text))
 }
 
-func scanReader(config *Config, rules *types.RuleSet, r io.ReadSeeker) {
-	report := config.report
+func scanReader(config *Config, report *types.MatchReport,
+	rules *types.RuleSet, r io.ReadSeeker) {
 	env := config.env
 	env.Reader = r
 
@@ -128,23 +124,11 @@ func ScanData(config *Config, rules *types.RuleSet, data []byte) (
 		config = NewConfig()
 	}
 
+	report := types.NewMatchReport()
 	env := config.env
-	globals := env.Globals
-	globals.SetString("$path", "nopath/")
-	globals.SetString("$shortfilename", "nofile")
-	globals.SetString("$filename", "nopath/nofile")
-	globals.SetNumber("$filesize", uint64(len(data)))
-
-	scanReader(config, rules, bytes.NewReader(data))
-
-	// user callback?
-	if config.MatchCallback != nil {
-		for _, me := range config.report.MatchTree {
-			me.Walk(config.MatchCallback)
-		}
-	}
-
-	return config.report, nil
+	env.SetFile("nopath/nofile", uint64(len(data)))
+	scanReader(config, report, rules, bytes.NewReader(data))
+	return report, nil
 }
 
 // ScanFiles scans a set of files for matches against the given rules
@@ -165,45 +149,15 @@ func ScanFiles(config *Config, rules *types.RuleSet, files []string) (
 		inputs.Push(abs)
 	}
 
-	/*
-		// prepare output directory
-		outputDir, err := filepath.Abs(outputDir)
-		if err != nil {
-			util.RegisterFatal(err)
-		}
-		if err := os.MkdirAll(outputDir, 0700); err != nil {
-			util.RegisterFatalf("Could not create output directory: %v", err)
-		}
-	*/
-
+	report := types.NewMatchReport()
 	env := config.env
-	report := config.report
 	env.FileSystem = config
-	globals := env.Globals
 	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
-
 		info, err := os.Stat(filename)
 		if err != nil {
 			report.Errors = append(report.Errors, err)
 			continue
 		}
-		dir, name := path.Dir(filename), path.Base(filename)
-
-		globals.SetString("$path", dir)
-		globals.SetString("$shortfilename", name)
-		globals.SetString("$filename", filename)
-		globals.SetNumber("$filesize", uint64(info.Size()))
-
-		/*
-			// compute the new output path for anything generated out of this file
-			var pathnew = filename
-			if filepath.HasPrefix(pathnew, outputDir) {
-				pathnew = pathnew[len(outputDir):]
-			}
-			pathnew = filepath.Join(outputDir, util.SanitizeFilename(pathnew, nil)) + "_"
-			globals.Set("$outdir", pathnew)
-			fs.outdir = pathnew
-		*/
 		// open file and scan it
 		f, err := os.Open(filename)
 		if err != nil {
@@ -212,8 +166,9 @@ func ScanFiles(config *Config, rules *types.RuleSet, files []string) (
 		}
 		defer f.Close()
 
+		env.SetFile(filename, uint64(info.Size()))
 		config.generated = nil
-		scanReader(config, rules, f)
+		scanReader(config, report, rules, f)
 		report.FileHierarchy[filename] = config.generated
 	}
 
@@ -222,13 +177,6 @@ func ScanFiles(config *Config, rules *types.RuleSet, files []string) (
 	for filename, matches := range filematch {
 		tagset := extractTags(matches, rules)
 		report.TaggedFiles[filename] = tagset
-	}
-
-	// user callback?
-	if config.MatchCallback != nil {
-		for _, me := range report.MatchTree {
-			me.Walk(config.MatchCallback)
-		}
 	}
 
 	return report, inputs.Count(), nil

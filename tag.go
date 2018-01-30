@@ -23,16 +23,17 @@ func tagExecute(filename, tag, op string) error {
 	if err != nil {
 		return err
 	}
-	sizestr := fmt.Sprintf("%d", info.Size())
 
+	// replace {name} and {size}
+	sizestr := fmt.Sprintf("%d", info.Size())
 	op = strings.Replace(op, "{name}", filename, -1)
 	op = strings.Replace(op, "{size}", sizestr, -1)
+
+	// execute command
 	cmds := strings.Split(op, " ")
-
-	fmt.Printf("TAG-OP: %s -> %s\n", tag, cmds)
 	out, err := exec.Command(cmds[0], cmds[1:]...).CombinedOutput()
-	fmt.Printf("\t%s\n", string(out))
 
+	fmt.Printf("\t%s => %s", filename, string(out))
 	return err
 }
 func tagOperation(so *types.MatchReport, tagop string) error {
@@ -43,6 +44,7 @@ func tagOperation(so *types.MatchReport, tagop string) error {
 
 	tag := strings.Trim(tagop[:n], " \t")
 	op := strings.Trim(tagop[n+1:], " \t")
+	fmt.Printf("Tag operation '%s' => '%s'\n", tag, op)
 
 	for filename, tags := range so.TaggedFiles {
 		if contains(tags, tag) {

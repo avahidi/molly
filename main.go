@@ -100,12 +100,12 @@ func main() {
 	bases, cnt := make(map[string]string), 0
 	cfg.NewFile = func(name, parent string) (string, error) {
 		base, found := bases[parent]
-		if ! found {
+		if !found {
 			if strings.HasPrefix(parent, *outbase) {
 				parent = parent[len(*outbase):] + "_"
 			} else {
 				_, parent = filepath.Split(parent)
-				parent =  fmt.Sprintf("%08d_%s_", cnt, parent)
+				parent = fmt.Sprintf("%08d_%s_", cnt, parent)
 				cnt++
 			}
 			base = filepath.Join(*outbase, parent)
@@ -115,7 +115,7 @@ func main() {
 		newname := filepath.Join(base, name)
 		if _, err := os.Stat(newname); err == nil {
 			newname = filepath.Join(base, fmt.Sprintf("%04d_%s", cnt, name))
-			cnt ++
+			cnt++
 		}
 		return newname, nil
 	}

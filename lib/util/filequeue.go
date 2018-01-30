@@ -9,7 +9,7 @@ import (
 // it discards files already added and traverses directories
 type FileQueue struct {
 	processed []string
-	queue     []string
+	toprocess []string
 	seen      map[string]bool
 }
 
@@ -28,7 +28,7 @@ func (i *FileQueue) Push(paths ...string) {
 	for _, path := range paths {
 		if _, seen := i.seen[path]; !seen {
 			i.seen[path] = true
-			i.queue = append(i.queue, path)
+			i.toprocess = append(i.toprocess, path)
 		}
 	}
 }
@@ -37,12 +37,12 @@ func (i *FileQueue) Push(paths ...string) {
 func (i *FileQueue) Pop() string {
 	for {
 		// pop one from the queue
-		n := len(i.queue)
+		n := len(i.toprocess)
 		if n == 0 {
 			return ""
 		}
-		path := i.queue[n-1]
-		i.queue = i.queue[:n-1]
+		path := i.toprocess[n-1]
+		i.toprocess = i.toprocess[:n-1]
 
 		fi, err := os.Stat(path)
 		if err != nil {

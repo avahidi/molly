@@ -27,7 +27,7 @@ test:
 	go test ./...
 
 fmt:
-	go fmt
+	go fmt ./...
 
 vet:
 	go tool vet .

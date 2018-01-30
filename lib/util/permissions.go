@@ -29,8 +29,8 @@ func PermissionGet(p Permission) bool {
 
 // PermissionNames contains name mappings for all available permissions
 var PermissionNames = map[string]Permission{
-	"create-file":      CreateFile,
-	"execute": Execute,
+	"create-file": CreateFile,
+	"execute":     Execute,
 }
 
 // PermissionHelp prints help text for permissions
