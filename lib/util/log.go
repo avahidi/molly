@@ -3,8 +3,6 @@ package util
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 var warnings []string
@@ -29,6 +27,7 @@ func RegisterWarningf(format string, v ...interface{}) {
 // Warnings returns all warnings seen by the library
 func Warnings() []string { return warnings }
 
+/*
 var logdir = "logs"
 
 func name(suggestedname string, register bool) string {
@@ -54,3 +53,4 @@ func CreateLog(suggestedname string) (*os.File, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
 	return file, err
 }
+*/

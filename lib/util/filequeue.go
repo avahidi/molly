@@ -10,6 +10,7 @@ import (
 type FileQueue struct {
 	processed []string
 	toprocess []string
+	recent    []string
 	seen      map[string]bool
 }
 
@@ -29,6 +30,7 @@ func (i *FileQueue) Push(paths ...string) {
 		if _, seen := i.seen[path]; !seen {
 			i.seen[path] = true
 			i.toprocess = append(i.toprocess, path)
+			i.recent = append(i.recent, path)
 		}
 	}
 }
@@ -71,4 +73,12 @@ func (i *FileQueue) Pop() string {
 			RegisterWarningf("ignoring unknown file type '%s'\n", path)
 		}
 	}
+}
+
+// RecentlyAdded returns list of files that were added
+// since the last call to this function
+func (i *FileQueue) RecentlyAdded() []string {
+	tmp := i.recent
+	i.recent = nil
+	return tmp
 }

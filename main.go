@@ -1,15 +1,14 @@
 package main
 
 import (
+	"bitbucket.org/vahidi/molly/lib"
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
-
-	"bitbucket.org/vahidi/molly/lib"
-	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // MultiFlag is used allow multiple values with flag:
@@ -59,13 +58,6 @@ func main() {
 	}
 	ifiles := flag.Args()
 
-	// prepade output directories
-	os.MkdirAll(*outbase, 0700)
-	os.MkdirAll(*logbase, 0700)
-
-	// set logoutput
-	util.SetLogBase(*logbase)
-
 	// update permissions
 	for i, list := range []MultiFlag{penable, pdisable} {
 		set := (i == 0)
@@ -94,30 +86,9 @@ func main() {
 		help("No input files", 20)
 	}
 
-	cfg := lib.NewConfig()
-
-	// create a function that decides what new files should be called:
-	bases, cnt := make(map[string]string), 0
-	cfg.NewFile = func(name, parent string) (string, error) {
-		base, found := bases[parent]
-		if !found {
-			if strings.HasPrefix(parent, *outbase) {
-				parent = parent[len(*outbase):] + "_"
-			} else {
-				_, parent = filepath.Split(parent)
-				parent = fmt.Sprintf("%08d_%s_", cnt, parent)
-				cnt++
-			}
-			base = filepath.Join(*outbase, parent)
-			bases[parent] = base
-		}
-		name = util.SanitizeFilename(name, nil)
-		newname := filepath.Join(base, name)
-		if _, err := os.Stat(newname); err == nil {
-			newname = filepath.Join(base, fmt.Sprintf("%04d_%s", cnt, name))
-			cnt++
-		}
-		return newname, nil
+	cfg := &types.Config{
+		ExtractionDir: *outbase,
+		LogDir:        *logbase,
 	}
 
 	report, n, err := lib.ScanFiles(cfg, rules, ifiles)
@@ -136,7 +107,7 @@ func main() {
 	dumpResult(report, *verbose)
 
 	// generate report file
-	if err := writeReportFile(report); err != nil {
+	if err := writeReportFile(*logbase, report); err != nil {
 		fmt.Printf("ERROR when creating JSON report: %s\n", err)
 	}
 

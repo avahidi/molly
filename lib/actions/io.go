@@ -18,7 +18,7 @@ func extractFunction(e *types.Env, filename string, offset int64, size int64, qu
 	}
 
 	// output file:
-	w, err := e.FileSystem.Create(filename)
+	w, err := e.Create(filename)
 	if err != nil {
 		return "", err
 	}
@@ -27,38 +27,34 @@ func extractFunction(e *types.Env, filename string, offset int64, size int64, qu
 	return w.Name(), err
 }
 
-var extractorlist = map[string]func(types.FileSystem, string, string) error{
+var extractorlist = map[string]func(*types.Env, string, string) error{
 	"zip":  extractors.Unzip,
 	"tar":  extractors.Untar,
 	"cpio": extractors.Uncpio,
 }
 
 // RegisterExtractor provides a method to register user extractor function
-func RegisterExtractor(typ string, extoractor func(types.FileSystem, string, string) error) {
+func RegisterExtractor(typ string, extoractor func(*types.Env, string, string) error) {
 	extractorlist[typ] = extoractor
 }
 
 func decompressFunction(e *types.Env, typ string, prefix string) (string, error) {
-	filename := types.FileName(e)
+	filename := e.GetFile()
 	f, found := extractorlist[typ]
 	if !found {
 		return "", fmt.Errorf("Unknown compression format: '%s'", typ)
 	}
 
 	fmt.Printf("Extracting '%s' file '%s'...\n", typ, filename)
-	return filename, f(e.FileSystem, filename, prefix)
+	return filename, f(e, filename, prefix)
 }
 
 func fileFunction(e *types.Env, prefix string) (string, error) {
-	return e.FileSystem.Name(prefix, true)
+	return e.Name(prefix, true)
 }
 
 func dirFunction(e *types.Env, prefix string) (string, error) {
-	path, err := e.FileSystem.Name(prefix, false)
-	if err == nil {
-		err = e.FileSystem.Mkdir(prefix)
-	}
-	return path, err
+	return e.Mkdir(prefix)
 }
 
 // slice the current file
@@ -67,8 +63,8 @@ func sliceFunction(e *types.Env, prefix string, positions ...uint64) (int64, err
 		return 0, fmt.Errorf("Wrong number of parameters in slice()")
 	}
 
-	total := types.FileSize(e)
-	file, err := e.FileSystem.Create(prefix)
+	total := e.GetSize()
+	file, err := e.Create(prefix)
 	if err != nil {
 		return 0, err
 	}

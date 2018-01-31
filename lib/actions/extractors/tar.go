@@ -8,7 +8,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-func Untar(fs types.FileSystem, filename, prefix string) error {
+func Untar(e *types.Env, filename, prefix string) error {
 	r, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func Untar(fs types.FileSystem, filename, prefix string) error {
 		}
 
 		if !h.FileInfo().IsDir() {
-			w, err := fs.Create(prefix + h.Name)
+			w, err := e.Create(prefix + h.Name)
 			if err != nil {
 				return err
 			}

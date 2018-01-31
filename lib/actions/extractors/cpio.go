@@ -48,7 +48,7 @@ func cpioAsciiParser(r io.Reader) (int64, int64, error) {
 	return int64(ns), int64(fs), err
 }
 
-func Uncpio(fs types.FileSystem, filename, prefix string) error {
+func Uncpio(e *types.Env, filename, prefix string) error {
 	var parser func(io.Reader) (int64, int64, error)
 	mustPad := false
 
@@ -101,7 +101,7 @@ func Uncpio(fs types.FileSystem, filename, prefix string) error {
 
 		// copy file contents
 		if filesize > 0 {
-			w, err := fs.Create(prefix + string(name))
+			w, err := e.Create(prefix + string(name))
 			if err != nil {
 				return err
 			}

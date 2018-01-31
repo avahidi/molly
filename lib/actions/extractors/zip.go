@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-func extractOneFile(fs types.FileSystem, f *zip.File, prefix string) error {
+func extractOneFile(e *types.Env, f *zip.File, prefix string) error {
 	rc, err := f.Open()
 	if err != nil {
 		return err
@@ -17,7 +17,7 @@ func extractOneFile(fs types.FileSystem, f *zip.File, prefix string) error {
 	// in reality, we should use f.Mode() but we are replacing it
 	// with our own default permissions
 	if !f.FileInfo().IsDir() {
-		w, err := fs.Create(prefix + f.Name)
+		w, err := e.Create(prefix + f.Name)
 		if err != nil {
 			return err
 		}
@@ -29,7 +29,7 @@ func extractOneFile(fs types.FileSystem, f *zip.File, prefix string) error {
 	return nil
 }
 
-func Unzip(fs types.FileSystem, filename, prefix string) error {
+func Unzip(e *types.Env, filename, prefix string) error {
 	r, err := zip.OpenReader(filename)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func Unzip(fs types.FileSystem, filename, prefix string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		if err := extractOneFile(fs, f, prefix); err != nil {
+		if err := extractOneFile(e, f, prefix); err != nil {
 			return err
 		}
 	}

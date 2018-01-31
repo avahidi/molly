@@ -39,7 +39,7 @@ func RegisterChecksumFunction(typ string, generator func() hash.Hash) {
 // checksumFunction computes checksum over a number of slices of the current file
 //
 func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, error) {
-	total := types.FileSize(e)
+	total := e.GetSize()
 	hnew, found := hashlist[typ]
 	if !found {
 		return nil, fmt.Errorf("Unknown checksum function: '%s'", typ)

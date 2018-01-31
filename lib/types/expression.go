@@ -77,23 +77,3 @@ func NewRuleSet() *RuleSet {
 		Flat:  make(map[string]*Rule),
 	}
 }
-
-// some helper functions to simplify code elsewhere
-
-// FileName returns the name of the currently scanned binary file
-func FileName(e *Env) string {
-	filename, found := e.Globals.GetString("$filename", "")
-	if !found {
-		util.RegisterFatalf("internal error: could not find $filename (%s)", e)
-	}
-	return filename
-}
-
-// FileSize returns the size of the currently scanned binary file
-func FileSize(e *Env) uint64 {
-	size, found := e.Globals.GetNumber("$filesize", 0)
-	if !found {
-		util.RegisterFatalf("internal error: could not find $filesize (%s)", e)
-	}
-	return size
-}

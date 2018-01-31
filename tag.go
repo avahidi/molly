@@ -9,15 +9,6 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-func contains(array []string, val string) bool {
-	for _, i := range array {
-		if i == val {
-			return true
-		}
-	}
-	return false
-}
-
 func tagExecute(filename, tag, op string) error {
 	info, err := os.Stat(filename)
 	if err != nil {
@@ -46,8 +37,8 @@ func tagOperation(so *types.MatchReport, tagop string) error {
 	op := strings.Trim(tagop[n+1:], " \t")
 	fmt.Printf("Tag operation '%s' => '%s'\n", tag, op)
 
-	for filename, tags := range so.TaggedFiles {
-		if contains(tags, tag) {
+	if files, valid := so.Tagged[tag]; valid {
+		for _, filename := range files {
 			if err := tagExecute(filename, tag, op); err != nil {
 				return err
 			}

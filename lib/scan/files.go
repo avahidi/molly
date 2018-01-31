@@ -46,6 +46,8 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.MatchEntry, []error) 
 		if cm != nil {
 			m.Children = append(m.Children, cm)
 			cm.Parent = m
+		} else {
+			m.FailedChildren = append(m.FailedChildren, cr.ID)
 		}
 		errors = append(errors, errs...) // record errors from this
 		env.PopRule()

@@ -1,15 +1,50 @@
 package actions
 
 import (
+	"bitbucket.org/vahidi/molly/lib/types"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
+	"strings"
 )
+
+// extractStrings extract strings from reader, similar to UNIX strings utility
+func extractStrings(r io.Reader, minsize int) ([]string, error) {
+	bs := bytes.Buffer{}
+	br := bufio.NewReader(r)
+	var ret []string
+
+	for {
+		c, err := br.ReadByte()
+		if err != nil && err != io.EOF {
+			return ret, err
+		}
+		if err == nil && c >= 0x20 && c < 0x7f { // BSD isprint(c)
+			bs.WriteByte(c)
+		} else {
+			if bs.Len() >= minsize {
+				ret = append(ret, string(bs.Bytes()))
+			}
+			bs.Reset()
+		}
+		if err == io.EOF {
+			return ret, nil
+		}
+	}
+}
+
+// containsOnly returns true of text contains only letters in chars
+func containsOnly(text, chars string) bool {
+	for _, r := range text {
+		if !strings.ContainsRune(chars, r) {
+			return false
+		}
+	}
+	return true
+}
 
 // Analyzer is the type of functions that will be called in
 // an analyze() operation
@@ -22,6 +57,7 @@ func RegisterAnalyzer(typ string, analyzerfunc Analyzer) {
 
 var analyzers = map[string]Analyzer{
 	"strings":   stringAnalyzer,
+	"version":   versionAnalyzer,
 	"histogram": histogramFunction,
 }
 
@@ -32,16 +68,17 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	filename := types.FileName(e)
-	path := fmt.Sprintf("%s_%s_%s", typ, prefix, filename)
-
-	w, err := util.CreateLog(path)
+	logfile := fmt.Sprintf("%s_%s", typ, prefix)
+	w, err := e.CreateLog(logfile)
 	if err != nil {
 		return "", err
 	}
 	defer w.Close()
+
+	filename := e.GetFile()
 	r, err := os.Open(filename)
 	if err != nil {
+		fmt.Fprintf(w, "MOLLY ANALYZER FAILED: %v\n", err) // explain why file is empty
 		return "", err
 	}
 	defer r.Close()
@@ -75,26 +112,54 @@ func histogramFunction(r io.ReadSeeker, w io.Writer, data ...interface{}) error 
 }
 
 func stringAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
-	minsize := 5
-	bs := bytes.Buffer{}
-	br := bufio.NewReader(r)
-	for {
-		c, err := br.ReadByte()
-		if err != nil && err != io.EOF {
-			return err
+	strs, err := extractStrings(r, 5)
+	if err != nil {
+		return err
+	}
+	for _, str := range strs {
+		fmt.Fprintf(w, "%s\n", str)
+	}
+	return nil
+}
+
+// versionAnalyzer is a first attempt to extract version information from binaries
+func versionAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
+	strs, err := extractStrings(r, 5)
+	if err != nil {
+		return err
+	}
+
+	var hashes, versions []string
+	for _, str := range strs {
+		t := strings.Trim(str, " \t\n\r")
+		tl := strings.ToLower(t)
+
+		if len(tl) == 40 && containsOnly(tl, "0123456789abcdef") {
+			hashes = append(hashes, t)
 		}
-		if err == nil && c >= 0x20 && c < 0x7f { // BSD isprint(c)
-			bs.WriteByte(c)
-		} else {
-			if bs.Len() >= minsize {
-				fmt.Fprintf(w, "%s\n", string(bs.Bytes()))
-			}
-			bs.Reset()
-		}
-		if err == io.EOF {
-			return nil
+
+		if strings.HasPrefix(tl, "version") {
+			versions = append(versions, t)
 		}
 	}
+
+	// build report
+	report := make(map[string]interface{})
+	if hashes != nil {
+		report["possible-gitref"] = hashes
+	}
+
+	if versions != nil {
+		report["possible-version"] = versions
+	}
+
+	// write report
+	bs, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+	w.Write(bs)
+	return nil
 }
 
 func init() {

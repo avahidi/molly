@@ -1,17 +1,17 @@
 package main
 
 import (
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
-
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 )
 
-func writeReportFile(so *types.MatchReport) error {
-	w, err := util.CreateLog("report.json")
+func writeReportFile(base string, so *types.MatchReport) error {
+	w, err := os.Create(filepath.Join(base, "report.json"))
 	if err != nil {
 		return err
 	}
@@ -28,16 +28,18 @@ func writeReportFile(so *types.MatchReport) error {
 
 	f1["configuration"] = f2
 	f1["results"] = so.MatchTree
-	f1["tags"] = so.TaggedFiles
+	f1["tags"] = so.Tagged
+	f1["files"] = so.Files
 
 	// create new copy of hierarchy without nils:
 	hrc := make(map[string][]string)
-	for k, v := range so.FileHierarchy {
+	for k, v := range so.OutHierarchy {
 		if v != nil {
 			hrc[k] = v
 		}
 	}
-	f1["hierarchy"] = hrc
+	f1["file-hierarchy"] = hrc
+	f1["log-hierarchy"] = so.LogHierarchy
 
 	bs, err := json.Marshal(f1)
 	if err != nil {
@@ -75,7 +77,7 @@ func dumpResult(so *types.MatchReport, verbose bool) {
 
 	if verbose {
 		fmt.Println("\nFile hierarchy:")
-		for p, fs := range so.FileHierarchy {
+		for p, fs := range so.OutHierarchy {
 			if fs != nil {
 				fmt.Println("\t", p)
 				for _, f := range fs {

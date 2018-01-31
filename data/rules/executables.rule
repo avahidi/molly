@@ -26,6 +26,7 @@ rule ELF (tag = "executable,elf") {
 
     analyze("strings", "string_analysis");
     analyze("histogram", "");
+	analyze("version", "");
 }
 
 // big or little endian?

@@ -2,9 +2,6 @@
 TODO
 ====
 
-* structure to create reports
-  - generate reports from analyzer actions
-
 * generate reports in different formats (json, xml, csv, text)
 
 * Lazy evaluation of binary operations (e.f. TRUE || x will not need to evaluate x)
@@ -69,3 +66,7 @@ DONE
    - set output directory
    - create stand-alone files
    - create files associated with a scanned binary
+
+
+* structure to create reports
+  - generate reports from analyzer actions
