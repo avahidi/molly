@@ -26,7 +26,7 @@ rule ZIP (bigendian = false, tag = "archive") {
 
     if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
 
-    decompress("zip", "");
+    extract("zip", "");
 }
 
 rule TAR (tag = "archive")  {
@@ -36,10 +36,20 @@ rule TAR (tag = "archive")  {
     if magic[0:5] == { 'u', 's', 't', 'a', 'r', 0x00} ||
         magic == { 'u', 's', 't', 'a', 'r', ' ', ' ', 0x00};
 
-    decompress("tar", "");
+    extract("tar", "");
 }
 
+rule gzip (tag = "archive") {
+	var id = String(0, 3);
+	var mttime = Long(4);
+	var xfl = Byte(8);
+	var os = Byte(9);
 
+	if id == { 0x1f, 0x8b, 0x08};
+	if xfl == 2 || xfl == 4;
+
+	extract("gz", "");
+}
 
 /*
 rule cpio_ascii_new  (tag = "archive") {
@@ -63,7 +73,7 @@ rule cpio_ascii_old  (tag = "archive") {
     var firstfile = StringZ(76, namesize + 1);
     if len(firstfile) == namesize - 1; // zero teminated
 
-    decompress("cpio", "");
+    extract("cpio", "");
 }
 
 
@@ -78,5 +88,5 @@ rule cpio_binary  (tag = "archive", bigendian = false) {
     var firstfile = StringZ(26, namesize + 1);
     if len(firstfile) == namesize - 1; // zero teminated
 
-    decompress("cpio", "");
+    extract("cpio", "");
 }

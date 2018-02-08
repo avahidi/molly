@@ -4,11 +4,25 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
 
-// file name sanitization
+// Extensions returns all extensions of a file, e.g. a.tar.gz -> ["gz","tar"]
+func Extensions(filename string) []string {
+	var ret []string
+	for {
+		ext := filepath.Ext(filename)
+		if ext == "" || len(ext) > 8 { /* assume short extensions */
+			return ret
+		}
+		filename = filename[:len(filename)-len(ext)]
+		ret = append(ret, ext[1:])
+	}
+}
+
+// SanitizeFilename performs file name sanitization
 func SanitizeFilename(filename string, filter func(rune) bool) string {
 	var buf bytes.Buffer
 	if filter == nil {

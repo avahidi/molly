@@ -29,17 +29,17 @@ func extractOneFile(e *types.Env, f *zip.File, prefix string) error {
 	return nil
 }
 
-func Unzip(e *types.Env, filename, prefix string) error {
-	r, err := zip.OpenReader(filename)
+func Unzip(e *types.Env, prefix string) (string, error) {
+	r, err := zip.OpenReader(e.GetFile())
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
 		if err := extractOneFile(e, f, prefix); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return "", nil
 }

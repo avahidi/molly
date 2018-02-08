@@ -37,18 +37,20 @@ func RegisterChecksumFunction(typ string, generator func() hash.Hash) {
 }
 
 // checksumFunction computes checksum over a number of slices of the current file
-//
 func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, error) {
-	total := e.GetSize()
+	if len(positions)%2 != 0 {
+		return nil, fmt.Errorf("Wrong number of parameters in checksum()")
+	}
+	if len(positions) == 0 {
+		positions = []uint64{0, e.GetSize()}
+	}
+
 	hnew, found := hashlist[typ]
 	if !found {
 		return nil, fmt.Errorf("Unknown checksum function: '%s'", typ)
 	}
 
-	if len(positions) == 0 || len(positions)%2 != 0 {
-		return nil, fmt.Errorf("Wrong number of parameters in checksum()")
-	}
-
+	total := e.GetSize()
 	hash := hnew()
 	hash.Reset()
 	for i := 0; i < len(positions); i += 2 {

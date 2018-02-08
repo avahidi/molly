@@ -48,20 +48,15 @@ func cpioAsciiParser(r io.Reader) (int64, int64, error) {
 	return int64(ns), int64(fs), err
 }
 
-func Uncpio(e *types.Env, filename, prefix string) error {
+func Uncpio(e *types.Env, prefix string) (string, error) {
 	var parser func(io.Reader) (int64, int64, error)
 	mustPad := false
-
-	r, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
+	r := e.Reader
 
 	// vad type is this?
 	magic := make([]byte, 6)
-	if _, err = r.Read(magic); err != nil {
-		return err
+	if _, err := r.Read(magic); err != nil {
+		return "", err
 	}
 	if string(magic) == "070707" {
 		parser = cpioAsciiParser
@@ -72,18 +67,18 @@ func Uncpio(e *types.Env, filename, prefix string) error {
 		mustPad = true
 	}
 	if parser == nil {
-		return fmt.Errorf("Unknown cpio format: magic=%v", magic)
+		return "", fmt.Errorf("Unknown cpio format: magic=%v", magic)
 	}
 
 	// start parsing the file
 	if _, err := r.Seek(0, os.SEEK_SET); err != nil {
-		return err
+		return "", err
 	}
 	pad := make([]byte, 1)
 	for {
 		namesize, filesize, err := parser(r)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		// read name
@@ -96,19 +91,19 @@ func Uncpio(e *types.Env, filename, prefix string) error {
 			name = name[:len(name)-1]
 		}
 		if string(name) == "TRAILER!!!" {
-			return nil
+			return "", nil
 		}
 
 		// copy file contents
 		if filesize > 0 {
 			w, err := e.Create(prefix + string(name))
 			if err != nil {
-				return err
+				return "", err
 			}
 			defer w.Close()
 
 			if _, err = io.CopyN(w, r, filesize); err != nil {
-				return err
+				return "", err
 			}
 			if mustPad && filesize%2 == 1 {
 				r.Read(pad)

@@ -39,7 +39,7 @@ rule UImage  {
 	var header_size = 32 + 32;
 
 	printf("found uimage: '%s' in '%s'\n", name, $filename);
-	extract(name + ".uimage", header_size, size, true);
+	extract("binary", name + ".uimage", header_size, size);
 }
 
 
@@ -52,6 +52,6 @@ rule UImageExtra : UImage {
 	var pad = 4096;
 	var minsize = 64;
 	var offset = (header_size + size + pad - 1) & ~(pad - 1);
-	extract(name + "uimage.extra", offset, $filesize - offset, true);
+	extract("binary", name + "uimage.extra", offset, $filesize - offset);
 
 }

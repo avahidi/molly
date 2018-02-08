@@ -13,3 +13,59 @@ rule squashfs (tag="filesystem") {
     var dir = dir("");
     system("unsquashfs -d %s %s", dir, $filename);
 }
+
+
+
+// see https://en.wikipedia.org/wiki/Master_boot_record#Sector_layout
+rule MBR (tag = "filesystem", bigendian = false) {
+	var p1 = 0x1BE;
+	var p2 = 0x1CE;
+	var p3 = 0x1DE;
+	var p4 = 0x1EE;
+	var bootsign = String(0x1FE, 2);
+	var signature = String(0x1B8, 4);
+
+	// state
+	var state_p1 = Byte(p1 + 0);
+	var state_p2 = Byte(p2 + 0);
+	var state_p3 = Byte(p3 + 0);
+	var state_p4 = Byte(p4 + 0);
+
+	// type
+	var type_p1 = Byte(p1 + 4);
+	var type_p2 = Byte(p2 + 4);
+	var type_p3 = Byte(p3 + 4);
+	var type_p4 = Byte(p4 + 4);
+
+	if bootsign == {0x55, 0xAA};
+
+	// valid states are 0x00 or 0x80
+	if ((state_p1 | state_p2 | state_p3 | state_p4) & 0x7F) == 0x00;
+}
+
+rule MBR_LBA : MBR {
+	// LBA
+	var lba_start_p1 = Long(p1 + 8);
+	var lba_start_p2 = Long(p2 + 8);
+	var lba_start_p3 = Long(p3 + 8);
+	var lba_start_p4 = Long(p4 + 8);
+
+	var lba_end_p1 = Long(p1 + 12);
+	var lba_end_p2 = Long(p2 + 12);
+	var lba_end_p3 = Long(p3 + 12);
+	var lba_end_p4 = Long(p4 + 12);
+
+	if (lba_start_p1 == 0 && lba_end_p1 == 0) || (lba_start_p1 < lba_end_p1);
+	if (lba_start_p2 == 0 && lba_end_p2 == 0) || (lba_start_p2 < lba_end_p2);
+	if (lba_start_p3 == 0 && lba_end_p3 == 0) || (lba_start_p3 < lba_end_p3);
+	if (lba_start_p4 == 0 && lba_end_p4 == 0) || (lba_start_p4 < lba_end_p4);
+
+	extract("mbrlba", "");
+}
+
+rule openwrtimage : MBR {
+	if signature == "OWRT";
+
+	 // first partition is active and has type 0x83 (linux)
+	if state_p1 == 0x80 && type_p1 == 0x83;
+}
