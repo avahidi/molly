@@ -1,6 +1,6 @@
 
 # files to scan with make run
-FILES ?= ~/tmp/fw
+FILES ?= ~/tmp/fw /home/work/Documents/repos/SECONDS/gof/data
 
 all: compile
 	@echo valid targets are: compile, test, fmt, clean and run
@@ -21,7 +21,9 @@ run: compile
 		-enable create-file \
 		-disable execute \
 		$(FILES)
-	python -m json.tool build/report/report.json > build/report/report.pretty.json
+
+show: run
+	less  build/report/report.json
 
 test:
 	go test ./...

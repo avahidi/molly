@@ -41,7 +41,7 @@ func writeReportFile(base string, so *types.MatchReport) error {
 	f1["file-hierarchy"] = hrc
 	f1["log-hierarchy"] = so.LogHierarchy
 
-	bs, err := json.Marshal(f1)
+	bs, err := json.MarshalIndent(f1, "", "\t")
 	if err != nil {
 		return err
 	}
