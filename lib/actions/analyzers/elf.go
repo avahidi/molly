@@ -2,7 +2,6 @@ package analyzers
 
 import (
 	"debug/elf"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -22,11 +21,11 @@ func (rsa readseekerat) ReadAt(p []byte, off int64) (int, error) {
 }
 
 // ElfAnalyzer examinies ELF binaries
-func ElfAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
+func ElfAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, error) {
 	rsa := &readseekerat{r: r}
 	file, err := elf.NewFile(rsa)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
 
@@ -37,7 +36,6 @@ func ElfAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
 		"machine":    file.Machine.String(),
 		"OSABI":      file.OSABI.String(),
 	}
-
 
 	// extract data from elf structure
 
@@ -62,15 +60,18 @@ func ElfAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
 	}
 	report["functions"] = functions
 
-	if libs, err := file.ImportedLibraries(); err == nil {
+	if libs, err := file.ImportedLibraries(); err == nil && libs != nil {
 		report["libraries"] = libs
 	}
 
-	// write report as json
-	bs, err := json.MarshalIndent(report, "", "\t")
-	if err != nil {
-		return err
-	}
-	w.Write(bs)
-	return nil
+	return report, nil
+	/*
+		// write report as json
+		bs, err := json.MarshalIndent(report, "", "\t")
+		if err != nil {
+			return err
+		}
+		w.Write(bs)
+		return nil
+	*/
 }

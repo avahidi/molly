@@ -15,13 +15,18 @@ func tagExecute(filename, tag, op string) error {
 		return err
 	}
 
+	// create list of command and arguments
+	cmds := strings.Split(op, " ")
+
 	// replace {name} and {size}
 	sizestr := fmt.Sprintf("%d", info.Size())
-	op = strings.Replace(op, "{name}", filename, -1)
-	op = strings.Replace(op, "{size}", sizestr, -1)
+	for i, s := range cmds {
+		s = strings.Replace(s, "{name}", filename, -1)
+		s = strings.Replace(s, "{size}", sizestr, -1)
+		cmds[i] = s
+	}
 
 	// execute command
-	cmds := strings.Split(op, " ")
 	out, err := exec.Command(cmds[0], cmds[1:]...).CombinedOutput()
 
 	fmt.Printf("\t%s => %s", filename, string(out))

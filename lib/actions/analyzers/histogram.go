@@ -2,12 +2,11 @@ package analyzers
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 )
 
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error {
+func HistogramAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, error) {
 	count := make([]int, 256)
 	br := bufio.NewReader(r)
 	for {
@@ -16,18 +15,11 @@ func HistogramAnalyzer(r io.ReadSeeker, w io.Writer, data ...interface{}) error 
 			break
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		count[c]++
 	}
 
-	fmt.Fprintf(w, "histogram = {")
-	for i, v := range count {
-		if (i & 15) == 0 {
-			fmt.Fprintf(w, "\n\t")
-		}
-		fmt.Fprintf(w, "%6d, ", v)
-	}
-	fmt.Fprintf(w, "\n};\n")
-	return nil
+	report := map[string]interface{}{"histrogram": count}
+	return report, nil
 }

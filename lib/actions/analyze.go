@@ -1,18 +1,19 @@
 package actions
 
 import (
-	"fmt"
-	"io"
-	"os"
-
 	"bitbucket.org/vahidi/molly/lib/actions/analyzers"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
 )
 
 // Analyzer is the type of functions that will be called in
 // an analyze() operation
-type Analyzer func(io.ReadSeeker, io.Writer, ...interface{}) error
+// type Analyzer func(io.ReadSeeker, io.Writer, ...interface{}) error
+type Analyzer func(io.ReadSeeker, ...interface{}) (map[string]interface{}, error)
 
 // RegisterAnalyzer registers a user analyzer
 func RegisterAnalyzer(typ string, analyzerfunc Analyzer) {
@@ -24,6 +25,22 @@ var analyzersList = map[string]Analyzer{
 	"version":   analyzers.VersionAnalyzer,
 	"histogram": analyzers.HistogramAnalyzer,
 	"elf":       analyzers.ElfAnalyzer,
+}
+
+// writeReport will create a log file with the report data
+func writeReport(e *types.Env, name string, report map[string]interface{}) (string, error) {
+	w, err := e.CreateLog(name)
+	if err != nil {
+		return "", err
+	}
+	defer w.Close()
+
+	bs, err := json.MarshalIndent(report, "", "\t")
+	if err != nil {
+		return "", err
+	}
+	w.Write(bs)
+	return name, nil
 }
 
 // analyzeFunction performs some type of analysis on the current binary
@@ -38,22 +55,22 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	logfile := fmt.Sprintf("%s_%s", typ, prefix)
-	w, err := e.CreateLog(logfile)
-	if err != nil {
-		return "", err
-	}
-	defer w.Close()
-
 	filename := e.GetFile()
 	r, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintf(w, "MOLLY ANALYZER FAILED: %v\n", err) // explain why file is empty
 		return "", err
 	}
 	defer r.Close()
 
-	return typ, f(r, w, data)
+	report, err := f(r, data)
+	if err != nil {
+		return "", err
+	} else if report != nil {
+		logfile := fmt.Sprintf("%s_%s.json", typ, prefix)
+		return writeReport(e, logfile, report)
+	}
+	return "", nil
+
 }
 
 func init() {

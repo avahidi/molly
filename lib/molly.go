@@ -90,6 +90,9 @@ func ScanFiles(config *types.Config, rules *types.RuleSet, files []string) (
 		report.Files = append(report.Files, filename)
 		env.SetFile(filename, uint64(info.Size()))
 		scanReader(env, report, rules, f)
+
+		// close it manually to avoid "too many open files"
+		f.Close()
 	}
 
 	// populate tagged files

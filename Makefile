@@ -1,6 +1,6 @@
 
 # files to scan with make run
-FILES ?= ~/tmp/fw /home/work/Documents/repos/SECONDS/gof/data
+FILES ?= ~/tmp/fw
 
 all: compile
 	@echo valid targets are: compile, test, fmt, clean and run

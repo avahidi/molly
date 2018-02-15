@@ -3,19 +3,12 @@
 rule LZMANew (tag = "archive") {
     var header = StringZ(0, 5);
     var type = Byte(6) & 0x10;
-
     if header == { 0xFF, 'L', 'Z', 'M', 'A'};
 }
 
-rule LZMA51 (tag = "archive")  {
+rule LZMA5x (tag = "archive")  {
     var header = String(0, 3);
-    if header == { 0x51, 0x00, 0x00 };
-}
-
-rule LZMA5d (tag = "archive") {
-    var header = String(0, 3);
-
-    if header == { 0x5D, 0x00, 0x00 };
+    if header == { 0x51, 0x00, 0x00 } || header == { 0x5D, 0x00, 0x00 };
 }
 
 
