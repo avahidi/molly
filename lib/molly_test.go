@@ -7,14 +7,14 @@ import (
 )
 
 // some helper functions to simplify the code
-func loadRule(t *testing.T, text string, name string) (*types.Rule, *types.RuleSet) {
-	rs, err := LoadRuleText(nil, text)
-	if err != nil {
+func loadRule(t *testing.T, text string, name string) (*types.Molly, *types.Rule) {
+	molly := New("", "")
+	if err := LoadRuleText(molly, text); err != nil {
 		t.Errorf("Could not load rule from text: %v", err)
 		return nil, nil
 	}
-	rule, _ := rs.Flat[name]
-	return rule, rs
+	rule, _ := molly.Rules.Flat[name]
+	return molly, rule
 }
 
 func getVar(match *types.MatchEntry, name string) (interface{}, bool) {
@@ -53,23 +53,22 @@ func TestLoadRuleSeries(t *testing.T) {
 		{"rule r00 : base { var b = Long(0); }", 1, 0},
 		{"rule r01 : r00 { var c = Long(0); } rule r02 : r03 { } rule r03 { }", 3, 1},
 	}
-	rs := (*types.RuleSet)(nil)
 	totalRules, totalTop := 0, 0
 
+	molly := New("", "")
 	for _, test := range testdata {
 		var err error
-		rs, err = LoadRuleText(rs, test.text)
-		if err != nil {
+		if err = LoadRuleText(molly, test.text); err != nil {
 			t.Errorf("Could not load rule from text: %v", err)
 			return
 		}
 		totalRules += test.countRules
-		if len(rs.Flat) != totalRules {
+		if len(molly.Rules.Flat) != totalRules {
 			t.Errorf("rule count mismatch")
 		}
 
 		totalTop += test.countTop
-		if len(rs.Top) != totalTop {
+		if len(molly.Rules.Top) != totalTop {
 			t.Errorf("top rule count mismatch")
 		}
 	}
@@ -98,7 +97,7 @@ func TestLoadRule(t *testing.T) {
 	}
 
 	for _, test := range testdata {
-		dut, _ := loadRule(t, test.text, "test")
+		_, dut := loadRule(t, test.text, "test")
 		if dut == nil {
 			continue
 		}
@@ -116,7 +115,7 @@ func TestLoadRule(t *testing.T) {
 
 func TestLoadRuleMetadata(t *testing.T) {
 	text := "rule test (name = \"joe\", age = 99, dead = false)  { }"
-	dut, _ := loadRule(t, text, "test")
+	_, dut := loadRule(t, text, "test")
 	if dut == nil {
 		return
 	}
@@ -167,11 +166,11 @@ func TestScanData(t *testing.T) {
 	}
 
 	for _, test := range testdata {
-		_, rs := loadRule(t, test.rule, test.name)
-		if rs == nil {
+		molly, _ := loadRule(t, test.rule, test.name)
+		if molly == nil {
 			continue
 		}
-		mr, err := ScanData(nil, rs, test.input)
+		mr, err := ScanData(molly, test.input)
 		if err != nil || len(mr.MatchTree) != 1 {
 			t.Errorf("No match in scan data")
 			continue

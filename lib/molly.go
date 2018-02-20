@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,20 +14,37 @@ import (
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
-// LoadRules reads rules from files
-func LoadRules(db *types.RuleSet, files ...string) (*types.RuleSet, error) {
-	if db == nil {
-		db = types.NewRuleSet()
+// New create a new molly context
+func New(extratDir, reportDir string) *types.Molly {
+	if extratDir == "" {
+		extratDir, _ = ioutil.TempDir("", "molly-out")
 	}
-	return db, scan.ParseRuleFiles(db, files...)
+	if reportDir == "" {
+		reportDir, _ = ioutil.TempDir("", "molly-log")
+	}
+	if err := util.Mkdir(extratDir); err != nil {
+		util.RegisterFatalf("Failed to create extraction dir: %v", err)
+	}
+	if err := util.Mkdir(reportDir); err != nil {
+		util.RegisterFatalf("Failed to create report dir: %v", err)
+	}
+
+	m := &types.Molly{
+		ExtractDir: extratDir,
+		ReportDir: reportDir,
+		Rules: types.NewRuleSet(),
+	}
+	return m
+}
+
+// LoadRules reads rules from files
+func LoadRules(m *types.Molly, files ...string) error {
+	return scan.ParseRuleFiles(m, files...)
 }
 
 // LoadRuleText reads rules from a string
-func LoadRuleText(db *types.RuleSet, text string) (*types.RuleSet, error) {
-	if db == nil {
-		db = types.NewRuleSet()
-	}
-	return db, scan.ParseRuleStream(db, strings.NewReader(text))
+func LoadRuleText(m *types.Molly, text string) error {
+	return scan.ParseRuleStream(m, strings.NewReader(text))
 }
 
 func scanReader(env *types.Env, report *types.MatchReport,
@@ -45,23 +63,21 @@ func scanReader(env *types.Env, report *types.MatchReport,
 
 // ScanData scans a a data stream for matches against the given rules
 // if any files are extracted they will be created within outputDir
-func ScanData(config *types.Config, rules *types.RuleSet, data []byte) (
-	*types.MatchReport, error) {
+func ScanData(m *types.Molly, data []byte) (*types.MatchReport, error) {
 
 	report := types.NewMatchReport()
-	env := types.NewEnv(config, util.NewFileQueue())
+	env := types.NewEnv(m, util.NewFileQueue())
 	env.SetFile("nopath/nofile", uint64(len(data)))
-	scanReader(env, report, rules, bytes.NewReader(data))
+	scanReader(env, report, m.Rules, bytes.NewReader(data))
 	return report, nil
 }
 
 // ScanFiles scans a set of files for matches against the given rules
 // if any files are extracted they will be created within outputDir
-func ScanFiles(config *types.Config, rules *types.RuleSet, files []string) (
-	*types.MatchReport, int, error) {
+func ScanFiles(m *types.Molly, files []string) (*types.MatchReport, int, error) {
 
 	inputs := util.NewFileQueue()
-	env := types.NewEnv(config, inputs)
+	env := types.NewEnv(m, inputs)
 
 	// add inputs
 	for _, file := range files {
@@ -89,7 +105,7 @@ func ScanFiles(config *types.Config, rules *types.RuleSet, files []string) (
 
 		report.Files = append(report.Files, filename)
 		env.SetFile(filename, uint64(info.Size()))
-		scanReader(env, report, rules, f)
+		scanReader(env, report, m.Rules, f)
 
 		// close it manually to avoid "too many open files"
 		f.Close()
@@ -97,7 +113,7 @@ func ScanFiles(config *types.Config, rules *types.RuleSet, files []string) (
 
 	// populate tagged files
 	for _, top := range report.MatchTree {
-		tagExtract(report.Tagged, rules.Flat, top)
+		tagExtract(report.Tagged, m.Rules.Flat, top)
 	}
 	// record files generated
 	for k, v := range env.Output().Trace {

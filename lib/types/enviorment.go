@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/vahidi/molly/lib/util"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -12,6 +11,7 @@ import (
 // Env is the current enviornment during scanning
 type Env struct {
 	out, log *util.FileSystem
+	m *Molly
 	Globals  *util.Register
 
 	// these are valid while we are scanning a file
@@ -19,21 +19,11 @@ type Env struct {
 	Scope  *Scope
 }
 
-func NewEnv(config *Config, queue *util.FileQueue) *Env {
-	// in case we dont have a functioning config, create one
-	if config == nil {
-		config = &Config{}
-	}
-	if config.ExtractionDir == "" {
-		config.ExtractionDir, _ = ioutil.TempDir("", "molly-out")
-	}
-
-	if config.LogDir == "" {
-		config.LogDir, _ = ioutil.TempDir("", "molly-log")
-	}
+func NewEnv(m *Molly, queue *util.FileQueue) *Env {
 	return &Env{
-		out:     util.NewFileSystem(config.ExtractionDir, queue),
-		log:     util.NewFileSystem(config.LogDir, nil),
+		m: m,
+		out:     util.NewFileSystem(m.ExtractDir, queue),
+		log:     util.NewFileSystem(m.ReportDir, nil),
 		Globals: util.NewRegister(),
 	}
 }

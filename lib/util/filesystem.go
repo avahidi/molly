@@ -7,6 +7,27 @@ import (
 	"strings"
 )
 
+// Mkdir creates directories in a path
+func Mkdir(path string) error {
+	return os.MkdirAll(path, 0700)
+}
+// SafeMkdir creates directories in a path, fails if CreateFile permission is missing
+func SafeMkdir(path string) error {
+	if !PermissionGet(CreateFile) {
+		return fmt.Errorf("Not allowed to create files (mkdir)")
+	}
+	return Mkdir(path)
+}
+
+// SafeCreateFile creates a file, fails if CreateFile permission is missing
+func SafeCreateFile(filename string) (*os.File, error) {
+	if !PermissionGet(CreateFile) {
+		return nil, fmt.Errorf("Not allowed to create file '%s'", filename)
+	}
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+}
+
+
 // FileSystem is a structure for tracking and creating new files
 // in a controlled manner and with some historic which is later
 // used to create scan reports and such
@@ -77,18 +98,16 @@ func (fs *FileSystem) Name(name, parent string, addtopath bool) (string, error) 
 
 // Mkdir creates a new directory based on a path suggestion
 func (fs *FileSystem) Mkdir(path, parent string) (string, error) {
-	if !PermissionGet(CreateFile) {
-		return "", fmt.Errorf("Not allowed to create files (mkdir")
-	}
 	newpath, err := fs.Name(path, parent, false)
-	if err == nil {
-		err = os.MkdirAll(newpath, 0700)
+	if err != nil {
+		return "", err
 	}
-	if err == nil {
-		fs.record(newpath, parent)
+	err = SafeMkdir(newpath)
+	if err != nil {
+		return "", err
 	}
-
-	return newpath, err
+	fs.record(newpath, parent)
+	return newpath, nil
 }
 
 // Create a new file based on Name()
@@ -103,10 +122,12 @@ func (fs *FileSystem) Create(name, parent string) (*os.File, error) {
 
 	// make sure the path leading to it exist
 	dir, _ := filepath.Split(newname)
-	os.MkdirAll(dir, 0700)
+	if err := SafeMkdir(dir); err != nil {
+		return nil, err
+	}
 
 	// open the file and record this event
-	file, err := os.OpenFile(newname, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+	file, err := SafeCreateFile(newname)
 	if err == nil {
 		fs.record(newname, parent)
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bitbucket.org/vahidi/molly/lib"
-	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
 	"flag"
 	"fmt"
@@ -72,12 +71,13 @@ func main() {
 		}
 	}
 
+	// create context
+	molly := lib.New(*outbase, *logbase)
 	//  scan rules
-	rules, err := lib.LoadRules(nil, rfiles...)
-	if err != nil {
+	if err := lib.LoadRules(molly, rfiles...); err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
 	}
-	if len(rules.Top) == 0 {
+	if len(molly.Rules.Top) == 0 {
 		help("No rules were loaded", 20)
 	}
 
@@ -86,12 +86,7 @@ func main() {
 		help("No input files", 20)
 	}
 
-	cfg := &types.Config{
-		ExtractionDir: *outbase,
-		LogDir:        *logbase,
-	}
-
-	report, n, err := lib.ScanFiles(cfg, rules, ifiles)
+	report, n, err := lib.ScanFiles(molly, ifiles)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}

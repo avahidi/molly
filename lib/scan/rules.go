@@ -41,7 +41,8 @@ type parsedRule struct {
 	parentRule *types.Rule
 }
 
-func addParsedToSet(parsed []*parsedRule, rs *types.RuleSet) error {
+func addParsedToSet(rs *types.RuleSet, parsed []*parsedRule) error {
+
 	// 1. check there are no doubles:
 	for _, pr := range parsed {
 		if _, found := rs.Flat[pr.rule.ID]; found {
@@ -106,7 +107,7 @@ func parseRuleStream(r io.Reader, filename string) ([]*parsedRule, error) {
 }
 
 // ParseRuleFiles loads rules from a set of files
-func ParseRuleFiles(rs *types.RuleSet, files ...string) error {
+func ParseRuleFiles(db *types.Molly, files ...string) error {
 	var list []*parsedRule
 
 	inputs := util.NewFileQueue()
@@ -126,16 +127,16 @@ func ParseRuleFiles(rs *types.RuleSet, files ...string) error {
 		list = append(list, rules...)
 	}
 
-	return addParsedToSet(list, rs)
+	return addParsedToSet(db.Rules, list)
 }
 
 // ParseRuleStream loads rules from a stream
-func ParseRuleStream(rs *types.RuleSet, r io.Reader) error {
+func ParseRuleStream(db *types.Molly, r io.Reader) error {
 	rules, err := parseRuleStream(r, "")
 	if err != nil {
 		return err
 	}
-	return addParsedToSet(rules, rs)
+	return addParsedToSet(db.Rules, rules)
 }
 
 func parseRule(p *parser) (*types.Rule, string, error) {
