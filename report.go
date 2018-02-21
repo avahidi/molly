@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/vahidi/molly/lib"
 	"bitbucket.org/vahidi/molly/lib/report"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
@@ -38,6 +39,8 @@ func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
 	f2 := make(map[string]interface{})
 	f2["command"] = os.Args
 	f2["time"] = time.Now()
+	maj, min, mnt := lib.Version()
+	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)
 	dir, err := os.Getwd()
 	if err != nil {
 		f1["dir"] = dir

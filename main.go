@@ -28,6 +28,7 @@ func (mf *MultiFlag) Set(val string) error {
 var outbase = flag.String("outdir", "outs", "output directory")
 var logbase = flag.String("logdir", "logs", "log output directory")
 var verbose = flag.Bool("v", false, "be verbose")
+var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
 
 var rfiles, tagops MultiFlag
@@ -36,8 +37,8 @@ var penable, pdisable MultiFlag
 func init() {
 	flag.Var(&rfiles, "R", "rule files")
 	flag.Var(&tagops, "tagop", "tag operation")
-	flag.Var(&penable, "enable", "allowed permissions")
-	flag.Var(&pdisable, "disable", "removed permissions")
+	flag.Var(&penable, "enable", "allow permission")
+	flag.Var(&pdisable, "disable", "remove permission")
 }
 
 func help(errmsg string, exitcode int) {
@@ -50,7 +51,6 @@ func help(errmsg string, exitcode int) {
 }
 
 func main() {
-	var ownErrors []error
 
 	// 	parse arguments
 	flag.Parse()
@@ -59,6 +59,12 @@ func main() {
 		os.Exit(0)
 	}
 	ifiles := flag.Args()
+
+	if *showVersion {
+		maj, min, mnt := lib.Version()
+		fmt.Printf("This is Molly version %d.%d.%d\n", maj, min, mnt)
+		return
+	}
 
 	// update permissions
 	for i, list := range []MultiFlag{penable, pdisable} {
@@ -98,21 +104,20 @@ func main() {
 	dumpResult(molly, report, *verbose)
 
 	// execute tags
-	tagErrors := executeAllTagOps(report, tagops)
-	ownErrors = append(ownErrors, tagErrors...)
+	errors := executeAllTagOps(report, tagops)
 
 	// generate report file
 	if err := writeReportFile(molly, report, *logbase); err != nil {
-		ownErrors = append(ownErrors, err)
+		errors = append(errors, err)
 	}
 
 	// generate rule file
 	if err := writeRuleFile(molly, *logbase); err != nil {
-		ownErrors = append(ownErrors, err)
+		errors = append(errors, err)
 	}
 
 	// calculate some stats
-	totalMatches, totalFiles, totalErrors := 0, 0, len(ownErrors)
+	totalMatches, totalFiles, totalErrors := 0, 0, len(errors)
 	for _, f := range report.Files {
 		if len(f.Matches) > 0 {
 			totalMatches += len(f.Matches)
