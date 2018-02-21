@@ -14,7 +14,7 @@ import (
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
-// New create a new molly context
+// New creates a new molly context
 func New(extratDir, reportDir string) *types.Molly {
 	if extratDir == "" {
 		extratDir, _ = ioutil.TempDir("", "molly-out")
@@ -37,8 +37,8 @@ func LoadRules(m *types.Molly, files ...string) error {
 	return scan.ParseRuleFiles(m, files...)
 }
 
-// LoadRuleText reads rules from a string
-func LoadRuleText(m *types.Molly, text string) error {
+// LoadRulesFromText reads rules from a string
+func LoadRulesFromText(m *types.Molly, text string) error {
 	return scan.ParseRuleStream(m, strings.NewReader(text))
 }
 
@@ -55,8 +55,7 @@ func scanReader(env *types.Env, rules *types.RuleSet, r io.ReadSeeker,
 	}
 }
 
-// ScanData scans a a data stream for matches against the given rules
-// if any files are extracted they will be created within outputDir
+// ScanData scans a byte vector for matches.
 func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	dummyname := "nopath/nofile"
 	fr := types.NewFileReport(dummyname)
@@ -70,8 +69,7 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	return report, nil
 }
 
-// ScanFiles scans a set of files for matches against the given rules
-// if any files are extracted they will be created within outputDir
+// ScanFile scans a set of files for matches.
 func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
 	env := types.NewEnv(m)
 
