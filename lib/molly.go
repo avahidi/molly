@@ -70,7 +70,7 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, fr *types.FileReport, filename string ) {
+func scanFile(m *types.Molly, env *types.Env, fr *types.FileReport, filename string) {
 	info, err := os.Stat(filename)
 	if err != nil {
 		fr.Errors = append(fr.Errors, err)
