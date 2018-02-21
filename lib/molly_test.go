@@ -17,7 +17,7 @@ func loadRule(t *testing.T, text string, name string) (*types.Molly, *types.Rule
 	return molly, rule
 }
 
-func getVar(match *types.MatchEntry, name string) (interface{}, bool) {
+func getVar(match *types.Match, name string) (interface{}, bool) {
 	for match != nil {
 		got, found := match.Vars[name]
 		if found {
@@ -27,7 +27,7 @@ func getVar(match *types.MatchEntry, name string) (interface{}, bool) {
 	}
 	return nil, false
 }
-func matchCheck(t *testing.T, match *types.MatchEntry, name string, val interface{}) {
+func matchCheck(t *testing.T, match *types.Match, name string, val interface{}) {
 	if val == nil {
 		return
 	}
@@ -171,13 +171,13 @@ func TestScanData(t *testing.T) {
 			continue
 		}
 		mr, err := ScanData(molly, test.input)
-		if err != nil || len(mr.MatchTree) != 1 {
+		if err != nil || len(mr.Files) != 1 {
 			t.Errorf("No match in scan data")
 			continue
 		}
 
 		// get the deepest match:
-		match := mr.MatchTree[0]
+		match := mr.Files[0].Matches[0]
 		for len(match.Children) != 0 {
 			match = match.Children[0]
 		}

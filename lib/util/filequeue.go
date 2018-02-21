@@ -5,32 +5,47 @@ import (
 	"path/filepath"
 )
 
+// MaxFileDepth is the maximum depth of files we will accept
+const MaxFileDepth = 42
+
+// FileEntry represents a single file
+type FileEntry struct {
+	Filename string
+	Depth    int
+	Parent   *FileEntry
+}
+
 // FileQueue is a queue where files can be added for later extraction
 // it discards files already added and traverses directories
 type FileQueue struct {
-	processed []string
-	toprocess []string
-	recent    []string
-	seen      map[string]bool
+	Current *FileEntry
+	Map     map[string]*FileEntry
+	Out     []*FileEntry
+	In      []*FileEntry
 }
 
 // NewFileQueue creates an empty FileQueue given a output directory
 func NewFileQueue() *FileQueue {
-	return &FileQueue{seen: make(map[string]bool)}
-}
-
-// Count retruns number of files processed (POPed) in this queue
-func (i FileQueue) Count() int {
-	return len(i.processed)
+	return &FileQueue{Map: make(map[string]*FileEntry)}
 }
 
 // Push puts a file into the queue
 func (i *FileQueue) Push(paths ...string) {
 	for _, path := range paths {
-		if _, seen := i.seen[path]; !seen {
-			i.seen[path] = true
-			i.toprocess = append(i.toprocess, path)
-			i.recent = append(i.recent, path)
+		if _, seen := i.Map[path]; !seen {
+			fe := &FileEntry{
+				Filename: path,
+				Parent:   i.Current,
+			}
+			if fe.Parent != nil {
+				fe.Depth = 1 + fe.Parent.Depth
+			}
+			if fe.Depth < MaxFileDepth {
+				i.Map[path] = fe
+				i.In = append(i.In, fe)
+			} else {
+				RegisterWarningf("ignoring file '%s' at max depth %d\n", path, fe.Depth)
+			}
 		}
 	}
 }
@@ -39,13 +54,14 @@ func (i *FileQueue) Push(paths ...string) {
 func (i *FileQueue) Pop() string {
 	for {
 		// pop one from the queue
-		n := len(i.toprocess)
+		n := len(i.In)
 		if n == 0 {
 			return ""
 		}
-		path := i.toprocess[n-1]
-		i.toprocess = i.toprocess[:n-1]
+		i.Current = i.In[n-1]
+		i.In = i.In[:n-1]
 
+		path := i.Current.Filename
 		fi, err := os.Stat(path)
 		if err != nil {
 			return path // let someone else take care of the error
@@ -67,18 +83,10 @@ func (i *FileQueue) Pop() string {
 				i.Push(filepath.Join(path, file.Name()))
 			}
 		} else if mode.IsRegular() {
-			i.processed = append(i.processed, path)
+			i.Out = append(i.Out, i.Current)
 			return path
 		} else {
 			RegisterWarningf("ignoring unknown file type '%s'\n", path)
 		}
 	}
-}
-
-// RecentlyAdded returns list of files that were added
-// since the last call to this function
-func (i *FileQueue) RecentlyAdded() []string {
-	tmp := i.recent
-	i.recent = nil
-	return tmp
 }

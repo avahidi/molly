@@ -10,7 +10,7 @@ import (
 
 // AnalyzeFile evaluates one rule against one file,
 // if the rule has children they will also be evaluated
-func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.MatchEntry, []error) {
+func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.Match, []error) {
 	reader := env.Reader
 	reader.Seek(0, os.SEEK_SET)
 
@@ -34,9 +34,8 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.MatchEntry, []error) 
 	}
 
 	// 3. record the match
-	filename, _ := env.Globals.GetString("$filename", "")
 	vars := exp.ScopeExtract(env.Scope)
-	m := &types.MatchEntry{Filename: filename, Rule: rule.ID, Vars: vars}
+	m := &types.Match{Rule: rule, Vars: vars}
 	// s.Results = append(s.Results, m)
 
 	// 4. call children
@@ -47,7 +46,7 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.MatchEntry, []error) 
 			m.Children = append(m.Children, cm)
 			cm.Parent = m
 		} else {
-			m.FailedChildren = append(m.FailedChildren, cr.ID)
+			m.FailedChildren = append(m.FailedChildren, cr)
 		}
 		errors = append(errors, errs...) // record errors from this
 		env.PopRule()

@@ -29,12 +29,7 @@ func New(extratDir, reportDir string) *types.Molly {
 		util.RegisterFatalf("Failed to create report dir: %v", err)
 	}
 
-	m := &types.Molly{
-		ExtractDir: extratDir,
-		ReportDir: reportDir,
-		Rules: types.NewRuleSet(),
-	}
-	return m
+	return types.NewMolly(extratDir, reportDir)
 }
 
 // LoadRules reads rules from files
@@ -47,15 +42,14 @@ func LoadRuleText(m *types.Molly, text string) error {
 	return scan.ParseRuleStream(m, strings.NewReader(text))
 }
 
-func scanReader(env *types.Env, report *types.MatchReport,
-	rules *types.RuleSet, r io.ReadSeeker) {
-	env.Reader = r
-
+func scanReader(env *types.Env, rules *types.RuleSet, r io.ReadSeeker,
+	filename string, filesize uint64, report *types.FileReport) {
+	env.SetFile(r, filename, filesize, report)
 	for _, rule := range rules.Top {
 		env.StartRule(rule)
 		match, errs := scan.AnalyzeFile(rule, env)
 		if match != nil {
-			report.MatchTree = append(report.MatchTree, match)
+			report.Matches = append(report.Matches, match)
 		}
 		report.Errors = append(report.Errors, errs...)
 	}
@@ -63,21 +57,23 @@ func scanReader(env *types.Env, report *types.MatchReport,
 
 // ScanData scans a a data stream for matches against the given rules
 // if any files are extracted they will be created within outputDir
-func ScanData(m *types.Molly, data []byte) (*types.MatchReport, error) {
+func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
+	dummyname := "nopath/nofile"
+	fr := types.NewFileReport(dummyname)
+	env := types.NewEnv(m)
+	scanReader(env, m.Rules, bytes.NewReader(data), dummyname, uint64(len(data)), fr)
 
-	report := types.NewMatchReport()
-	env := types.NewEnv(m, util.NewFileQueue())
-	env.SetFile("nopath/nofile", uint64(len(data)))
-	scanReader(env, report, m.Rules, bytes.NewReader(data))
+	report := types.NewReport()
+	if !fr.Empty() {
+		report.Add(fr)
+	}
 	return report, nil
 }
 
 // ScanFiles scans a set of files for matches against the given rules
 // if any files are extracted they will be created within outputDir
-func ScanFiles(m *types.Molly, files []string) (*types.MatchReport, int, error) {
-
-	inputs := util.NewFileQueue()
-	env := types.NewEnv(m, inputs)
+func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
+	env := types.NewEnv(m)
 
 	// add inputs
 	for _, file := range files {
@@ -85,65 +81,33 @@ func ScanFiles(m *types.Molly, files []string) (*types.MatchReport, int, error) 
 		if err != nil {
 			return nil, 0, err
 		}
-		inputs.Push(abs)
+		m.Files.Push(abs)
 	}
 
-	report := types.NewMatchReport()
-	for filename := inputs.Pop(); filename != ""; filename = inputs.Pop() {
+	report := types.NewReport()
+	for filename := m.Files.Pop(); filename != ""; filename = m.Files.Pop() {
+		fr := types.NewFileReport(filename)
 		info, err := os.Stat(filename)
 		if err != nil {
-			report.Errors = append(report.Errors, err)
+			fr.Errors = append(fr.Errors, err)
 			continue
 		}
+
 		// open file and scan it
 		f, err := os.Open(filename)
 		if err != nil {
-			report.Errors = append(report.Errors, err)
+			fr.Errors = append(fr.Errors, err)
 			continue
 		}
 		defer f.Close()
 
-		report.Files = append(report.Files, filename)
-		env.SetFile(filename, uint64(info.Size()))
-		scanReader(env, report, m.Rules, f)
+		scanReader(env, m.Rules, f, filename, uint64(info.Size()), fr)
+		if !fr.Empty() {
+			report.Add(fr)
+		}
 
 		// close it manually to avoid "too many open files"
 		f.Close()
 	}
-
-	// populate tagged files
-	for _, top := range report.MatchTree {
-		tagExtract(report.Tagged, m.Rules.Flat, top)
-	}
-	// record files generated
-	for k, v := range env.Output().Trace {
-		if k != "" {
-			report.OutHierarchy[k] = v
-		}
-	}
-
-	// record logs generated
-	report.LogHierarchy = env.Log().Trace
-
-	return report, inputs.Count(), nil
-}
-
-func tagExtract(tagmap map[string][]string, lookup map[string]*types.Rule, match *types.MatchEntry) {
-	rule, found := lookup[match.Rule]
-	if !found {
-		return
-	}
-
-	if tagmeta, valid := rule.Metadata.GetString("tag", ""); valid {
-		tags := strings.Split(tagmeta, ",")
-		for _, tag := range tags {
-			if tag2 := strings.Trim(tag, " \t\n\r"); tag2 != "" {
-				tagmap[tag2] = append(tagmap[tag2], match.Filename)
-			}
-		}
-	}
-
-	for _, cm := range match.Children {
-		tagExtract(tagmap, lookup, cm)
-	}
+	return report, len(m.Files.Out), nil
 }

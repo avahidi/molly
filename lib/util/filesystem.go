@@ -11,6 +11,7 @@ import (
 func Mkdir(path string) error {
 	return os.MkdirAll(path, 0700)
 }
+
 // SafeMkdir creates directories in a path, fails if CreateFile permission is missing
 func SafeMkdir(path string) error {
 	if !PermissionGet(CreateFile) {
@@ -27,7 +28,6 @@ func SafeCreateFile(filename string) (*os.File, error) {
 	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
 }
 
-
 // FileSystem is a structure for tracking and creating new files
 // in a controlled manner and with some historic which is later
 // used to create scan reports and such
@@ -36,7 +36,6 @@ type FileSystem struct {
 	bases map[string]string
 	base  string
 	queue *FileQueue
-	Trace map[string][]string
 }
 
 // NewFileSystem creates a new filesystem given a base directory
@@ -47,13 +46,11 @@ func NewFileSystem(base string, queue *FileQueue) *FileSystem {
 		base:  base,
 		queue: queue,
 		bases: make(map[string]string),
-		Trace: make(map[string][]string),
 	}
 }
 
 // record records creation of a file/dir
 func (fs *FileSystem) record(realname, parent string) {
-	fs.Trace[parent] = append(fs.Trace[parent], realname)
 	if fs.queue != nil {
 		fs.queue.Push(realname)
 	}

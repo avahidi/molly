@@ -50,10 +50,13 @@ func help(errmsg string, exitcode int) {
 }
 
 func main() {
+	var ownErrors []error
+
 	// 	parse arguments
 	flag.Parse()
 	if *showhelp {
 		help("", 0)
+		os.Exit(0)
 	}
 	ifiles := flag.Args()
 
@@ -91,24 +94,36 @@ func main() {
 		fmt.Println("SCAN while parsing file: ", err)
 	}
 
-	// execute tags
-	for _, tagop := range tagops {
-		if err := tagOperation(report, tagop); err != nil {
-			report.Errors = append(report.Errors, fmt.Errorf("Tag operation error: %v", err))
-		}
-	}
-
 	// show results
-	dumpResult(report, *verbose)
+	dumpResult(molly, report, *verbose)
+
+	// execute tags
+	tagErrors := executeAllTagOps(report, tagops)
+	ownErrors = append(ownErrors, tagErrors...)
 
 	// generate report file
-	if err := writeReportFile(*logbase, report); err != nil {
-		fmt.Printf("ERROR when creating JSON report: %s\n", err)
+	if err := writeReportFile(molly, report, *logbase); err != nil {
+		ownErrors = append(ownErrors, err)
 	}
 
-	fmt.Printf("Scanned %d files, found %d matches...\n", n, len(report.MatchTree))
-	fmt.Printf("%d errors, %d warnings\n", len(report.Errors), len(util.Warnings()))
-	if len(report.Errors) > 0 {
+	// generate rule file
+	if err := writeRuleFile(molly, *logbase); err != nil {
+		ownErrors = append(ownErrors, err)
+	}
+
+	// calculate some stats
+	totalMatches, totalFiles, totalErrors := 0, 0, len(ownErrors)
+	for _, f := range report.Files {
+		if len(f.Matches) > 0 {
+			totalMatches += len(f.Matches)
+			totalFiles++
+		}
+		totalErrors += len(f.Errors)
+	}
+
+	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n", n, totalFiles, totalMatches)
+	fmt.Printf("%d errors, %d warnings\n", totalErrors, len(util.Warnings()))
+	if totalErrors > 0 {
 		os.Exit(1)
 	}
 }

@@ -2,6 +2,8 @@
 TODO
 ====
 
+ * Simplify FileSystem now that we have types.Molly
+
 * generate reports in different formats (json, xml, csv, text)
 
 * Lazy evaluation of binary operations (e.f. TRUE || x will not need to evaluate x)
@@ -47,7 +49,7 @@ DONE
    - get name for a new file
 
 * export matches to json/whatever
-* better error messages when scanning files (errors put in MatchReport)
+* better error messages when scanning files (errors put in Report)
 * fix input set so it doesn't depend on filewalk and search dirs only on pop
 
 * quit when an unknown variable is seen
@@ -70,3 +72,5 @@ DONE
 
 * structure to create reports
   - generate reports from analyzer actions
+* use hierarchy from FileQueue instead of building it separatly in Report
+* set some sort of max depth for filequeue

@@ -46,7 +46,7 @@ func NewScope(rule *Rule, parent *Scope) *Scope {
 type Rule struct {
 	ID       string
 	Metadata *util.Register
-	Parent   *Rule
+	Parent   *Rule `json:"-"` // this will avoid circular marshalling
 
 	Children   []*Rule
 	Conditions []Expression

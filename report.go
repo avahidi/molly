@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/vahidi/molly/lib/report"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
 	"encoding/json"
@@ -10,7 +11,23 @@ import (
 	"time"
 )
 
-func writeReportFile(base string, so *types.MatchReport) error {
+func writeRuleFile(molly *types.Molly, base string) error {
+	w, err := os.Create(filepath.Join(base, "rules.json"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	bs, err := json.MarshalIndent(molly.Rules, "", "\t")
+	if err != nil {
+		return err
+	}
+	w.Write(bs)
+
+	return nil
+}
+
+func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
 	w, err := os.Create(filepath.Join(base, "report.json"))
 	if err != nil {
 		return err
@@ -26,20 +43,11 @@ func writeReportFile(base string, so *types.MatchReport) error {
 		f1["dir"] = dir
 	}
 
+	f1["file-hierarchy"] = report.ExtractFileHierarchy(molly)
+	f1["logs"] = report.ExtractLogHierarchy(r)
+	f1["tags"] = report.ExtractTagHierarchy(r)
 	f1["configuration"] = f2
-	f1["results"] = so.MatchTree
-	f1["tags"] = so.Tagged
-	f1["files"] = so.Files
-
-	// create new copy of hierarchy without nils:
-	hrc := make(map[string][]string)
-	for k, v := range so.OutHierarchy {
-		if v != nil {
-			hrc[k] = v
-		}
-	}
-	f1["file-hierarchy"] = hrc
-	f1["log-hierarchy"] = so.LogHierarchy
+	f1["results"] = report.ExtractFlatReport(r)
 
 	bs, err := json.MarshalIndent(f1, "", "\t")
 	if err != nil {
@@ -55,29 +63,51 @@ func padlevel(level int) string {
 	return padding[:level]
 
 }
-func printmatch(match *types.MatchEntry, verbose bool, level int) {
-	pad := padlevel(level)
-	fmt.Printf("\t%s * %s %s\n", pad, match.Rule, match.Filename)
-	if verbose {
-		for k, v := range match.Vars {
-			fmt.Printf("\t%s   . %s : %T = %v\n", pad, k, v, v)
-		}
-	}
 
+func printmatchShort(match *types.Match, level int) {
+	if level == 0 {
+		fmt.Print("\t\t =>")
+	}
+	fmt.Printf(" %s", match.Rule.ID)
 	for _, ch := range match.Children {
-		printmatch(ch, verbose, level+1)
+		printmatchShort(ch, level+1)
+	}
+	if level == 0 {
+		fmt.Println()
+	}
+}
+func printmatchVerbose(match *types.Match, level int) {
+	pad := padlevel(level)
+	fmt.Printf("\t\t%s * %s\n", pad, match.Rule.ID)
+
+	for k, v := range match.Vars {
+		fmt.Printf("\t%s   . %s : %T = %v\n", pad, k, v, v)
+	}
+	for _, ch := range match.Children {
+		printmatchVerbose(ch, level+1)
 	}
 }
 
-func dumpResult(so *types.MatchReport, verbose bool) {
+func dumpResult(m *types.Molly, r *types.Report, verbose bool) {
 	fmt.Println("SCAN RESULTS:")
-	for _, match := range so.MatchTree {
-		printmatch(match, verbose, 0)
+	for _, file := range r.Files {
+		if len(file.Matches) == 0 {
+			continue
+		}
+		fmt.Printf("\t* File %s (%d errors):\n", file.Filename, len(file.Errors))
+		for _, match := range file.Matches {
+			if verbose {
+				printmatchVerbose(match, 0)
+			} else {
+				printmatchShort(match, 0)
+			}
+		}
 	}
 
 	if verbose {
 		fmt.Println("\nFile hierarchy:")
-		for p, fs := range so.OutHierarchy {
+		files := report.ExtractFileHierarchy(m)
+		for p, fs := range files {
 			if fs != nil {
 				fmt.Println("\t", p)
 				for _, f := range fs {
@@ -87,13 +117,18 @@ func dumpResult(so *types.MatchReport, verbose bool) {
 		}
 	}
 
-	es, ws := so.Errors, util.Warnings()
-	if len(es) > 0 {
-		fmt.Println("ERRORS:")
-		for _, e := range es {
-			fmt.Printf("\t%s\n", e)
+	fmt.Println("ERRORS:")
+	for _, file := range r.Files {
+		if len(file.Errors) == 0 {
+			continue
+		}
+		fmt.Printf("\t* File %s:\n", file.Filename)
+		for i, err := range file.Errors {
+			fmt.Printf("\t\t %d: %v\n", i+1, err)
 		}
 	}
+
+	ws := util.Warnings()
 	if len(ws) > 0 {
 		fmt.Println("Warnings:")
 		for _, w := range ws {
