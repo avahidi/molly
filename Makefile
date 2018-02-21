@@ -15,7 +15,7 @@ run: compile
 	rm -rf build/report
 	mkdir build/report
 	-build/molly $(O) -R data/rules\
-		-outdir build/extracted  -logdir build/report \
+		-outdir build/extracted  -repdir build/report \
 		-tagop "elf: ls -l {name}" \
 		-enable create-file \
 		-disable execute \

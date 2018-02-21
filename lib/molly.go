@@ -69,7 +69,23 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	return report, nil
 }
 
-// ScanFile scans a set of files for matches.
+// scanFile opens and scans a single file
+func scanFile(m *types.Molly, env *types.Env, fr *types.FileReport, filename string ) {
+	info, err := os.Stat(filename)
+	if err != nil {
+		fr.Errors = append(fr.Errors, err)
+		return
+	}
+	f, err := os.Open(filename)
+	if err != nil {
+		fr.Errors = append(fr.Errors, err)
+		return
+	}
+	defer f.Close()
+	scanReader(env, m.Rules, f, filename, uint64(info.Size()), fr)
+}
+
+// ScanFiles scans a set of files for matches.
 func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
 	env := types.NewEnv(m)
 
@@ -85,27 +101,10 @@ func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
 	report := types.NewReport()
 	for filename := m.Files.Pop(); filename != ""; filename = m.Files.Pop() {
 		fr := types.NewFileReport(filename)
-		info, err := os.Stat(filename)
-		if err != nil {
-			fr.Errors = append(fr.Errors, err)
-			continue
-		}
-
-		// open file and scan it
-		f, err := os.Open(filename)
-		if err != nil {
-			fr.Errors = append(fr.Errors, err)
-			continue
-		}
-		defer f.Close()
-
-		scanReader(env, m.Rules, f, filename, uint64(info.Size()), fr)
+		scanFile(m, env, fr, filename)
 		if !fr.Empty() {
 			report.Add(fr)
 		}
-
-		// close it manually to avoid "too many open files"
-		f.Close()
 	}
 	return report, len(m.Files.Out), nil
 }

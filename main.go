@@ -25,8 +25,8 @@ func (mf *MultiFlag) Set(val string) error {
 }
 
 // flags and usage
-var outbase = flag.String("outdir", "outs", "output directory")
-var logbase = flag.String("logdir", "logs", "log output directory")
+var outbase = flag.String("outdir", "build/extracted", "output directory")
+var repbase = flag.String("repdir", "build/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
@@ -81,7 +81,7 @@ func main() {
 	}
 
 	// create context
-	molly := lib.New(*outbase, *logbase)
+	molly := lib.New(*outbase, *repbase)
 	//  scan rules
 	if err := lib.LoadRules(molly, rfiles...); err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
@@ -107,12 +107,12 @@ func main() {
 	errors := executeAllTagOps(report, tagops)
 
 	// generate report file
-	if err := writeReportFile(molly, report, *logbase); err != nil {
+	if err := writeReportFile(molly, report, *repbase); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate rule file
-	if err := writeRuleFile(molly, *logbase); err != nil {
+	if err := writeRuleFile(molly, *repbase); err != nil {
 		errors = append(errors, err)
 	}
 
