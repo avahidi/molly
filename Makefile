@@ -43,10 +43,11 @@ dist: build
 	GOOS=windows GOARCH=amd64 make dist1
 	GOOS=darwin GOARCH=amd64 make dist1
 
-dist1: build
+dist1: build compile
 	mkdir -p build/dist/$(GOOS)_$(GOARCH)
 	go build -o build/dist/$(GOOS)_$(GOARCH)/molly
 	cp -r README.rst COPYING data/rules build/dist/$(GOOS)_$(GOARCH)
+	build/molly -V > build/dist/$(GOOS)_$(GOARCH)/VERSION
 	cd build/dist/ && tar cjf $(GOOS)_$(GOARCH).tar.bz2 $(GOOS)_$(GOARCH)
 	rm -rf "build/dist/$(GOOS)_$(GOARCH)"
 
