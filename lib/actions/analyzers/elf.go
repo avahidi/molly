@@ -54,7 +54,7 @@ func ElfAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	syms2, _ := file.Symbols()
 	syms := append(syms1, syms2...)
 	for _, s := range syms {
-		if typ := elf.ST_TYPE(s.Info); typ == elf.STT_FUNC {
+		if typ := elf.ST_TYPE(s.Info); typ == elf.STT_FUNC && s.Size > 0 {
 			functions = append(functions, fmt.Sprintf("%s:%d:%d", s.Name, s.Value, s.Size))
 		}
 	}
@@ -65,13 +65,4 @@ func ElfAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	}
 
 	return report, nil
-	/*
-		// write report as json
-		bs, err := json.MarshalIndent(report, "", "\t")
-		if err != nil {
-			return err
-		}
-		w.Write(bs)
-		return nil
-	*/
 }
