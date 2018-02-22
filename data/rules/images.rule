@@ -1,5 +1,14 @@
 
 
+/* partial format for Hikvision firmware images */
+rule DavContainer {
+	var magic = String(0, 4);
+
+	if magic == {0xe9, 0x9a, 0xf7, 0xb6 };
+
+	extract("binary", "", 0x6C, $filesize - 0x6C);
+}
+
 rule DlinkFirmwareHeader {
 	var magic = String(0, 4);
 	var bootnameadr = Byte(7);

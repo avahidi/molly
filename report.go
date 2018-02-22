@@ -93,8 +93,9 @@ func printmatchVerbose(match *types.Match, level int) {
 
 func dumpResult(m *types.Molly, r *types.Report, verbose bool) {
 	fmt.Println("SCAN RESULTS:")
+
 	for _, file := range r.Files {
-		if len(file.Matches) == 0 {
+		if file.Empty() {
 			continue
 		}
 		fmt.Printf("\t* File %s (%d errors):\n", file.Filename, len(file.Errors))
@@ -120,10 +121,14 @@ func dumpResult(m *types.Molly, r *types.Report, verbose bool) {
 		}
 	}
 
-	fmt.Println("ERRORS:")
+	firstError := false
 	for _, file := range r.Files {
 		if len(file.Errors) == 0 {
 			continue
+		}
+		if firstError {
+			firstError = false
+			fmt.Println("ERRORS:")
 		}
 		fmt.Printf("\t* File %s:\n", file.Filename)
 		for i, err := range file.Errors {

@@ -14,6 +14,7 @@ var extractorList = map[string]func(*types.Env, string) (string, error){
 	"tar":    extractors.Untar,
 	"cpio":   extractors.Uncpio,
 	"mbrlba": extractors.MbrLba,
+	"cramfs": extractors.Uncramfs,
 }
 
 var slicableExtractorList = map[string]func(*types.Env, string, ...uint64) (string, error){

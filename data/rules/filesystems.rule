@@ -69,3 +69,27 @@ rule openwrtimage : MBR {
 	 // first partition is active and has type 0x83 (linux)
 	if state_p1 == 0x80 && type_p1 == 0x83;
 }
+
+rule cramfs (tag = "filesystem", bigendian = false) {
+	var magic = Long(0);
+	var size = Long(4);
+	var flags = Long(8);
+	var feature = Long(12);
+	var signature = String(16, 16);
+	var crc = Long(32);
+	var edition = Long(36);
+	var blocks = Long(40);
+	var files = Long(44);
+	var name = String(48, 16);
+	var inode = Long(68);
+
+	// struct cramfs_info fsid;
+	// u8 name[16];
+	// struct cramfs_inode root;
+
+	if magic == 0x28cd3d45;
+	if signature == "Compressed ROMFS";
+	if $filesize == size + 16;
+
+	extract("cramfs", "cramfs");
+}

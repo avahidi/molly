@@ -1,6 +1,6 @@
 
 # files to scan with make run
-FILES ?= ~/tmp/fw
+FILES ?= ~/tmp/fw/hikivision
 
 all: compile
 	@echo valid targets are: compile, test, fmt, clean and run
@@ -11,11 +11,9 @@ build/molly: build
 	go build -o build/molly
 
 run: compile
-	rm -rf build/extracted
-	rm -rf build/report
-	mkdir build/report
+	rm -rf build/extracted build/reports
 	-build/molly $(O) -R data/rules\
-		-outdir build/extracted  -repdir build/report \
+		-outdir build/extracted  -repdir build/reports \
 		-tagop "elf: ls -l {name}" \
 		-enable create-file \
 		-disable execute \

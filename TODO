@@ -2,6 +2,18 @@
 TODO
 ====
 
+* add special variable to help setting indexes. For example
+ var a = Long(10);
+ var b = String(14, 10);
+ var c = Long(24);
+
+should be simpified to
+
+ var a = Long(10);
+ var b = String(?, 10);
+ var c = Long(?);
+
+
  * Simplify FileSystem now that we have types.Molly
 
 * generate reports in different formats (json, xml, csv, text)
