@@ -39,6 +39,9 @@ func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
 	f2 := make(map[string]interface{})
 	f2["command"] = os.Args
 	f2["time"] = time.Now()
+	f2["outdir"] = molly.ExtractDir
+	f2["repdir"] = molly.ReportDir
+	f2["rulecount"] = len(molly.Rules.Flat)
 	maj, min, mnt := lib.Version()
 	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)
 	dir, err := os.Getwd()
