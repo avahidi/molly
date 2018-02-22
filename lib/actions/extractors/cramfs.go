@@ -1,20 +1,27 @@
 package extractors
 
 import (
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
+	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	//	"compress/zlib"
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 )
 
-type cramContext struct {
-	Head  cramHead
-	Order binary.ByteOrder
-}
+const (
+	cramMagic     = 0x28cd3d45
+	cramSignature = "Compressed ROMFS"
+	cramBlkSize   = 4096
+	cramZlibSize  = 11
+	s_IFMT        = 0170000
+	s_IFDIR       = 0040000
+	s_IFREG       = 0100000
+)
+
 type cramHead struct {
 	Magic     uint32
 	Size      uint32
@@ -26,9 +33,10 @@ type cramHead struct {
 	Block     uint32
 	Files     uint32
 	Name      [16]uint8
-	Root      creamInode
+	Root      cramInode
 }
-type creamInode struct {
+
+type cramInode struct {
 	Mode            uint16
 	UID             uint16
 	SizeWidth       uint32 // 24-8
@@ -36,11 +44,11 @@ type creamInode struct {
 }
 
 // XXX: these may need to be adjusted for endianness
-func (c creamInode) Size() uint32    { return (c.SizeWidth & 0xFFFFFF) }
-func (c creamInode) GID() uint32     { return uint32(c.SizeWidth >> 24) }
-func (c creamInode) NameLen() uint32 { return uint32(c.NameWidthOffset&63) * 4 }
-func (c creamInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
+func (c cramInode) Size() uint32    { return (c.SizeWidth & 0xFFFFFF) }
+func (c cramInode) NameLen() uint32 { return uint32(c.NameWidthOffset&63) * 4 }
+func (c cramInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
 
+// extractStructAt is a helper for loading a struct from a specific offset
 func extractStructAt(r io.ReadSeeker, offset int64, endian binary.ByteOrder, data interface{}) error {
 	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
 		return err
@@ -48,75 +56,107 @@ func extractStructAt(r io.ReadSeeker, offset int64, endian binary.ByteOrder, dat
 	return binary.Read(r, endian, data)
 }
 
-func uncreamInodeDir(e *types.Env, ctx *cramContext, inode *creamInode, name string) error {
+func uncramInodeDir(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
 	r := e.Reader
 	offset := int64(inode.Ofsset())
 	end := offset + int64(inode.Size())
 	for offset < end {
-		var next creamInode
-		if err := extractStructAt(r, offset, ctx.Order, &next); err != nil {
+		var next cramInode
+		if err := extractStructAt(r, offset, ord, &next); err != nil {
 			return err
 		}
-		dirname := make([]byte, next.NameLen())
-		r.Read(dirname)
-		uncreamInode(e, ctx, &next, filepath.Join(name, string(dirname)))
-		offset += 12 + int64(next.NameLen())
+
+		// extract the name, strip the zero padding
+		nlen := int(next.NameLen())
+		nbuf := make([]byte, nlen)
+		if _, err := r.Read(nbuf); err != nil {
+			return err
+		}
+		if n := bytes.IndexByte(nbuf, 0); n != -1 {
+			nbuf = nbuf[:n]
+		}
+		dirname := string(nbuf)
+
+		if err := uncramInode(e, ord, &next, filepath.Join(name, dirname)); err != nil {
+			return err
+		}
+		offset += 12 + int64(nlen)
 	}
 	return nil
 }
 
-func uncreamInodeFile(e *types.Env, ctx *cramContext, inode *creamInode, name string) error {
+func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
 	r := e.Reader
-	offset := int64(inode.Ofsset())
-	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
-		return err
-	}
+	ptrOffset := int64(inode.Ofsset())
+	size := int64(inode.Size())
+	nblocks := (size-1)/cramBlkSize + 1
+
 	w, err := e.Create(name)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	_, err = io.CopyN(w, r, int64(inode.Size()))
+
+	ptr := uint32(ptrOffset + nblocks*4) // first block is right at the end of pointers
+	buf := make([]byte, cramBlkSize+cramZlibSize)
+	for size > 0 {
+		if size < cramBlkSize {
+			buf = buf[:cramZlibSize+size]
+		}
+		if err := extractStructAt(r, int64(ptr), ord, &buf); err != nil {
+			return err
+		}
+		zr, err := zlib.NewReader(bytes.NewBuffer(buf))
+		if err != nil {
+			return err
+		}
+		defer zr.Close()
+
+		if _, err := io.Copy(w, zr); err != nil {
+			return err
+		}
+		size -= int64(len(buf)) - cramZlibSize
+		if size <= 0 {
+			break
+		}
+		// get the pointer to the next page
+		if err := extractStructAt(r, ptrOffset, ord, &ptr); err != nil {
+			return err
+		}
+		ptrOffset += 4
+	}
+
 	return err
 }
 
-func uncreamInode(e *types.Env, ctx *cramContext, inode *creamInode, name string) error {
-	const S_IFMT uint16 = 0170000
-	const S_IFDIR uint16 = 0040000
-	const S_IFREG uint16 = 0100000
-
-	switch inode.Mode & S_IFMT {
-	case S_IFDIR:
-		return uncreamInodeDir(e, ctx, inode, name)
-	case S_IFREG:
-		return uncreamInodeFile(e, ctx, inode, name)
+func uncramInode(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
+	switch inode.Mode & s_IFMT {
+	case s_IFDIR:
+		return uncramInodeDir(e, ord, inode, name)
+	case s_IFREG:
+		return uncramInodeFile(e, ord, inode, name)
 	default:
 		util.RegisterWarningf("Warning: ignoring unknown file type: %08x\n", inode.Mode)
 	}
 	return nil
 }
 
-// Uncramfs attempts to unpack a cramfs image
+// Uncramfs attempts to unpack a cramfs image.
+//
+// This is a quick and dirty cramfs implementation and the cramfs tools that
+// create these files seem to be very buggy so don't be surprised if this
+// code fails to handle your images.
 func Uncramfs(e *types.Env, prefix string) (string, error) {
-	const Magic = 0x28cd3d45
-	const Signature = "Compressed ROMFS"
-
 	r := e.Reader
-	ctx := &cramContext{Order: binary.LittleEndian}
-
-	// get header while figuring out byte order:
-	if err := extractStructAt(r, 0, ctx.Order, &ctx.Head); err != nil {
-		return "", err
-	}
-	if ctx.Head.Magic != Magic {
-		ctx.Order = binary.BigEndian
-		if err := extractStructAt(r, 0, ctx.Order, &ctx.Head); err != nil {
+	// we don't know the native byte-order, try both:
+	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
+		var head cramHead
+		if err := extractStructAt(r, 0, order, &head); err != nil {
 			return "", err
 		}
+		if head.Magic == cramMagic && string(head.Signature[:]) == cramSignature {
+			return prefix, uncramInode(e, order, &head.Root, prefix)
+		}
 	}
-	// valid cramfs file?
-	if ctx.Head.Magic != Magic || string(ctx.Head.Signature[:]) != Signature {
-		return "", fmt.Errorf("file is not a cramfs")
-	}
-	return prefix, uncreamInode(e, ctx, &ctx.Head.Root, prefix)
+	return "", fmt.Errorf("file is not a cramfs")
 }

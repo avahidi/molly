@@ -1,6 +1,6 @@
 
-# files to scan with make run
-FILES ?= ~/tmp/fw/hikivision
+# default location for files to scan
+FILES ?= ~/tmp/fw
 
 all: compile
 	@echo valid targets are: compile, test, fmt, clean and run
