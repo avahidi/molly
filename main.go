@@ -29,6 +29,7 @@ var outbase = flag.String("outdir", "build/extracted", "output directory")
 var repbase = flag.String("repdir", "build/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
+var showVersionOnly = flag.Bool("VV", false, "show only version number")
 var showhelp = flag.Bool("h", false, "help information")
 
 var rfiles, tagops MultiFlag
@@ -51,7 +52,6 @@ func help(errmsg string, exitcode int) {
 }
 
 func main() {
-
 	// 	parse arguments
 	flag.Parse()
 	if *showhelp {
@@ -60,7 +60,11 @@ func main() {
 	}
 	ifiles := flag.Args()
 
-	if *showVersion {
+	if *showVersionOnly {
+		maj, min, mnt := lib.Version()
+		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
+		return
+	} else if *showVersion {
 		maj, min, mnt := lib.Version()
 		fmt.Printf("This is Molly version %d.%d.%d\n", maj, min, mnt)
 		return

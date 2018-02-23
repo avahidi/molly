@@ -1,13 +1,11 @@
 molly
 =====
 
-molly is a firmware identification and extraction tool. It can be used to analyze
-unknown binaries or automate extraction of data from various data formats.
+molly is an automated file analysis and extraction tool.
 
 
-Molly was developed in the `Seconds <http://www.secondssolutions.com/>`_
+Molly was initially developed in the `Seconds <http://www.secondssolutions.com/>`_
 project for binary extraction from firmware images.
-
 
 
 Installation
@@ -16,30 +14,61 @@ Installation
 molly is written in `Go <https://golang.org>`_ and has no external dependencies.
 To install Go on Ubuntu 16.04 LTS::
 
-   sudo apt install make golang
+   sudo apt install make golang build-essential
    export GOPATH=$HOME/go
-   export PATH=PATH:$GOPATH/bin
+   export PATH=$PATH:$GOPATH/bin
    mkdir $GOPATH $GOPATH
 
 Now download and build Molly::
 
+    go get bitbucket.org/vahidi/molly/...
     go install bitbucket.org/vahidi/molly/...
+
+
+Download
+--------
+
+If you prefer to download pre-built binaries, go to the
+`download page <https://bitbucket.org/vahidi/molly/downloads/>`_ .
 
 
 Usage
 -----
 
+The command-line format is::
+
+    molly [options] <input files>
+
+Options are::
+
+   -h	                        help information
+   -V	                        show version number
+   -v	                        be verbose
+   -R <rule files>              rules to load
+   -disable <option>
+   -enable <option>
+   -outdir <output directory>   (default "build/extracted")
+   -repdir <report directory>   (default "build/reports")
+   -tagop <tagname:operation>   tag-op definition
+
+A small set of default rules are provided in the distribution.
 
 
 
-misc
+API
 ---
+
+UNDER CONSTRUCTION :)
+
+
+FAQ
+---
+
 
 Why the name?
 ~~~~~~~~~~~~~
 
 molly was named after Molly Hooper, from the BBC TV-series Sherlock.
-
 According to Wikipedia "Molly Hooper [...] is a 31-year-old specialist registrar
 working in the morgue at St Bartholomew's Hospital [...]". This seemed appropriate
-for a software used to dissect long dead firmware images.
+for a software used to dissect long dead binaries.
