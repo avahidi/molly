@@ -159,36 +159,37 @@ func (se *SliceExpression) Eval(env *types.Env) (types.Expression, error) {
 	if env == nil {
 		return NewSliceExpression(expr, start, end), nil
 	}
-
-	if end == nil {
-		end = start
-	}
-
 	x1, err := requireStringPrimitive(expr)
 	if err != nil {
 		return nil, err
 	}
 
+	// left:
 	s1, err := requireNumberPrimitive(start)
 	if err != nil {
 		return nil, err
 	}
+	if s1 < 0 || s1 >= len(x1) {
+		return nil, fmt.Errorf("Index start out of range: %d", s1)
+	}
 
+	if end == nil {
+		prim := prim.ValueToPrimitive(x1[s1])
+		return NewValueExpression(prim), nil
+	}
+
+	// right
 	e1, err := requireNumberPrimitive(end)
 	if err != nil {
 		return nil, err
 	}
 
-	if s1 < 0 {
-		s1 = 0
-	}
-	if e1 < 0 {
-		e1 = len(x1)
+	if e1 <= s1 || e1 > len(x1) {
+		return nil, fmt.Errorf("Index end out of range: %d", e1)
 	}
 
-	str := prim.NewStringRaw(x1[s1:e1])
-
-	return NewValueExpression(str), nil
+	prim := prim.NewStringRaw(x1[s1:e1])
+	return NewValueExpression(prim), nil
 }
 
 func NewSliceExpression(expr, start, end types.Expression) *SliceExpression {

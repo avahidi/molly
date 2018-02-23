@@ -2,6 +2,17 @@
 TODO
 ====
 
+* better error messages in operations. for example this can panic
+   m := o.(*Number) // ../prim/binary.go
+
+but if we change it to
+   m, valid := o.(*Number)
+   if ! valid { return someError }
+
+the error will be discarded as normal scaning failure. We need a better method
+to support this. maybe a 2nd pass sanity check in the scanner?
+
+
 * add special variable to help setting indexes. For example
  var a = Long(10);
  var b = String(14, 10);

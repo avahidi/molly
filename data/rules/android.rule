@@ -1,0 +1,7 @@
+
+rule DalvikDex {
+	/* documentation is wrong or incomplete, because Google */
+	var magic = String(0, 8);
+	if magic[0:6] == { 0x64, 0x65, 0x78, 0x0a, 0x30, 0x33} ;
+	if magic[6] > 0x30 && magic[7] == 0x00;
+}

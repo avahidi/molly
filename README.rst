@@ -14,7 +14,7 @@ Installation
 molly is written in `Go <https://golang.org>`_ and has no external dependencies.
 To install Go on Ubuntu 16.04 LTS::
 
-   sudo apt install make golang build-essential
+   sudo apt install golang build-essential
    export GOPATH=$HOME/go
    export PATH=$PATH:$GOPATH/bin
    mkdir $GOPATH
