@@ -17,12 +17,20 @@ To install Go on Ubuntu 16.04 LTS::
    sudo apt install make golang build-essential
    export GOPATH=$HOME/go
    export PATH=$PATH:$GOPATH/bin
-   mkdir $GOPATH $GOPATH
+   mkdir $GOPATH
 
 Now download and build Molly::
 
-    go get bitbucket.org/vahidi/molly/...
+    go get -u bitbucket.org/vahidi/molly/...
     go install bitbucket.org/vahidi/molly/...
+
+For development builds we use make::
+
+    cd $GOPATH/src/bitbucket.org/vahidi/molly
+    make
+    make test
+    make run
+    ...
 
 
 Download
@@ -47,11 +55,33 @@ Options are::
    -R <rule files>              rules to load
    -disable <option>
    -enable <option>
-   -outdir <output directory>   (default "build/extracted")
-   -repdir <report directory>   (default "build/reports")
+   -outdir <output directory>   (default "output/extracted")
+   -repdir <report directory>   (default "output/reports")
    -tagop <tagname:operation>   tag-op definition
 
 A small set of default rules are provided in the distribution.
+
+
+Rule format
+-----------
+
+Rules have the following format::
+
+   rule <rule name> [(<metadata>, ...)] [ : <parent name>] {
+       <variables>
+       <conditions>
+       <actions>
+    }
+
+For example::
+
+    rule ZIP (bigendian = false, tag = "archive") {
+        var header = String(0, 4); /* extract 4-byte string at position 0 */
+        var csize = Long(18);      /* extract 32-bit at position 18 */
+        var usize = Long(22);
+        if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
+        extract("zip", "");       /* apply  the ZIP extractor on this file */
+    }
 
 
 

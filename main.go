@@ -25,8 +25,8 @@ func (mf *MultiFlag) Set(val string) error {
 }
 
 // flags and usage
-var outbase = flag.String("outdir", "build/extracted", "output directory")
-var repbase = flag.String("repdir", "build/reports", "report output directory")
+var outbase = flag.String("outdir", "output/extracted", "output directory")
+var repbase = flag.String("repdir", "output/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
 var showVersionOnly = flag.Bool("VV", false, "show only version number")

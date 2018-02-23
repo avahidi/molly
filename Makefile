@@ -5,22 +5,23 @@ FILES ?= ~/tmp/fw
 all: compile
 	@echo valid targets are: compile, test, fmt, dist, clean and run
 
-compile: build/molly
+compile: molly
 
-build/molly: build
-	go build -o build/molly
+.PHONY: molly
+molly:
+	go build
 
-run: compile
-	rm -rf build/extracted build/reports
-	-build/molly $(O) -R data/rules\
-		-outdir build/extracted  -repdir build/reports \
+run: compile output
+	rm -rf output
+	-./molly $(O) -R data/rules\
+		-outdir output/extracted  -repdir output/reports \
 		-tagop "elf: ls -l {name}" \
 		-enable create-file \
 		-disable execute \
 		$(FILES)
 
 show: run
-	less  build/report/report.json
+	less  output/reports/report.json
 
 test:
 	go test ./...
@@ -34,7 +35,7 @@ vet:
 # published files are created here
 dist: build compile
 	mkdir -p build/dist
-	VERSION=`build/molly -VV` make dist1
+	VERSION=`./molly -VV` make dist1
 
 dist1:
 	git archive master --format tar | bzip2 > build/dist/sources_$(VERSION).tar.bz2
@@ -59,8 +60,11 @@ dist2: build
 build:
 	mkdir build
 
+output:
+	mkdir output
+
 clean:
 	go clean
-	rm -rf build
+	rm -rf build output
 
-.PHYONY: fmt clean run compile test
+.PHYONY: fmt clean run compile test molly
