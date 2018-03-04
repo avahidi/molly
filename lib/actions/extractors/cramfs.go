@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 )
 
@@ -48,21 +47,13 @@ func (c cramInode) Size() uint32    { return (c.SizeWidth & 0xFFFFFF) }
 func (c cramInode) NameLen() uint32 { return uint32(c.NameWidthOffset&63) * 4 }
 func (c cramInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
 
-// extractStructAt is a helper for loading a struct from a specific offset
-func extractStructAt(r io.ReadSeeker, offset int64, endian binary.ByteOrder, data interface{}) error {
-	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
-		return err
-	}
-	return binary.Read(r, endian, data)
-}
-
 func uncramInodeDir(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
 	r := e.Reader
 	offset := int64(inode.Ofsset())
 	end := offset + int64(inode.Size())
 	for offset < end {
 		var next cramInode
-		if err := extractStructAt(r, offset, ord, &next); err != nil {
+		if err := util.ReadStructAt(r, offset, ord, &next); err != nil {
 			return err
 		}
 
@@ -103,7 +94,7 @@ func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name 
 		if size < cramBlkSize {
 			buf = buf[:cramZlibSize+size]
 		}
-		if err := extractStructAt(r, int64(ptr), ord, &buf); err != nil {
+		if err := util.ReadStructAt(r, int64(ptr), ord, &buf); err != nil {
 			return err
 		}
 		zr, err := zlib.NewReader(bytes.NewBuffer(buf))
@@ -120,7 +111,7 @@ func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name 
 			break
 		}
 		// get the pointer to the next page
-		if err := extractStructAt(r, ptrOffset, ord, &ptr); err != nil {
+		if err := util.ReadStructAt(r, ptrOffset, ord, &ptr); err != nil {
 			return err
 		}
 		ptrOffset += 4
@@ -151,7 +142,7 @@ func Uncramfs(e *types.Env, prefix string) (string, error) {
 	// we don't know the native byte-order, try both:
 	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
 		var head cramHead
-		if err := extractStructAt(r, 0, order, &head); err != nil {
+		if err := util.ReadStructAt(r, 0, order, &head); err != nil {
 			return "", err
 		}
 		if head.Magic == cramMagic && string(head.Signature[:]) == cramSignature {

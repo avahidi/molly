@@ -1,28 +1,16 @@
 package analyzers
 
 import (
+	"bitbucket.org/vahidi/molly/lib/util"
 	"debug/elf"
 	"fmt"
 	"io"
-	"os"
 )
-
-// turn a ReadSeeker into a ReaderAt :(
-type readseekerat struct {
-	r io.ReadSeeker
-}
-
-func (rsa readseekerat) ReadAt(p []byte, off int64) (int, error) {
-	_, err := rsa.r.Seek(off, os.SEEK_SET)
-	if err != nil {
-		return 0, err
-	}
-	return rsa.r.Read(p)
-}
 
 // ElfAnalyzer examinies ELF binaries
 func ElfAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, error) {
-	rsa := &readseekerat{r: r}
+	rsa := util.NewReaderAt(r)
+	// rsa := &readseekerat{r: r}
 	file, err := elf.NewFile(rsa)
 	if err != nil {
 		return nil, err

@@ -9,7 +9,7 @@ var warnings []string
 
 // RegisterFatalf regiters a fatal error
 func RegisterFatalf(format string, v ...interface{}) {
-	log.Fatalf(format, v)
+	log.Fatalf(format, v...)
 }
 
 // RegisterFatal regiters a fatal error

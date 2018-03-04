@@ -3,7 +3,9 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,4 +64,37 @@ func ReadUntil(r io.Reader, until byte, maxsize int) ([]byte, bool, error) {
 		bw.WriteByte(c)
 	}
 	return bw.Bytes(), false, nil
+}
+
+// ReadStructAt is a helper for loading a struct from a specific offset
+func ReadStructAt(r io.ReadSeeker, offset int64, endian binary.ByteOrder, data interface{}) error {
+	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
+		return err
+	}
+	return binary.Read(r, endian, data)
+}
+
+type readeratwrapper struct {
+	r io.ReadSeeker
+}
+
+func (rsa readeratwrapper) ReadAt(p []byte, off int64) (int, error) {
+	_, err := rsa.r.Seek(off, os.SEEK_SET)
+	if err != nil {
+		return 0, err
+	}
+	return rsa.r.Read(p)
+}
+
+// NewReaderAt turn a ReadSeeker into a ReaderAt for the rare cases its needed
+func NewReaderAt(r io.ReadSeeker) io.ReaderAt {
+	return &readeratwrapper{r: r}
+}
+
+// BufreaderAt is a helper for creating a buffered reader at a position
+func BufreaderAt(r io.ReadSeeker, offset int64) (*bufio.Reader, error) {
+	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
+		return nil, err
+	}
+	return bufio.NewReader(r), nil
 }

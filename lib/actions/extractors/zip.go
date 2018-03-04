@@ -2,9 +2,8 @@ package extractors
 
 import (
 	"archive/zip"
-	"io"
-
 	"bitbucket.org/vahidi/molly/lib/types"
+	"io"
 )
 
 func extractOneFile(e *types.Env, f *zip.File, prefix string) error {

@@ -25,6 +25,7 @@ var analyzersList = map[string]Analyzer{
 	"version":   analyzers.VersionAnalyzer,
 	"histogram": analyzers.HistogramAnalyzer,
 	"elf":       analyzers.ElfAnalyzer,
+	"dex":       analyzers.DexAnalyzer,
 }
 
 // writeReport will create a log file with the report data
@@ -51,7 +52,7 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		for k := range analyzersList {
 			fmt.Printf("\t%s\n", k)
 		}
-		util.RegisterFatal("Unknown analyzer: '%s'", typ)
+		util.RegisterFatalf("Unknown analyzer: '%s'", typ)
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
