@@ -66,14 +66,6 @@ func ReadUntil(r io.Reader, until byte, maxsize int) ([]byte, bool, error) {
 	return bw.Bytes(), false, nil
 }
 
-// ReadStructAt is a helper for loading a struct from a specific offset
-func ReadStructAt(r io.ReadSeeker, offset int64, endian binary.ByteOrder, data interface{}) error {
-	if _, err := r.Seek(offset, os.SEEK_SET); err != nil {
-		return err
-	}
-	return binary.Read(r, endian, data)
-}
-
 type readeratwrapper struct {
 	r io.ReadSeeker
 }
@@ -86,7 +78,7 @@ func (rsa readeratwrapper) ReadAt(p []byte, off int64) (int, error) {
 	return rsa.r.Read(p)
 }
 
-// NewReaderAt turn a ReadSeeker into a ReaderAt for the rare cases its needed
+// NewReaderAt turns a ReadSeeker into a ReaderAt for the rare cases its needed
 func NewReaderAt(r io.ReadSeeker) io.ReaderAt {
 	return &readeratwrapper{r: r}
 }
@@ -97,4 +89,41 @@ func BufreaderAt(r io.ReadSeeker, offset int64) (*bufio.Reader, error) {
 		return nil, err
 	}
 	return bufio.NewReader(r), nil
+}
+
+// Structured define a file that has a stream and a byteorder
+type Structured struct {
+	Reader io.ReadSeeker
+	Order  binary.ByteOrder
+}
+
+// ReadAt reads structred data from a given offset
+func (bf Structured) ReadAt(offset int64, data interface{}) error {
+	if _, err := bf.Reader.Seek(offset, os.SEEK_SET); err != nil {
+		return err
+	}
+	return bf.Read(data)
+}
+
+// Read reads structred data from the stream
+func (bf Structured) Read(data interface{}) error {
+	return binary.Read(bf.Reader, bf.Order, data)
+}
+
+// Stream is a series of bytes
+type Stream interface {
+	ReadByte() (byte, error)
+}
+
+// Process will fall p on each byte until it returns false
+func Process(r Stream, p func(b uint8, n int) bool) (int, error) {
+	for i := 0; ; i++ {
+		b, err := r.ReadByte()
+		if err != nil {
+			return i, err
+		}
+		if !p(b, i) {
+			return i, nil
+		}
+	}
 }

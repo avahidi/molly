@@ -9,7 +9,7 @@ import (
 
 // Mkdir creates directories in a path
 func Mkdir(path string) error {
-	return os.MkdirAll(path, 0700)
+	return os.MkdirAll(path, 0755)
 }
 
 // SafeMkdir creates directories in a path, fails if CreateFile permission is missing
@@ -25,7 +25,7 @@ func SafeCreateFile(filename string) (*os.File, error) {
 	if !PermissionGet(CreateFile) {
 		return nil, fmt.Errorf("Not allowed to create file '%s'", filename)
 	}
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0600)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0644)
 }
 
 // FileSystem is a structure for tracking and creating new files

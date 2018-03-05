@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 )
 
@@ -47,20 +48,24 @@ func (c cramInode) Size() uint32    { return (c.SizeWidth & 0xFFFFFF) }
 func (c cramInode) NameLen() uint32 { return uint32(c.NameWidthOffset&63) * 4 }
 func (c cramInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
 
-func uncramInodeDir(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
-	r := e.Reader
+type cramContext struct {
+	util.Structured
+	Create func(string) (*os.File, error)
+}
+
+func (c cramContext) inodeDir(inode *cramInode, name string) error {
 	offset := int64(inode.Ofsset())
 	end := offset + int64(inode.Size())
 	for offset < end {
 		var next cramInode
-		if err := util.ReadStructAt(r, offset, ord, &next); err != nil {
+		if err := c.ReadAt(offset, &next); err != nil {
 			return err
 		}
 
 		// extract the name, strip the zero padding
 		nlen := int(next.NameLen())
 		nbuf := make([]byte, nlen)
-		if _, err := r.Read(nbuf); err != nil {
+		if _, err := c.Reader.Read(nbuf); err != nil {
 			return err
 		}
 		if n := bytes.IndexByte(nbuf, 0); n != -1 {
@@ -68,7 +73,7 @@ func uncramInodeDir(e *types.Env, ord binary.ByteOrder, inode *cramInode, name s
 		}
 		dirname := string(nbuf)
 
-		if err := uncramInode(e, ord, &next, filepath.Join(name, dirname)); err != nil {
+		if err := c.inode(&next, filepath.Join(name, dirname)); err != nil {
 			return err
 		}
 		offset += 12 + int64(nlen)
@@ -76,13 +81,12 @@ func uncramInodeDir(e *types.Env, ord binary.ByteOrder, inode *cramInode, name s
 	return nil
 }
 
-func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
-	r := e.Reader
+func (c cramContext) inodeFile(inode *cramInode, name string) error {
 	ptrOffset := int64(inode.Ofsset())
 	size := int64(inode.Size())
 	nblocks := (size-1)/cramBlkSize + 1
 
-	w, err := e.Create(name)
+	w, err := c.Create(name)
 	if err != nil {
 		return err
 	}
@@ -94,7 +98,7 @@ func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name 
 		if size < cramBlkSize {
 			buf = buf[:cramZlibSize+size]
 		}
-		if err := util.ReadStructAt(r, int64(ptr), ord, &buf); err != nil {
+		if err := c.ReadAt(int64(ptr), &buf); err != nil {
 			return err
 		}
 		zr, err := zlib.NewReader(bytes.NewBuffer(buf))
@@ -111,7 +115,7 @@ func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name 
 			break
 		}
 		// get the pointer to the next page
-		if err := util.ReadStructAt(r, ptrOffset, ord, &ptr); err != nil {
+		if err := c.ReadAt(ptrOffset, &ptr); err != nil {
 			return err
 		}
 		ptrOffset += 4
@@ -120,12 +124,12 @@ func uncramInodeFile(e *types.Env, ord binary.ByteOrder, inode *cramInode, name 
 	return err
 }
 
-func uncramInode(e *types.Env, ord binary.ByteOrder, inode *cramInode, name string) error {
+func (c cramContext) inode(inode *cramInode, name string) error {
 	switch inode.Mode & s_IFMT {
 	case s_IFDIR:
-		return uncramInodeDir(e, ord, inode, name)
+		return c.inodeDir(inode, name)
 	case s_IFREG:
-		return uncramInodeFile(e, ord, inode, name)
+		return c.inodeFile(inode, name)
 	default:
 		util.RegisterWarningf("Warning: ignoring unknown file type: %08x\n", inode.Mode)
 	}
@@ -138,15 +142,17 @@ func uncramInode(e *types.Env, ord binary.ByteOrder, inode *cramInode, name stri
 // create these files seem to be very buggy so don't be surprised if this
 // code fails to handle your images.
 func Uncramfs(e *types.Env, prefix string) (string, error) {
-	r := e.Reader
+	ctx := &cramContext{Create: e.Create}
+	ctx.Reader = e.Reader
+
 	// we don't know the native byte-order, try both:
-	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
+	for _, ctx.Order = range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
 		var head cramHead
-		if err := util.ReadStructAt(r, 0, order, &head); err != nil {
+		if err := ctx.ReadAt(0, &head); err != nil {
 			return "", err
 		}
 		if head.Magic == cramMagic && string(head.Signature[:]) == cramSignature {
-			return prefix, uncramInode(e, order, &head.Root, prefix)
+			return prefix, ctx.inode(&head.Root, prefix)
 		}
 	}
 	return "", fmt.Errorf("file is not a cramfs")

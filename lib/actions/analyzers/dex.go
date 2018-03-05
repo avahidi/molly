@@ -6,46 +6,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"os"
 	"sort"
 )
-
-// Structured define a file that has a stream and a byteorder
-type Structured struct {
-	Reader io.ReadSeeker
-	Order  binary.ByteOrder
-}
-
-// ReadAt reads structred data from a given offset
-func (bf Structured) ReadAt(offset int64, data interface{}) error {
-	if _, err := bf.Reader.Seek(offset, os.SEEK_SET); err != nil {
-		return err
-	}
-	return bf.Read(data)
-}
-
-// Read reads structred data from the stream
-func (bf Structured) Read(data interface{}) error {
-	return binary.Read(bf.Reader, bf.Order, data)
-}
-
-// Stream is a series of bytes
-type Stream interface {
-	ReadByte() (byte, error)
-}
-
-// Process will fall p on each byte until it returns false
-func Process(r Stream, p func(b uint8, n int) bool) (int, error) {
-	for i := 0; ; i++ {
-		b, err := r.ReadByte()
-		if err != nil {
-			return i, err
-		}
-		if !p(b, i) {
-			return i, nil
-		}
-	}
-}
 
 // DEX class analyzer based on
 // https://source.android.com/devices/tech/dalvik/dex-format
@@ -56,7 +18,7 @@ func Process(r Stream, p func(b uint8, n int) bool) (int, error) {
 const dexMagic uint32 = 0x0A786564 // dex\n little-endian
 
 type dexContext struct {
-	Structured
+	util.Structured
 	version     int
 	clss        map[string]*dexClass
 	clssFromIdx map[uint32]*dexClass
@@ -132,14 +94,14 @@ func (d dexContext) getTypeName(n uint32) string {
 
 // uleb128Skip reads past a uleb128
 func uleb128Skip(r *bufio.Reader) error {
-	_, err := Process(r, func(b uint8, n int) bool { return (b & 0x80) != 0 })
+	_, err := util.Process(r, func(b uint8, n int) bool { return (b & 0x80) != 0 })
 	return err
 }
 
 // uleb128Read reads one uleb128
 func uleb128Read(r *bufio.Reader) (uint64, error) {
 	var ret uint64
-	_, err := Process(r, func(b uint8, n int) bool {
+	_, err := util.Process(r, func(b uint8, n int) bool {
 		ret = ret | (uint64(b&0x7f) << uint(n*7))
 		return (b & 0x80) != 0
 	})
@@ -277,7 +239,7 @@ func dexExtractStrings(c *dexContext, offset int64, count int) error {
 			return err
 		}
 		data := make([]uint8, 0)
-		_, err = Process(br, func(b uint8, n int) bool {
+		_, err = util.Process(br, func(b uint8, n int) bool {
 			if b == 0 {
 				return false
 			}
@@ -388,7 +350,7 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 		MoreIgnored [2]uint32
 		MapOffset   uint32
 	}
-	ctx := &dexContext{Structured: Structured{Reader: r, Order: binary.LittleEndian}}
+	ctx := &dexContext{Structured: util.Structured{Reader: r, Order: binary.LittleEndian}}
 	if err := ctx.ReadAt(0, &header); err != nil {
 		return nil, err
 	}
