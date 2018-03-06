@@ -53,11 +53,13 @@ Options are::
    -V	                        show version number
    -v	                        be verbose
    -R <rule files>              rules to load
+   -r <inline rule>             inline rule string
    -disable <option>
    -enable <option>
    -outdir <output directory>   (default "output/extracted")
    -repdir <report directory>   (default "output/reports")
-   -tagop <tagname:operation>   tag-op definition
+   -on-rule <rulename:cmd>      rule match operation definition
+   -on-tag <tagname:cmd>        tag match operation definition
 
 A small set of default rules are provided in the distribution.
 
@@ -82,6 +84,22 @@ For example::
         if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
         extract("zip", "");       /* apply  the ZIP extractor on this file */
     }
+
+
+Match actions
+-------------
+
+You can define additional molly actions using the "-on-tag" and "-on-rule"::
+
+    $ echo hello > file1
+    $ molly -r "rule any{ }" -on-rule "any:ls -l {name}" file1
+    ...
+    -rw-rw-r-- 1 mh mh 6 mar  6 13:55 file1
+    $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {name}" file1
+    ...
+    hello
+
+
 
 
 

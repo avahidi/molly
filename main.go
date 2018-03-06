@@ -32,12 +32,14 @@ var showVersion = flag.Bool("V", false, "show version number")
 var showVersionOnly = flag.Bool("VV", false, "show only version number")
 var showhelp = flag.Bool("h", false, "help information")
 
-var rfiles, tagops MultiFlag
+var rfiles, rtexts, tagops, matchops MultiFlag
 var penable, pdisable MultiFlag
 
 func init() {
 	flag.Var(&rfiles, "R", "rule files")
-	flag.Var(&tagops, "tagop", "tag operation")
+	flag.Var(&rtexts, "r", "inline rule")
+	flag.Var(&tagops, "on-tag", "tag match operations")
+	flag.Var(&matchops, "on-rule", "rule match operations")
 	flag.Var(&penable, "enable", "allow permission")
 	flag.Var(&pdisable, "disable", "remove permission")
 }
@@ -86,10 +88,19 @@ func main() {
 
 	// create context
 	molly := lib.New(*outbase, *repbase)
+
 	//  scan rules
 	if err := lib.LoadRules(molly, rfiles...); err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
 	}
+
+	// add inline rules
+	for _, ruletext := range rtexts {
+		if err := lib.LoadRulesFromText(molly, ruletext); err != nil {
+			log.Fatalf("ERROR while parsing inline rule: %s", err)
+		}
+	}
+
 	if len(molly.Rules.Top) == 0 {
 		help("No rules were loaded", 20)
 	}
@@ -107,8 +118,11 @@ func main() {
 	// show results
 	dumpResult(molly, report, *verbose)
 
-	// execute tags
-	errors := executeAllTagOps(report, tagops)
+	// execute matche and tag operations
+	e1 := executeAllMatchOps(report, matchops)
+	e2 := executeAllTagOps(report, tagops)
+	errors := append(e1, e2...)
+
 
 	// generate report file
 	if err := writeReportFile(molly, report, *repbase); err != nil {
