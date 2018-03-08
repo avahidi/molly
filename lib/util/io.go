@@ -110,13 +110,8 @@ func (bf Structured) Read(data interface{}) error {
 	return binary.Read(bf.Reader, bf.Order, data)
 }
 
-// Stream is a series of bytes
-type Stream interface {
-	ReadByte() (byte, error)
-}
-
 // Process will fall p on each byte until it returns false
-func Process(r Stream, p func(b uint8, n int) bool) (int, error) {
+func Process(r io.ByteReader, p func(b uint8, n int) bool) (int, error) {
 	for i := 0; ; i++ {
 		b, err := r.ReadByte()
 		if err != nil {
