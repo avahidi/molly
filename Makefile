@@ -30,8 +30,16 @@ test:
 fmt:
 	go fmt ./...
 
-vet:
+report:
+	go get -u github.com/client9/misspell/cmd/misspell
+	go get -u github.com/fzipp/gocyclo
+
+	misspell *.go lib
+
+	gocyclo -top 15 -avg .
+
 	go tool vet .
+
 
 # published files are created here
 dist: build compile

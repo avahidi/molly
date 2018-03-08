@@ -10,7 +10,6 @@ import (
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
-
 func parseOp(opstr string) (string, string) {
 	n := strings.Index(opstr, ":")
 	if n == -1 || n+2 > len(opstr) {
@@ -80,7 +79,7 @@ func executeAllMatchOps(mr *types.Report, matchops []string) []error {
 
 		fmt.Printf("Match operation '%s' => '%s':\n", rulename, cmd)
 		for _, matchfile := range mr.Files {
-			matchfile.Walk( func(match *types.Match){
+			matchfile.Walk(func(match *types.Match) {
 				if match.Rule.ID == rulename {
 					if err := opExecute(matchfile.Filename, rulename, cmd); err != nil {
 						errors = append(errors, err)

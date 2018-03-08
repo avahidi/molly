@@ -123,7 +123,6 @@ func main() {
 	e2 := executeAllTagOps(report, tagops)
 	errors := append(e1, e2...)
 
-
 	// generate report file
 	if err := writeReportFile(molly, report, *repbase); err != nil {
 		errors = append(errors, err)

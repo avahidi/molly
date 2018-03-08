@@ -10,7 +10,7 @@ import (
 
 func RuleEval(rule *types.Rule, env *types.Env) (bool, error) {
 	if env == nil {
-		return false, fmt.Errorf("Rule operation requires a valid enviorment")
+		return false, fmt.Errorf("Rule operation requires a valid environment")
 	}
 
 	for _, n := range rule.Conditions {

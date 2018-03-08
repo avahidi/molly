@@ -360,7 +360,7 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	}
 	if header.DexMagic != dexMagic ||
 		header.DexVersion[0] != '0' || header.DexVersion[3] != 0 {
-		return nil, fmt.Errorf("Not a dex file or unknwon dex version\n")
+		return nil, fmt.Errorf("Not a dex file or unknown dex version\n")
 	}
 	if header.EndianTag == 0x78563412 {
 		ctx.Order = binary.BigEndian

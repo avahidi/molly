@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// Env is the current enviornment during scanning
+// Env is the current environment during scanning
 type Env struct {
 	out, log *util.FileSystem
 	m        *Molly

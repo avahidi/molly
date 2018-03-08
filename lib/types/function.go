@@ -96,7 +96,7 @@ func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 	return r0, r1.(error)
 }
 
-// the prototype function is used for comparision with registered functions
+// the prototype function is used for comparison with registered functions
 var prototype *Function = newFunction("dummy", func(e *Env, args ...interface{}) (interface{}, error) { return nil, nil })
 
 var actionRegister = make(map[string]*Function)

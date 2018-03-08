@@ -48,7 +48,7 @@ func (n *Number) Set(val uint64) *Number {
 func (n *Number) Binary(o Primitive, op Operation) (Primitive, error) {
 	m := o.(*Number)
 
-	// comparision
+	// comparison
 	switch op {
 	case EQ:
 		return NewBoolean(n.Value == m.Value), nil
