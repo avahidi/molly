@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 )
 
 // Analyzer is the type of functions that will be called in
@@ -15,9 +14,17 @@ import (
 // type Analyzer func(io.ReadSeeker, io.Writer, ...interface{}) error
 type Analyzer func(io.ReadSeeker, ...interface{}) (map[string]interface{}, error)
 
-// RegisterAnalyzer registers a user analyzer
-func RegisterAnalyzer(typ string, analyzerfunc Analyzer) {
+// AnalyzerRegister registers a user analyzer
+func AnalyzerRegister(typ string, analyzerfunc Analyzer) {
 	analyzersList[typ] = analyzerfunc
+}
+
+// AnalyzerHelp outputs list of available analyzers
+func AnalyzerHelp() {
+	fmt.Printf("Available analyzers are:\n")
+	for k := range analyzersList {
+		fmt.Printf("\t%s\n", k)
+	}
 }
 
 var analyzersList = map[string]Analyzer{
@@ -48,25 +55,16 @@ func writeReport(e *types.Env, name string, report map[string]interface{}) (stri
 func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{}) (string, error) {
 	f, found := analyzersList[typ]
 	if !found {
-		fmt.Printf("Available analyzers are:\n")
-		for k := range analyzersList {
-			fmt.Printf("\t%s\n", k)
-		}
+		AnalyzerHelp()
 		util.RegisterFatalf("Unknown analyzer: '%s'", typ)
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	filename := e.GetFile()
-	r, err := os.Open(filename)
+	report, err := f(e.Reader, data...)
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
-
-	report, err := f(r, data)
-	if err != nil {
-		return "", err
-	} else if report != nil {
+	if report != nil {
 		logfile := fmt.Sprintf("%s_%s.json", typ, prefix)
 		return writeReport(e, logfile, report)
 	}

@@ -1,69 +1,75 @@
 package actions
 
 import (
-	"fmt"
-	"os"
-
 	"bitbucket.org/vahidi/molly/lib/actions/extractors"
 	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
+	"fmt"
 )
 
-var extractorList = map[string]func(*types.Env, string) (string, error){
-	"zip":    extractors.Unzip,
-	"gz":     extractors.Ungzip,
-	"tar":    extractors.Untar,
-	"cpio":   extractors.Uncpio,
-	"mbrlba": extractors.MbrLba,
-	"cramfs": extractors.Uncramfs,
+// extractor holds both kind of extractor because right now we can not
+// combine Seek and Multi readers
+type extractor struct {
+	full  func(*types.Env, string) (string, error)
+	slice func(*types.Env, string, ...uint64) (string, error)
 }
 
-var slicableExtractorList = map[string]func(*types.Env, string, ...uint64) (string, error){
-	"":       extractors.BinarySlice,
-	"binary": extractors.BinarySlice,
+var extractorList = map[string]extractor{
+	"":       extractor{slice: extractors.BinarySlice},
+	"binary": extractor{slice: extractors.BinarySlice},
+	"zip":    extractor{full: extractors.Unzip},
+	"gz":     extractor{full: extractors.Ungzip},
+	"tar":    extractor{full: extractors.Untar},
+	"cpio":   extractor{full: extractors.Uncpio},
+	"mbrlba": extractor{full: extractors.MbrLba},
+	"cramfs": extractor{full: extractors.Uncramfs},
 }
 
-// RegisterExtractor provides a method to register user extractor functions
-func RegisterExtractor(typ string, extoractor func(*types.Env, string) (string, error)) {
-	extractorList[typ] = extoractor
+// ExtractorRegister provides a method to register user extractor functions
+func ExtractorRegister(typ string, e func(*types.Env, string) (string, error)) {
+	extractorList[typ] = extractor{full: e}
 }
 
-// RegisterExtractorSlicable provides a method to register user extractor functions that can slice a file
-func RegisterSlicableExtractor(typ string, extoractor func(*types.Env, string, ...uint64) (string, error)) {
-	slicableExtractorList[typ] = extoractor
+// ExtractorSliceRegister provides a method to register user extractor functions that can slice a file
+func ExtractorSliceRegister(typ string, e func(*types.Env, string, ...uint64) (string, error)) {
+	extractorList[typ] = extractor{slice: e}
+}
+
+func ExtractorHelp() {
+	fmt.Println("Available extractors:")
+	for name, ex := range extractorList {
+		if ex.full != nil {
+			fmt.Printf("\t%20s\t(full file)\n", name)
+		} else {
+			fmt.Printf("\t%20s\t(slice)\n", name)
+		}
+	}
 }
 
 func extractFunction(e *types.Env, format string, name string, positions ...uint64) (string, error) {
-	// parameter sanity check 1
-	if len(positions)%2 != 0 {
-		return "", fmt.Errorf("extract slice data is invalid")
+	ex, found := extractorList[format]
+	if !found {
+		ExtractorHelp()
+		util.RegisterFatalf("Unknown extractor: '%s'", format)
+		return "", fmt.Errorf("Unknown extractor: '%s'", format)
 	}
 
-	// rewind so the extractors dont need to handle it
-	if _, err := e.Reader.Seek(0, os.SEEK_SET); err != nil {
-		return "", err
-	}
-
-	// these functions accept a slice:
-	sf, found := slicableExtractorList[format]
-	if found {
-		// parameter sanity check 2
+	if ex.slice != nil {
+		// parameter sanity checks
+		if len(positions)%2 != 0 {
+			return "", fmt.Errorf("extract slice data is invalid")
+		}
 		if len(positions) == 0 {
 			positions = []uint64{0, e.GetSize()}
 		}
-		return sf(e, name, positions...)
+		return ex.slice(e, name, positions...)
 	}
 
-	// these functions dont
-	nf, found := extractorList[format]
-	if found {
-		// parameter sanity check 3
-		if len(positions) != 0 {
-			return "", fmt.Errorf("Unable to extract format '%s' as sliced", format)
-		}
-		return nf(e, name)
+	// parameter sanity checks
+	if len(positions) != 0 {
+		return "", fmt.Errorf("extractor '%s' does not accept a slice", format)
 	}
-
-	return "", fmt.Errorf("Unknown extraction format: '%s'", format)
+	return ex.full(e, name)
 }
 
 func init() {

@@ -27,6 +27,8 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.Match, []error) {
 	// 2. call all action functions
 	var errors []error
 	for _, a := range rule.Actions {
+		// make sure all actions start from the beginning of the file
+		env.Reader.Seek(0, os.SEEK_SET)
 		if _, err := a.Eval(env); err != nil {
 			err := fmt.Errorf("[action failure] %.100q...", err)
 			errors = append(errors, err)
