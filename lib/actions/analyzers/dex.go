@@ -341,7 +341,9 @@ func extractKeys(m map[interface{}]interface{}, a []interface{}) []interface{} {
 }
 
 // DexAnalyzer examines DEX files
-func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, error) {
+func DexAnalyzer(r io.ReadSeeker,
+	gen func(name string, typ string, data interface{}),
+	data ...interface{}) error {
 	var header struct {
 		DexMagic    uint32
 		DexVersion  [8]uint8
@@ -352,7 +354,7 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	}
 	ctx := &dexContext{Structured: util.Structured{Reader: r, Order: binary.LittleEndian}}
 	if err := ctx.ReadAt(0, &header); err != nil {
-		return nil, err
+		return err
 	}
 	// extract version and check sanity before we do anything
 	for _, c := range header.DexVersion[:3] {
@@ -360,14 +362,14 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	}
 	if header.DexMagic != dexMagic ||
 		header.DexVersion[0] != '0' || header.DexVersion[3] != 0 {
-		return nil, fmt.Errorf("Not a dex file or unknown dex version\n")
+		return fmt.Errorf("Not a dex file or unknown dex version\n")
 	}
 	if header.EndianTag == 0x78563412 {
 		ctx.Order = binary.BigEndian
 	}
 	mp, err := dexExtractMap(ctx, header.MapOffset)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// process map entries in the order we want
 	handlers := []struct {
@@ -385,10 +387,10 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 	for _, h := range handlers {
 		if p, found := mp[h.typ]; !found {
 			if !h.optional {
-				return nil, fmt.Errorf("dex internal error: missing type %d", h.typ)
+				return fmt.Errorf("dex internal error: missing type %d", h.typ)
 			}
 		} else if err := h.f(ctx, int64(p.Offset), int(p.Count)); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	report := map[string]interface{}{
@@ -396,7 +398,8 @@ func DexAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, 
 		"00-disclaimer": "dex analyzer is still under construction",
 	}
 	dexCreateReport(ctx, report)
-	return report, nil
+	gen("", "json", report)
+	return nil
 }
 
 // dexCreateReport generates the report from the extract dexContext

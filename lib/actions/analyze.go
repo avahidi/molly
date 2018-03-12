@@ -12,7 +12,8 @@ import (
 // Analyzer is the type of functions that will be called in
 // an analyze() operation
 // type Analyzer func(io.ReadSeeker, io.Writer, ...interface{}) error
-type Analyzer func(io.ReadSeeker, ...interface{}) (map[string]interface{}, error)
+type Analyzer func(io.ReadSeeker,
+	func(string, string, interface{}), ...interface{}) error
 
 // AnalyzerRegister registers a user analyzer
 func AnalyzerRegister(typ string, analyzerfunc Analyzer) {
@@ -35,20 +36,44 @@ var analyzersList = map[string]Analyzer{
 	"dex":       analyzers.DexAnalyzer,
 }
 
-// writeReport will create a log file with the report data
-func writeReport(e *types.Env, name string, report map[string]interface{}) (string, error) {
-	w, err := e.CreateLog(name)
+type logContext struct {
+	env      *types.Env
+	basename string
+	err      error
+}
+
+func (l *logContext) error(err error) {
+	if l.err == nil {
+		l.err = err
+	}
+}
+
+func (l *logContext) newLog(name string, typ string, data interface{}) {
+	var filename string
+	if name != "" {
+		filename = fmt.Sprintf("%s_%s.%s", l.basename, name, typ)
+	} else {
+		filename = fmt.Sprintf("%s.%s", l.basename, typ)
+	}
+
+	w, err := l.env.CreateLog(filename)
 	if err != nil {
-		return "", err
+		l.error(err)
+		return
 	}
 	defer w.Close()
 
-	bs, err := json.MarshalIndent(report, "", "\t")
-	if err != nil {
-		return "", err
+	switch typ {
+	case "json":
+		bs, err := json.MarshalIndent(data, "", "\t")
+		if err != nil {
+			l.error(err)
+			return
+		}
+		w.Write(bs)
+	default:
+		l.error(fmt.Errorf("Unknown log format: %s", typ))
 	}
-	w.Write(bs)
-	return name, nil
 }
 
 // analyzeFunction performs some type of analysis on the current binary
@@ -60,16 +85,15 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	report, err := f(e.Reader, data...)
+	ctx := logContext{env: e, basename: prefix}
+	if ctx.basename == "" {
+		ctx.basename = typ
+	}
+	err := f(e.Reader, ctx.newLog, data...)
 	if err != nil {
 		return "", err
 	}
-	if report != nil {
-		logfile := fmt.Sprintf("%s_%s.json", typ, prefix)
-		return writeReport(e, logfile, report)
-	}
-	return "", nil
-
+	return "", ctx.err
 }
 
 func init() {

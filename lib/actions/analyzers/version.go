@@ -9,10 +9,12 @@ import (
 var versionRegex = regexp.MustCompile("(version[ ]*\\d)|((\\d+)\\.(\\d+\\.))")
 
 // VersionAnalyzer is a first attempt to extract version information from binaries
-func VersionAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface{}, error) {
+func VersionAnalyzer(r io.ReadSeeker,
+	gen func(name string, typ string, data interface{}),
+	data ...interface{}) error {
 	strs, err := extractStrings(r, 5)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	hashes := make([]string, 0)
@@ -34,5 +36,6 @@ func VersionAnalyzer(r io.ReadSeeker, data ...interface{}) (map[string]interface
 		"possible-gitref":  hashes,
 		"possible-version": versions,
 	}
-	return report, nil
+	gen("", "json", report)
+	return nil
 }
