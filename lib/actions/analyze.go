@@ -72,6 +72,11 @@ func (l *logContext) newLog(name string, typ string, data interface{}) {
 		}
 		w.Write(bs)
 	default:
+		bs, isbytes := data.([]byte) // just some binary data?
+		if isbytes {
+			w.Write(bs)
+			return
+		}
 		l.error(fmt.Errorf("Unknown log format: %s", typ))
 	}
 }
