@@ -29,7 +29,6 @@ var outbase = flag.String("outdir", "output/extracted", "output directory")
 var repbase = flag.String("repdir", "output/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
-var showVersionOnly = flag.Bool("VV", false, "show only version number")
 var showhelp = flag.Bool("h", false, "help information")
 
 var rfiles, rtexts, tagops, matchops MultiFlag
@@ -48,7 +47,12 @@ func help(errmsg string, exitcode int) {
 	if errmsg != "" {
 		fmt.Printf("%s\n", errmsg)
 	}
+
+	maj, min, mnt := lib.Version()
+	fmt.Printf("This is Molly version %d.%d.%d\n", maj, min, mnt)
+
 	flag.Usage()
+
 	fmt.Printf("  files\n\tinput files to be scanned\n")
 	os.Exit(exitcode)
 }
@@ -62,16 +66,11 @@ func main() {
 	}
 	ifiles := flag.Args()
 
-	if *showVersionOnly {
+	if *showVersion {
 		maj, min, mnt := lib.Version()
 		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
 		return
-	} else if *showVersion {
-		maj, min, mnt := lib.Version()
-		fmt.Printf("This is Molly version %d.%d.%d\n", maj, min, mnt)
-		return
 	}
-
 	// update permissions
 	for i, list := range []MultiFlag{penable, pdisable} {
 		set := (i == 0)

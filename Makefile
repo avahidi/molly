@@ -41,7 +41,7 @@ report:
 # published files are created here
 dist: build compile
 	mkdir -p build/dist
-	VERSION=`./molly -VV` make dist1
+	VERSION=`./molly -V` make dist1
 
 dist1:
 	git archive master --format tar | bzip2 > build/dist/sources_$(VERSION).tar.bz2
