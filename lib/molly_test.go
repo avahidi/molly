@@ -186,3 +186,60 @@ func TestScanData(t *testing.T) {
 		matchCheck(t, match, "c", test.c)
 	}
 }
+
+// BenchmarkMollyExpr test effect of lazy evaluation and  early termination
+func BenchmarkMollyExpr(b *testing.B) {
+	input := []byte{0, 1, 2, 3, 4, 5, 6}
+	var testdata = []struct {
+		rule  string
+		match bool
+	}{
+		{"rule a { var a = false; var b = Long(0); if a && b > 0; }",
+			false,
+		},
+		{"rule a { var a = true; var b = Long(0); if a && b > 0; }",
+			true,
+		},
+		{`rule a {
+			var a = false;
+			var b0 = Byte(0);
+			var b1 = Byte(1);
+			var b2 = Byte(2);
+			var b3 = Byte(3);
+			var b4 = Byte(4);
+			if a && b0 == 0 && b1 == 1 && b2 == 2 && b3 == 3 && b4 == b4;
+			}`,
+			false,
+		},
+		{`rule a {
+			var a = true;
+			var b0 = Byte(0);
+			var b1 = Byte(1);
+			var b2 = Byte(2);
+			var b3 = Byte(3);
+			var b4 = Byte(4);
+			if a && b0 == 0 && b1 == 1 && b2 == 2 && b3 == 3 && b4 == b4;
+			}`,
+			true,
+		},
+	}
+
+	for _, test := range testdata {
+		molly := New("", "")
+		if err := LoadRulesFromText(molly, test.rule); err != nil {
+			b.Errorf("Could not load benchmark rule: %v", err)
+		}
+
+		// we want the scan time to dominate, not rule load time, hence this loop
+		for n := 0; n < 100000; n++ {
+			mr, err := ScanData(molly, input)
+			if err != nil || mr == nil { // mr == nil to avoid compiler optimization
+				b.Errorf("Could not scan benchmark data: %v", err)
+			}
+			if (len(mr.Files) != 0) != test.match {
+				b.Errorf("Unexpected result in benchmark scan")
+			}
+		}
+	}
+
+}

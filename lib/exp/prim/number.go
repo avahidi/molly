@@ -16,13 +16,6 @@ func NewNumber(val uint64, size int, signed bool) *Number {
 	return n
 }
 
-/*
-func NewBoolean(val bool) *Number {
-	n := NewNumber(0, 4, false)
-	n.SetBoolean(val)
-	return n
-}
-*/
 func (n Number) Clone() *Number {
 	ret := &Number{}
 	*ret = n
@@ -68,7 +61,7 @@ func (n *Number) Binary(o Primitive, op Operation) (Primitive, error) {
 		return NewBoolean(n.Value != 0 || m.Value != 0), nil
 	}
 
-	// arith abd logic
+	// arith and logic
 	ret := n.Clone()
 	switch op {
 	case ADD:

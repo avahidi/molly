@@ -11,20 +11,34 @@ func NewBoolean(val bool) *Boolean {
 }
 
 func (n *Boolean) Binary(o Primitive, op Operation) (Primitive, error) {
-	m := o.(*Boolean)
+	// early termination - when the first operation is enough to get result
 	switch op {
-	case EQ:
-		return NewBoolean(n.Value == m.Value), nil
-	case NE, XOR, BXOR:
-		return NewBoolean(n.Value != m.Value), nil
-
 	case BAND, AND:
-		return NewBoolean(n.Value && m.Value), nil
+		if !n.Value {
+			return NewBoolean(false), nil
+		}
 	case BOR, OR:
-		return NewBoolean(n.Value || m.Value), nil
+		if n.Value {
+			return NewBoolean(true), nil
+		}
 	}
 
-	return nil, fmt.Errorf("Unknown boolean binary operation: %v", op)
+	m, isbool := o.(*Boolean)
+	if isbool {
+		switch op {
+		case EQ:
+			return NewBoolean(n.Value == m.Value), nil
+		case NE, XOR, BXOR:
+			return NewBoolean(n.Value != m.Value), nil
+
+		case BAND, AND:
+			return NewBoolean(n.Value && m.Value), nil
+		case BOR, OR:
+			return NewBoolean(n.Value || m.Value), nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unknown boolean binary operation: %v %v %v", n, op, o)
 }
 
 func (n *Boolean) Unary(op Operation) (Primitive, error) {
@@ -32,7 +46,7 @@ func (n *Boolean) Unary(op Operation) (Primitive, error) {
 	case INV, NEG:
 		return NewBoolean(!n.Value), nil
 	default:
-		return nil, fmt.Errorf("Unknown boolean  operation: %v", op)
+		return nil, fmt.Errorf("Unknown boolean  operation: %v %v", op, n)
 	}
 }
 

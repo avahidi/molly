@@ -2,6 +2,8 @@
 TODO
 ====
 
+* add {newfile} and {newdir} to system() action
+
 * better error messages in operations. for example this can panic
    m := o.(*Number) // ../prim/binary.go
 

@@ -453,7 +453,6 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 				return nil, err
 			}
 			metadata.Set(id, val)
-			fmt.Printf("Metadata: %s = %v (%T)\n", id, val, val)
 		} else {
 			argv = append(argv, e1)
 		}
