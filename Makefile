@@ -15,7 +15,7 @@ run: compile output
 	rm -rf output
 	-./molly $(O) -R data/rules\
 		-outdir output/extracted  -repdir output/reports \
-		-on-tag "arm: arm-none-eabi-objdump -h {name}" \
+		-on-tag "elf: arm-none-eabi-objdump -h {name}" \
 		-on-rule "UImage: mkimage -l {name}" \
 		-enable create-file \
 		-disable execute \

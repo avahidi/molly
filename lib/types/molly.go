@@ -11,6 +11,9 @@ type Molly struct {
 
 	Rules *RuleSet
 	Files *util.FileQueue
+
+	OnMatchRule func(file *Input, match *Match)
+	OnMatchTag  func(file *Input, tag string)
 }
 
 // NewMolly creates a new Molly context

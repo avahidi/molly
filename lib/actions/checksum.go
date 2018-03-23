@@ -58,10 +58,10 @@ func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, er
 		if start < 0 || start >= end || end > total {
 			return nil, fmt.Errorf("invalid boundaries in checksum(): %d-%v", start, end)
 		}
-		if _, err := e.Reader.Seek(int64(start), os.SEEK_SET); err != nil {
+		if _, err := e.Input.Seek(int64(start), os.SEEK_SET); err != nil {
 			return nil, err
 		}
-		if _, err := io.CopyN(hash, e.Reader, int64(end-start)); err != nil {
+		if _, err := io.CopyN(hash, e.Input, int64(end-start)); err != nil {
 			return nil, err
 		}
 	}

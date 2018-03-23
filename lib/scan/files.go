@@ -11,7 +11,7 @@ import (
 // AnalyzeFile evaluates one rule against one file,
 // if the rule has children they will also be evaluated
 func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.Match, []error) {
-	reader := env.Reader
+	reader := env.Input
 	reader.Seek(0, os.SEEK_SET)
 
 	// 1. evaluate the rule
@@ -28,7 +28,7 @@ func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.Match, []error) {
 	var errors []error
 	for _, a := range rule.Actions {
 		// make sure all actions start from the beginning of the file
-		env.Reader.Seek(0, os.SEEK_SET)
+		env.Input.Seek(0, os.SEEK_SET)
 		if _, err := a.Eval(env); err != nil {
 			err := fmt.Errorf("[action failure] %.100q...", err)
 			errors = append(errors, err)

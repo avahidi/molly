@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
+	"bitbucket.org/vahidi/molly/lib/report"
 	"bitbucket.org/vahidi/molly/lib/scan"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
@@ -42,25 +43,53 @@ func LoadRulesFromText(m *types.Molly, text string) error {
 	return scan.ParseRuleStream(m, strings.NewReader(text))
 }
 
-func scanReader(env *types.Env, rules *types.RuleSet, r io.ReadSeeker,
-	filename string, filesize uint64, report *types.FileReport) {
-	env.SetFile(r, filename, filesize, report)
-	for _, rule := range rules.Top {
+// processMatch will process a match on a rule
+func processMatch(m *types.Molly, i *types.Input, match *types.Match) {
+	if len(match.Children) == 0 {
+		if m.OnMatchRule != nil {
+			m.OnMatchRule(i, match)
+		}
+	}
+	for _, ch := range match.Children {
+		processMatch(m, i, ch)
+	}
+}
+
+// processMatch will process a tag on a file
+func processTags(m *types.Molly, fr *types.Input) {
+	if m.OnMatchTag != nil {
+		tags := report.ExtractTags(fr)
+		for _, tag := range tags {
+			m.OnMatchTag(fr, tag)
+		}
+	}
+}
+
+func scanReader(m *types.Molly, env *types.Env, r io.ReadSeeker,
+	filename string, filesize uint64) *types.Input {
+	input := types.NewInput(r, filename, filesize)
+	env.SetInput(input)
+	for _, rule := range m.Rules.Top {
 		env.StartRule(rule)
 		match, errs := scan.AnalyzeFile(rule, env)
 		if match != nil {
-			report.Matches = append(report.Matches, match)
+			input.Matches = append(input.Matches, match)
+			processMatch(m, input, match)
 		}
-		report.Errors = append(report.Errors, errs...)
+		input.Errors = append(input.Errors, errs...)
 	}
+	processTags(m, input)
+
+	return input
 }
 
 // ScanData scans a byte vector for matches.
 func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	dummyname := "nopath/nofile"
-	fr := types.NewFileReport(dummyname)
+	r := bytes.NewReader(data)
 	env := types.NewEnv(m)
-	scanReader(env, m.Rules, bytes.NewReader(data), dummyname, uint64(len(data)), fr)
+
+	fr := scanReader(m, env, r, dummyname, uint64(len(data)))
 
 	report := types.NewReport()
 	if !fr.Empty() {
@@ -70,19 +99,22 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, fr *types.FileReport, filename string) {
+func scanFile(m *types.Molly, env *types.Env, filename string) *types.Input {
 	info, err := os.Stat(filename)
 	if err != nil {
+		fr := types.NewInput(nil, filename, 0)
 		fr.Errors = append(fr.Errors, err)
-		return
+		return fr
 	}
-	f, err := os.Open(filename)
+	r, err := os.Open(filename)
 	if err != nil {
+		fr := types.NewInput(nil, filename, 0)
 		fr.Errors = append(fr.Errors, err)
-		return
+		return fr
 	}
-	defer f.Close()
-	scanReader(env, m.Rules, f, filename, uint64(info.Size()), fr)
+	defer r.Close()
+
+	return scanReader(m, env, r, filename, uint64(info.Size()))
 }
 
 // ScanFiles scans a set of files for matches.
@@ -100,8 +132,7 @@ func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
 
 	report := types.NewReport()
 	for filename := m.Files.Pop(); filename != ""; filename = m.Files.Pop() {
-		fr := types.NewFileReport(filename)
-		scanFile(m, env, fr, filename)
+		fr := scanFile(m, env, filename)
 		if !fr.Empty() {
 			report.Add(fr)
 		}

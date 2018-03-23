@@ -55,6 +55,19 @@ func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
 	f1["configuration"] = f2
 	f1["results"] = report.ExtractFlatReport(r)
 
+	// report errors for each file
+	errs := make(map[string][]string)
+	for _, input := range r.Files {
+		if len(input.Errors) != 0 {
+			estrs := make([]string, len(input.Errors))
+			for i, e := range input.Errors {
+				estrs[i] = e.Error()
+			}
+			errs[input.Filename] = estrs
+		}
+	}
+	f1["errors"] = errs
+
 	bs, err := json.MarshalIndent(f1, "", "\t")
 	if err != nil {
 		return err

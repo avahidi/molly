@@ -143,7 +143,7 @@ func (c cramContext) inode(inode *cramInode, name string) error {
 // code fails to handle your images.
 func Uncramfs(e *types.Env, prefix string) (string, error) {
 	ctx := &cramContext{Create: e.Create}
-	ctx.Reader = e.Reader
+	ctx.Reader = e.Input
 
 	// we don't know the native byte-order, try both:
 	for _, ctx.Order = range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {

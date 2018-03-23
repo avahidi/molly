@@ -26,35 +26,10 @@ type FlatMatch struct {
 	Vars map[string]interface{}
 }
 
-// FileReport contains all matches + some otherdata for one file
-type FileReport struct {
-	Filename string
-	Matches  []*Match
-	Errors   []error
-	Logs     []string
-}
-
-// NewFileReport creates a new empty report for a file
-func NewFileReport(filename string) *FileReport {
-	return &FileReport{Filename: filename}
-}
-
-// Empty returns true if this report contains no data
-func (fr FileReport) Empty() bool {
-	return len(fr.Matches) == 0 && len(fr.Errors) == 0 && len(fr.Logs) == 0
-}
-
-// Walk walks the file report for all matches including hierarchical matches
-func (fr FileReport) Walk(visitor func(*Match)) {
-	for _, match := range fr.Matches {
-		match.Walk(visitor)
-	}
-}
-
 // Report contains all matches for all files
 type Report struct {
-	Current *FileReport
-	Files   []*FileReport
+	// Current *Input
+	Files []*Input
 }
 
 // NewReport creates a new empty report
@@ -63,7 +38,7 @@ func NewReport() *Report {
 }
 
 // Add adds a FileReport to this report
-func (mr *Report) Add(fr *FileReport) {
-	mr.Current = fr
+func (mr *Report) Add(fr *Input) {
+	// mr.Current = fr
 	mr.Files = append(mr.Files, fr)
 }

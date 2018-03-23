@@ -23,10 +23,10 @@ func MbrLba(e *types.Env, name string) (string, error) {
 
 	filesize := int64(e.GetSize())
 	for i := 0; i < 4; i++ {
-		if _, err := e.Reader.Seek(int64(0x1BE+i*16), os.SEEK_SET); err != nil {
+		if _, err := e.Input.Seek(int64(0x1BE+i*16), os.SEEK_SET); err != nil {
 			return "", err
 		}
-		if err := binary.Read(e.Reader, binary.LittleEndian, &partition); err != nil {
+		if err := binary.Read(e.Input, binary.LittleEndian, &partition); err != nil {
 			return "", err
 		}
 
@@ -39,10 +39,10 @@ func MbrLba(e *types.Env, name string) (string, error) {
 			}
 			defer w.Close()
 
-			if _, err := e.Reader.Seek(start, os.SEEK_SET); err != nil {
+			if _, err := e.Input.Seek(start, os.SEEK_SET); err != nil {
 				return "", err
 			}
-			io.CopyN(w, e.Reader, end-start)
+			io.CopyN(w, e.Input, end-start)
 
 		}
 	}

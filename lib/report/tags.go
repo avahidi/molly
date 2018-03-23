@@ -5,7 +5,7 @@ import (
 )
 
 // ExtractTags gathers tags from a file match
-func ExtractTags(fr *types.FileReport) []string {
+func ExtractTags(fr *types.Input) []string {
 	var ret []string
 	seen := make(map[string]bool)
 

@@ -5,27 +5,58 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 )
+
+// Input represents a file scanned by molly
+type Input struct {
+	Reader   io.ReadSeeker
+	Filename string
+	Filesize uint64
+
+	Matches []*Match
+	Errors  []error
+	Logs    []string
+}
+
+// NewInput creates a new Input with given name, size and stream
+func NewInput(r io.ReadSeeker, filename string, filesize uint64) *Input {
+	return &Input{
+		Reader:   r,
+		Filename: filename,
+		Filesize: filesize,
+	}
+}
+
+// Read Implements io.Reader
+func (i *Input) Read(p []byte) (n int, err error) {
+	return i.Reader.Read(p)
+}
+
+// Seek Implements io.Seeker
+func (i *Input) Seek(offset int64, whence int) (int64, error) {
+	return i.Reader.Seek(offset, whence)
+}
+
+// Empty returns true if this report contains no data
+func (i Input) Empty() bool {
+	return len(i.Matches) == 0 && len(i.Errors) == 0 && len(i.Logs) == 0
+}
 
 // Env is the current environment during scanning
 type Env struct {
 	out, log *util.FileSystem
 	m        *Molly
-	Globals  *util.Register
 
 	// these are valid while we are scanning a file
-	Report *FileReport
-	Reader io.ReadSeeker
-	Scope  *Scope
+	Input *Input
+	Scope *Scope
 }
 
 func NewEnv(m *Molly) *Env {
 	return &Env{
-		m:       m,
-		out:     util.NewFileSystem(m.ExtractDir, m.Files),
-		log:     util.NewFileSystem(m.ReportDir, nil),
-		Globals: util.NewRegister(),
+		m:   m,
+		out: util.NewFileSystem(m.ExtractDir, m.Files),
+		log: util.NewFileSystem(m.ReportDir, nil),
 	}
 }
 
@@ -45,37 +76,24 @@ func (e *Env) PopRule() {
 }
 
 func (e Env) String() string {
-	if filename, found := e.Globals.GetString("$filename", ""); found {
-		return fmt.Sprintf("{%s:%s}", e.Scope.Rule.ID, filename)
+	if e.Input != nil {
+		return fmt.Sprintf("{%s:%s}", e.Scope.Rule.ID, e.Input.Filename)
 	}
 	return fmt.Sprintf("{%s}", e.Scope.Rule.ID)
 }
 
-func (e *Env) SetFile(r io.ReadSeeker, filename string, filesize uint64,
-	report *FileReport) {
-	e.Reader = r
-	e.Report = report
-	path, name := filepath.Split(filename)
-	e.Globals.SetString("$path", path)
-	e.Globals.SetString("$shortfilename", name)
-	e.Globals.SetString("$filename", filename)
-	e.Globals.SetNumber("$filesize", filesize)
+func (e *Env) SetInput(i *Input) {
+	e.Input = i
 }
 
 func (e Env) GetFile() string {
-	filename, _ := e.Globals.GetString("$filename", "")
-	return filename
+	return e.Input.Filename
 }
 
 func (e Env) GetSize() uint64 {
-	size, _ := e.Globals.GetNumber("$filesize", 0)
-	return size
+	return e.Input.Filesize
 }
 
-/*
-// Output returns the output filesystem
-func (e Env) Output() *util.FileSystem { return e.out }
-*/
 func (e *Env) Name(name string, addtopath bool) (string, error) {
 	return e.out.Name(name, e.GetFile(), addtopath)
 }
@@ -87,15 +105,11 @@ func (e *Env) Mkdir(path string) (string, error) {
 	return e.out.Mkdir(path, e.GetFile())
 }
 
-/*
-// Log returns the log filesystem
-func (e Env) Log() *util.FileSystem { return e.log }
-*/
 // CreateLog creates a new log
 func (e *Env) CreateLog(name string) (*os.File, error) {
 	file, err := e.log.Create(name, e.GetFile())
 	if err == nil && file != nil {
-		e.Report.Logs = append(e.Report.Logs, file.Name())
+		e.Input.Logs = append(e.Input.Logs, file.Name())
 	}
 	return file, err
 }

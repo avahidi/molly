@@ -7,7 +7,7 @@ import (
 )
 
 func Untar(e *types.Env, prefix string) (string, error) {
-	r := e.Reader
+	r := e.Input
 
 	tr := tar.NewReader(r)
 	for {

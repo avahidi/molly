@@ -94,7 +94,7 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 	if ctx.basename == "" {
 		ctx.basename = typ
 	}
-	err := f(e.Reader, ctx.newLog, data...)
+	err := f(e.Input, ctx.newLog, data...)
 	if err != nil {
 		return "", err
 	}

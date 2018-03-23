@@ -22,10 +22,10 @@ func BinarySlice(e *types.Env, name string, positions ...uint64) (string, error)
 		if start < 0 || start+size > total {
 			return "", fmt.Errorf("invalid boundaries in slice(): %d-%d", start, start+size)
 		}
-		if _, err := e.Reader.Seek(int64(start), os.SEEK_SET); err != nil {
+		if _, err := e.Input.Seek(int64(start), os.SEEK_SET); err != nil {
 			return "", err
 		}
-		if _, err := io.CopyN(w, e.Reader, int64(size)); err != nil {
+		if _, err := io.CopyN(w, e.Input, int64(size)); err != nil {
 			return "", err
 		}
 	}

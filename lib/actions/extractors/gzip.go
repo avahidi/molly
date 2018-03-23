@@ -11,7 +11,7 @@ import (
 // Ungzip extracts a gzip file
 func Ungzip(e *types.Env, prefix string) (string, error) {
 
-	gr, err := gzip.NewReader(e.Reader)
+	gr, err := gzip.NewReader(e.Input)
 	if err != nil {
 		return "", err
 	}

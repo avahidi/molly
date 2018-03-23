@@ -6,6 +6,20 @@ import (
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
+// encLookupSpecial checks for special variables that are from other sources
+func encLookupSpecial(e *types.Env, id string) (interface{}, bool) {
+	var val interface{}
+	switch id {
+	case "$filename":
+		val = e.Input.Filename
+	case "$filesize":
+		val = e.Input.Filesize
+	default:
+		return nil, false
+	}
+	return val, true
+}
+
 // EnvLookup returns a variable either from current scope or
 // the global registry
 func EnvLookup(e *types.Env, id string) (types.Expression, bool, error) {
@@ -28,9 +42,10 @@ func EnvLookup(e *types.Env, id string) (types.Expression, bool, error) {
 		}
 	}
 
+	// maybe a special variable?
 	if !found {
 		var val interface{}
-		val, found = e.Globals.Get(id)
+		val, found = encLookupSpecial(e, id)
 		if found {
 			exp = NewValueExpression(prim.ValueToPrimitive(val))
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bitbucket.org/vahidi/molly/lib"
+	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
 	"flag"
 	"fmt"
@@ -88,6 +89,45 @@ func main() {
 	// create context
 	molly := lib.New(*outbase, *repbase)
 
+	// create callbacks
+	listmatch, err := opListParse(matchops)
+	if err != nil {
+		log.Fatalf("match op error: %s", err)
+	}
+	molly.OnMatchRule = func(i *types.Input, match *types.Match) {
+		id := match.Rule.ID
+		if cmd, found := listmatch[id]; found {
+			output, err := opExecute(cmd, i)
+			fmt.Printf("RULE %s on %s: %s\n", id, i.Filename, output)
+			if err != nil {
+				err = fmt.Errorf("on match %s: %v", id, err)
+				i.Errors = append(i.Errors, err)
+			}
+		}
+	}
+
+	listtag, err := opListParse(tagops)
+	if err != nil {
+		log.Fatalf("tag op error: %s", err)
+	}
+	molly.OnMatchTag = func(i *types.Input, tag string) {
+		if cmd, found := listtag[tag]; found {
+			output, err := opExecute(cmd, i)
+			fmt.Printf("TAG %s on %s: %s\n", tag, i.Filename, output)
+			if err != nil {
+				err = fmt.Errorf("on tag %s: %v", tag, err)
+				i.Errors = append(i.Errors, err)
+			}
+		}
+	}
+
+	for k, v := range listmatch {
+		fmt.Println("MATCH", k, v)
+	}
+	for k, v := range listtag {
+		fmt.Println("TAG", k, v)
+	}
+
 	//  scan rules
 	if err := lib.LoadRules(molly, rfiles...); err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
@@ -117,10 +157,7 @@ func main() {
 	// show results
 	dumpResult(molly, report, *verbose)
 
-	// execute matche and tag operations
-	e1 := executeAllMatchOps(report, matchops)
-	e2 := executeAllTagOps(report, tagops)
-	errors := append(e1, e2...)
+	var errors []error
 
 	// generate report file
 	if err := writeReportFile(molly, report, *repbase); err != nil {

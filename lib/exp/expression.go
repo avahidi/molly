@@ -335,7 +335,7 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 	o := get(o1).(*prim.Number)
 	s := get(s1).(*prim.Number)
-	if _, err := env.Reader.Seek(int64(o.Value), os.SEEK_SET); err != nil {
+	if _, err := env.Input.Seek(int64(o.Value), os.SEEK_SET); err != nil {
 		return nil, err
 	}
 
@@ -351,11 +351,11 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 		// zero terminated or fix size?
 		if ee.Format.Type == StringZ {
-			data, _, err = util.ReadUntil(env.Reader, 0, int(s.Value))
+			data, _, err = util.ReadUntil(env.Input, 0, int(s.Value))
 		} else {
 			var n int
 			data = make([]byte, s.Value)
-			n, err = env.Reader.Read(data)
+			n, err = env.Input.Read(data)
 			if n != len(data) {
 				err = fmt.Errorf("premature end of file in string")
 			}
@@ -369,7 +369,7 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 
 	} else {
 		data := make([]byte, s.Value)
-		if _, err := env.Reader.Read(data); err != nil {
+		if _, err := env.Input.Read(data); err != nil {
 			return nil, err
 		}
 		val := uint64(0)

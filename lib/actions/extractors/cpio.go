@@ -51,7 +51,7 @@ func cpioAsciiParser(r io.Reader) (int64, int64, error) {
 func Uncpio(e *types.Env, prefix string) (string, error) {
 	var parser func(io.Reader) (int64, int64, error)
 	mustPad := false
-	r := e.Reader
+	r := e.Input
 
 	// vad type is this?
 	magic := make([]byte, 6)
