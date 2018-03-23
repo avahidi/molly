@@ -2,7 +2,7 @@
 TODO
 ====
 
-* add {newfile} and {newdir} to system() action
+
 
 * better error messages in operations. for example this can panic
    m := o.(*Number) // ../prim/binary.go
@@ -99,3 +99,5 @@ DONE
   - generate reports from analyzer actions
 * use hierarchy from FileQueue instead of building it separatly in Report
 * set some sort of max depth for filequeue
+
+* add {newfile} and {newdir} to system() action

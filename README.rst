@@ -92,13 +92,16 @@ Match actions
 You can define additional molly actions using the "-on-tag" and "-on-rule"::
 
     $ echo hello > file1
-    $ molly -r "rule any{ }" -on-rule "any:ls -l {name}" file1
+    $ molly -r "rule any{ }" -on-rule "any:ls -l {filename}" file1
     ...
     -rw-rw-r-- 1 mh mh 6 mar  6 13:55 file1
-    $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {name}" file1
+    $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {filename}" file1
     ...
     hello
 
+Note that you can "{newXXX[:name]}" to track files generated externally::
+
+    $ molly -r "rule cfiles { ...  }" -on-rule "cfiles:gcc {filename} -o {newfile:.o}" file1.c
 
 
 

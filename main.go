@@ -97,7 +97,7 @@ func main() {
 	molly.OnMatchRule = func(i *types.Input, match *types.Match) {
 		id := match.Rule.ID
 		if cmd, found := listmatch[id]; found {
-			output, err := opExecute(cmd, i)
+			output, err := opExecute(molly, cmd, i)
 			fmt.Printf("RULE %s on %s: %s\n", id, i.Filename, output)
 			if err != nil {
 				err = fmt.Errorf("on match %s: %v", id, err)
@@ -112,7 +112,7 @@ func main() {
 	}
 	molly.OnMatchTag = func(i *types.Input, tag string) {
 		if cmd, found := listtag[tag]; found {
-			output, err := opExecute(cmd, i)
+			output, err := opExecute(molly, cmd, i)
 			fmt.Printf("TAG %s on %s: %s\n", tag, i.Filename, output)
 			if err != nil {
 				err = fmt.Errorf("on tag %s: %v", tag, err)
