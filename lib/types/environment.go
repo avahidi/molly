@@ -13,9 +13,13 @@ type Input struct {
 	Filename string
 	Filesize uint64
 
+	// These are filled as we scan the file
 	Matches []*Match
 	Errors  []error
 	Logs    []string
+
+	// private stuff
+	outdir string
 }
 
 // NewInput creates a new Input with given name, size and stream
@@ -44,19 +48,18 @@ func (i Input) Empty() bool {
 
 // Env is the current environment during scanning
 type Env struct {
-	out, log *util.FileSystem
-	m        *Molly
+	m *Molly
 
-	// these are valid while we are scanning a file
+	// Input is valid while we are scanning a file
 	Input *Input
+
+	// Scope is valid while we are scanning a file and a rule
 	Scope *Scope
 }
 
 func NewEnv(m *Molly) *Env {
 	return &Env{
-		m:   m,
-		out: util.NewFileSystem(m.ExtractDir, m.Files),
-		log: util.NewFileSystem(m.ReportDir, nil),
+		m: m,
 	}
 }
 
@@ -94,22 +97,19 @@ func (e Env) GetSize() uint64 {
 	return e.Input.Filesize
 }
 
-func (e *Env) Name(name string, addtopath bool) (string, error) {
-	return e.out.Name(name, e.GetFile(), addtopath)
+func (e *Env) Name(name string, islog bool) (string, error) {
+	return e.m.CreateName(e.Input, name, islog), nil
 }
+
 func (e *Env) Create(name string) (*os.File, error) {
-	return e.out.Create(name, e.GetFile())
+	return e.m.CreateFile(e.Input, name, false)
 }
 
 func (e *Env) Mkdir(path string) (string, error) {
-	return e.out.Mkdir(path, e.GetFile())
+	return e.m.CreateDir(e.Input, path)
 }
 
 // CreateLog creates a new log
 func (e *Env) CreateLog(name string) (*os.File, error) {
-	file, err := e.log.Create(name, e.GetFile())
-	if err == nil && file != nil {
-		e.Input.Logs = append(e.Input.Logs, file.Name())
-	}
-	return file, err
+	return e.m.CreateFile(e.Input, name, true)
 }

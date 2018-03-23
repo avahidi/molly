@@ -5,7 +5,7 @@ import (
 )
 
 func fileFunction(e *types.Env, prefix string) (string, error) {
-	return e.Name(prefix, true)
+	return e.Name(prefix, false)
 }
 
 func dirFunction(e *types.Env, prefix string) (string, error) {
