@@ -1,10 +1,11 @@
 package actions
 
 import (
+	"fmt"
+
 	"bitbucket.org/vahidi/molly/lib/actions/extractors"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"fmt"
 )
 
 // extractor holds both kind of extractor because right now we can not
@@ -23,6 +24,7 @@ var extractorList = map[string]extractor{
 	"cpio":   extractor{full: extractors.Uncpio},
 	"mbrlba": extractor{full: extractors.MbrLba},
 	"cramfs": extractor{full: extractors.Uncramfs},
+	"jffs2":  extractor{full: extractors.Unjffs2},
 }
 
 // ExtractorRegister provides a method to register user extractor functions
