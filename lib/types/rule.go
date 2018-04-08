@@ -2,6 +2,17 @@ package types
 
 import "bitbucket.org/vahidi/molly/lib/util"
 
+const (
+	ActionModeNormal = 0
+	ActionModeIgnore = 1
+	ActionModeExit   = 2
+)
+
+type Action struct {
+	Mode   int
+	Action Expression
+}
+
 // Rule defines a single rule
 type Rule struct {
 	ID       string
@@ -10,7 +21,7 @@ type Rule struct {
 
 	Children   []*Rule
 	Conditions []Expression
-	Actions    []Expression
+	Actions    []Action
 	Variables  map[string]Expression
 }
 

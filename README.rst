@@ -86,6 +86,26 @@ For example::
     }
 
 
+Order of execution
+------------------
+
+Conditions and actions are executed in the order they appear while variables
+are evaluated when needed. This means you can optimize rules by placing
+simpler conditions first.
+
+Furthermore, if an action fails the subsequent actions will not be executed.
+There are two exceptions to this: if the action is preceded by a '-' or a '+'
+errors are ignored. In the latter case molly will also stop executing subsequent
+actions if this action succeeds. Example::
+
+    rule unknown {
+        -printf("I don't know what %s is", $filename);  // this can fail
+        +extract("zip", ""); // could be a zip?         // if this doesnt fail...
+        extract("tar", ""); // or maybe a tar?          // ... this will run
+    }
+
+
+
 Match actions
 -------------
 

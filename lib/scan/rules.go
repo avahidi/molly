@@ -249,6 +249,13 @@ func parseCondition(p *parser, c *types.Rule) error {
 
 func parseAction(p *parser, c *types.Rule) error {
 	var name string
+	a := types.Action{Mode: types.ActionModeNormal}
+
+	if p.acceptValue("-") {
+		a.Mode = types.ActionModeIgnore
+	} else if p.acceptValue("+") {
+		a.Mode = types.ActionModeExit
+	}
 	if !p.acceptToken(scanner.Ident, &name) {
 		return p.errorf("Unknown token, expected function name in action")
 	}
@@ -256,7 +263,9 @@ func parseAction(p *parser, c *types.Rule) error {
 	if err != nil {
 		return err
 	}
-	c.Actions = append(c.Actions, exp.Simplify(expr))
+
+	a.Action = exp.Simplify(expr)
+	c.Actions = append(c.Actions, a)
 	return nil
 }
 

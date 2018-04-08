@@ -59,7 +59,7 @@ func RuleClose(rule *types.Rule) {
 	}
 
 	for i, a := range rule.Actions {
-		rule.Actions[i] = Simplify(a)
+		rule.Actions[i].Action = Simplify(a.Action)
 	}
 
 	// at this point metadata for expressions don't point to rule as
@@ -90,6 +90,6 @@ func RuleVisitExpressions(rule *types.Rule, v visitor) {
 		walk(cc, v)
 	}
 	for _, a := range rule.Actions {
-		walk(a, v)
+		walk(a.Action, v)
 	}
 }
