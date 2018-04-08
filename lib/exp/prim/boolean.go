@@ -11,18 +11,6 @@ func NewBoolean(val bool) *Boolean {
 }
 
 func (n *Boolean) Binary(o Primitive, op Operation) (Primitive, error) {
-	// early termination - when the first operation is enough to get result
-	switch op {
-	case BAND, AND:
-		if !n.Value {
-			return NewBoolean(false), nil
-		}
-	case BOR, OR:
-		if n.Value {
-			return NewBoolean(true), nil
-		}
-	}
-
 	m, isbool := o.(*Boolean)
 	if isbool {
 		switch op {
