@@ -1,10 +1,11 @@
 package types
 
 import (
-	"bitbucket.org/vahidi/molly/lib/util"
 	"fmt"
 	"io"
 	"os"
+
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // Input represents a file scanned by molly
