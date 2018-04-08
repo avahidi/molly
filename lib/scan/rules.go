@@ -434,6 +434,10 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 	argv := make([]types.Expression, 0)
 
 	for {
+		if p.acceptToken(')', nil) {
+			break
+		}
+
 		e1, err := parseExpression(p)
 		if err != nil {
 			return nil, err

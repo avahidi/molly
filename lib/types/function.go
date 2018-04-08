@@ -56,14 +56,14 @@ func (f Function) Call(env *Env, args []interface{}) (interface{}, error) {
 	if f.variadic {
 		// check parameters in variadic functions
 		if len(f.ins)-2 > len(args) {
-			util.RegisterFatalf("Too few parameters in call to variadic to '%s'", f.name)
+			util.RegisterFatalf("Too few parameters in call to variadic to '%s(...)'", f.name)
 		}
 		vart = f.ins[normalArgs-1].Elem()
 		normalArgs = normalArgs - 1
 	} else {
 		// check parameter count for normal functions
 		if len(f.ins) != len(args)+1 {
-			util.RegisterFatalf("Too few parameters in call to '%s'", f.name)
+			util.RegisterFatalf("Too few parameters in call to %s(%v)", f.name, f.ins[1:])
 		}
 	}
 	rargs := make([]reflect.Value, 1+len(args))
