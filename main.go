@@ -1,14 +1,15 @@
 package main
 
 import (
-	"bitbucket.org/vahidi/molly/lib"
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"bitbucket.org/vahidi/molly/lib"
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // MultiFlag is used allow multiple values with flag:
@@ -31,6 +32,7 @@ var repbase = flag.String("repdir", "output/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
+var maxDepth = flag.Int("max-depth", 0, "max scan depth")
 
 var rfiles, rtexts, tagops, matchops MultiFlag
 var penable, pdisable MultiFlag
@@ -87,7 +89,7 @@ func main() {
 	}
 
 	// create context
-	molly := lib.New(*outbase, *repbase)
+	molly := lib.New(*outbase, *repbase, *maxDepth)
 
 	// create callbacks
 	listmatch, err := opListParse(matchops)

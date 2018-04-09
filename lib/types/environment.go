@@ -12,7 +12,8 @@ import (
 type Input struct {
 	Reader   io.ReadSeeker
 	Filename string
-	Filesize uint64
+	Filesize int64
+	Depth    int
 
 	// These are filled as we scan the file
 	Matches []*Match
@@ -24,11 +25,12 @@ type Input struct {
 }
 
 // NewInput creates a new Input with given name, size and stream
-func NewInput(r io.ReadSeeker, filename string, filesize uint64) *Input {
+func NewInput(r io.ReadSeeker, filename string, filesize int64, depth int) *Input {
 	return &Input{
 		Reader:   r,
 		Filename: filename,
 		Filesize: filesize,
+		Depth:    depth,
 	}
 }
 
@@ -95,7 +97,7 @@ func (e Env) GetFile() string {
 }
 
 func (e Env) GetSize() uint64 {
-	return e.Input.Filesize
+	return uint64(e.Input.Filesize)
 }
 
 func (e *Env) Name(name string, islog bool) (string, error) {

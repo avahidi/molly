@@ -1,11 +1,12 @@
 package types
 
 import (
-	"bitbucket.org/vahidi/molly/lib/util"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // Molly represents the context of a molly program
@@ -24,12 +25,12 @@ type Molly struct {
 }
 
 // NewMolly creates a new Molly context
-func NewMolly(extratDir, reportDir string) *Molly {
+func NewMolly(extratDir, reportDir string, maxDepth int) *Molly {
 	return &Molly{
 		ExtractDir: extratDir,
 		ReportDir:  reportDir,
 		Rules:      NewRuleSet(),
-		Files:      util.NewFileQueue(),
+		Files:      util.NewFileQueue(maxDepth),
 		pathCache:  make(map[string]string),
 	}
 }

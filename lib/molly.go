@@ -16,7 +16,7 @@ import (
 )
 
 // New creates a new molly context
-func New(extratDir, reportDir string) *types.Molly {
+func New(extratDir, reportDir string, maxDepth int) *types.Molly {
 	if extratDir == "" {
 		extratDir, _ = ioutil.TempDir("", "molly-out")
 	}
@@ -30,7 +30,7 @@ func New(extratDir, reportDir string) *types.Molly {
 		util.RegisterFatalf("Failed to create report dir: %v", err)
 	}
 
-	return types.NewMolly(extratDir, reportDir)
+	return types.NewMolly(extratDir, reportDir, maxDepth)
 }
 
 // LoadRules reads rules from files
@@ -66,8 +66,8 @@ func processTags(m *types.Molly, fr *types.Input) {
 }
 
 func scanReader(m *types.Molly, env *types.Env, r io.ReadSeeker,
-	filename string, filesize uint64) *types.Input {
-	input := types.NewInput(r, filename, filesize)
+	filename string, filesize int64, depth int) *types.Input {
+	input := types.NewInput(r, filename, filesize, depth)
 	env.SetInput(input)
 	for _, rule := range m.Rules.Top {
 		env.StartRule(rule)
@@ -89,7 +89,7 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	r := bytes.NewReader(data)
 	env := types.NewEnv(m)
 
-	fr := scanReader(m, env, r, dummyname, uint64(len(data)))
+	fr := scanReader(m, env, r, dummyname, int64(len(data)), 0)
 
 	report := types.NewReport()
 	if !fr.Empty() {
@@ -99,22 +99,17 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, filename string) *types.Input {
-	info, err := os.Stat(filename)
-	if err != nil {
-		fr := types.NewInput(nil, filename, 0)
-		fr.Errors = append(fr.Errors, err)
-		return fr
-	}
+func scanFile(m *types.Molly, env *types.Env, entry *util.FileEntry) *types.Input {
+	filename := entry.Filename
 	r, err := os.Open(filename)
 	if err != nil {
-		fr := types.NewInput(nil, filename, 0)
+		fr := types.NewInput(nil, filename, 0, 0)
 		fr.Errors = append(fr.Errors, err)
 		return fr
 	}
 	defer r.Close()
 
-	return scanReader(m, env, r, filename, uint64(info.Size()))
+	return scanReader(m, env, r, filename, entry.Size, entry.Depth)
 }
 
 // ScanFiles scans a set of files for matches.
@@ -131,8 +126,12 @@ func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
 	}
 
 	report := types.NewReport()
-	for filename := m.Files.Pop(); filename != ""; filename = m.Files.Pop() {
-		fr := scanFile(m, env, filename)
+	for {
+		entry := m.Files.Pop()
+		if entry == nil {
+			break
+		}
+		fr := scanFile(m, env, entry)
 		if !fr.Empty() {
 			report.Add(fr)
 		}

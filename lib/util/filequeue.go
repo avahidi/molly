@@ -5,12 +5,10 @@ import (
 	"path/filepath"
 )
 
-// MaxFileDepth is the maximum depth of files we will accept
-const MaxFileDepth = 42
-
 // FileEntry represents a single file
 type FileEntry struct {
 	Filename string
+	Size     int64
 	Depth    int
 	Parent   *FileEntry
 }
@@ -18,45 +16,53 @@ type FileEntry struct {
 // FileQueue is a queue where files can be added for later extraction
 // it discards files already added and traverses directories
 type FileQueue struct {
-	Current *FileEntry
-	Map     map[string]*FileEntry
-	Out     []*FileEntry
-	In      []*FileEntry
+	MaxDepth int
+	Current  *FileEntry
+	Map      map[string]*FileEntry
+	Out      []*FileEntry
+	In       []*FileEntry
 }
 
 // NewFileQueue creates an empty FileQueue given a output directory
-func NewFileQueue() *FileQueue {
-	return &FileQueue{Map: make(map[string]*FileEntry)}
+func NewFileQueue(maxDepth int) *FileQueue {
+	return &FileQueue{Map: make(map[string]*FileEntry), MaxDepth: maxDepth}
+
 }
 
-// Push puts a file into the queue
+func (i *FileQueue) pushOne(path string, parent *FileEntry, incDepth bool) {
+	if _, seen := i.Map[path]; seen {
+		return
+	}
+	depth := 0
+	if parent != nil {
+		depth = parent.Depth
+		if incDepth {
+			depth++
+		}
+	}
+	if i.MaxDepth == 0 || depth < i.MaxDepth {
+		fe := &FileEntry{Filename: path, Parent: parent, Depth: depth}
+		i.Map[path] = fe
+		i.In = append(i.In, fe)
+	} else {
+		RegisterWarningf("ignoring file '%s' at max depth %d\n", path, depth)
+	}
+}
+
+// Push puts a file in§to the queue
 func (i *FileQueue) Push(paths ...string) {
 	for _, path := range paths {
-		if _, seen := i.Map[path]; !seen {
-			fe := &FileEntry{
-				Filename: path,
-				Parent:   i.Current,
-			}
-			if fe.Parent != nil {
-				fe.Depth = 1 + fe.Parent.Depth
-			}
-			if fe.Depth < MaxFileDepth {
-				i.Map[path] = fe
-				i.In = append(i.In, fe)
-			} else {
-				RegisterWarningf("ignoring file '%s' at max depth %d\n", path, fe.Depth)
-			}
-		}
+		i.pushOne(path, i.Current, true)
 	}
 }
 
 // Pop takes a file from the queue
-func (i *FileQueue) Pop() string {
+func (i *FileQueue) Pop() *FileEntry {
 	for {
 		// pop one from the queue
 		n := len(i.In)
 		if n == 0 {
-			return ""
+			return nil
 		}
 		i.Current = i.In[n-1]
 		i.In = i.In[:n-1]
@@ -64,27 +70,27 @@ func (i *FileQueue) Pop() string {
 		path := i.Current.Filename
 		fi, err := os.Stat(path)
 		if err != nil {
-			return path // let someone else take care of the error
+			return i.Current // let someone else take care of the error
 		}
-
 		mode := fi.Mode()
 		if mode.IsDir() {
 			dir, err := os.Open(path)
 			if err != nil {
-				return path // let someone else take care of the error
+				return i.Current // let someone else take care of the error
 			}
 			defer dir.Close()
 
 			files, err := dir.Readdir(0)
 			if err != nil {
-				return path // let someone else take care of the error
+				return i.Current // let someone else take care of the error
 			}
 			for _, file := range files {
-				i.Push(filepath.Join(path, file.Name()))
+				i.pushOne(filepath.Join(path, file.Name()), i.Current, false)
 			}
 		} else if mode.IsRegular() {
+			i.Current.Size = fi.Size()
 			i.Out = append(i.Out, i.Current)
-			return path
+			return i.Current
 		} else {
 			RegisterWarningf("ignoring unknown file type '%s'\n", path)
 		}
