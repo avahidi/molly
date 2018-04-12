@@ -30,7 +30,7 @@ func NewMolly(extratDir, reportDir string, maxDepth int) *Molly {
 		ExtractDir: extratDir,
 		ReportDir:  reportDir,
 		Rules:      NewRuleSet(),
-		Files:      util.NewFileQueue(maxDepth),
+		Files:      util.NewFileQueue(maxDepth, false),
 		pathCache:  make(map[string]string),
 	}
 }

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -21,24 +22,27 @@ type FileQueue struct {
 	Map      map[string]*FileEntry
 	Out      []*FileEntry
 	In       []*FileEntry
+
+	followSymlinks bool
 }
 
 // NewFileQueue creates an empty FileQueue given a output directory
-func NewFileQueue(maxDepth int) *FileQueue {
-	return &FileQueue{Map: make(map[string]*FileEntry), MaxDepth: maxDepth}
+func NewFileQueue(maxDepth int, followSymlinks bool) *FileQueue {
+	return &FileQueue{
+		Map:            make(map[string]*FileEntry),
+		MaxDepth:       maxDepth,
+		followSymlinks: followSymlinks,
+	}
 
 }
 
-func (i *FileQueue) pushOne(path string, parent *FileEntry, incDepth bool) {
+func (i *FileQueue) pushOne(path string, parent *FileEntry) {
 	if _, seen := i.Map[path]; seen {
 		return
 	}
 	depth := 0
 	if parent != nil {
-		depth = parent.Depth
-		if incDepth {
-			depth++
-		}
+		depth = parent.Depth + 1
 	}
 	if i.MaxDepth == 0 || depth < i.MaxDepth {
 		fe := &FileEntry{Filename: path, Parent: parent, Depth: depth}
@@ -49,10 +53,19 @@ func (i *FileQueue) pushOne(path string, parent *FileEntry, incDepth bool) {
 	}
 }
 
+// decides if we should ignore a file
+func (i FileQueue) acceptFile(path string, info os.FileInfo) bool {
+	if !i.followSymlinks && (info.Mode()&os.ModeSymlink) != 0 {
+		RegisterWarningf("Ignoring symlink '%s'\n", path)
+		return false
+	}
+	return true
+}
+
 // Push puts a file in§to the queue
 func (i *FileQueue) Push(paths ...string) {
 	for _, path := range paths {
-		i.pushOne(path, i.Current, true)
+		i.pushOne(path, i.Current)
 	}
 }
 
@@ -66,12 +79,17 @@ func (i *FileQueue) Pop() *FileEntry {
 		}
 		i.Current = i.In[n-1]
 		i.In = i.In[:n-1]
-
 		path := i.Current.Filename
 		fi, err := os.Stat(path)
 		if err != nil {
 			return i.Current // let someone else take care of the error
 		}
+
+		if !i.acceptFile(path, fi) {
+			fmt.Println("DID NOT ACCEPT", path, fi)
+			continue
+		}
+
 		mode := fi.Mode()
 		if mode.IsDir() {
 			dir, err := os.Open(path)
@@ -85,14 +103,16 @@ func (i *FileQueue) Pop() *FileEntry {
 				return i.Current // let someone else take care of the error
 			}
 			for _, file := range files {
-				i.pushOne(filepath.Join(path, file.Name()), i.Current, false)
+				if i.acceptFile(file.Name(), file) {
+					i.pushOne(filepath.Join(path, file.Name()), i.Current.Parent)
+				}
 			}
 		} else if mode.IsRegular() {
 			i.Current.Size = fi.Size()
 			i.Out = append(i.Out, i.Current)
 			return i.Current
 		} else {
-			RegisterWarningf("ignoring unknown file type '%s'\n", path)
+			RegisterWarningf("Ignoring file '%s' (bad mode %s)\n", path, mode)
 		}
 	}
 }

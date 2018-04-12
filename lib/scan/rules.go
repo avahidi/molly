@@ -110,7 +110,7 @@ func parseRuleStream(r io.Reader, filename string) ([]*parsedRule, error) {
 func ParseRuleFiles(db *types.Molly, files ...string) error {
 	var list []*parsedRule
 
-	inputs := util.NewFileQueue(0)
+	inputs := util.NewFileQueue(0, true)
 	inputs.Push(files...)
 
 	for {
