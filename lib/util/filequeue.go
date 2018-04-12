@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -86,7 +85,6 @@ func (i *FileQueue) Pop() *FileEntry {
 		}
 
 		if !i.acceptFile(path, fi) {
-			fmt.Println("DID NOT ACCEPT", path, fi)
 			continue
 		}
 
