@@ -17,6 +17,7 @@ run: compile output
 		-outdir output/extracted  -repdir output/reports \
 		-enable create-file \
 		-disable execute \
+		-max-depth 20\
 		$(FILES)
 
 show: run
