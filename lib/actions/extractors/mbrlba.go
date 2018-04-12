@@ -32,8 +32,9 @@ func MbrLba(e *types.Env, name string) (string, error) {
 
 		start := int64(partition.LbaStart) * 512
 		end := start + int64(partition.LbaSize)*512
-		if end > start && end <= filesize {
-			w, err := e.Create(fmt.Sprintf("%s%d", name, i))
+		if end > start && start < filesize {
+			filename := fmt.Sprintf("%s%d_%x_%x_%02x", name, i+1, start, end, partition.Typ)
+			w, err := e.Create(filename)
 			if err != nil {
 				return "", err
 			}
@@ -42,8 +43,11 @@ func MbrLba(e *types.Env, name string) (string, error) {
 			if _, err := e.Input.Seek(start, os.SEEK_SET); err != nil {
 				return "", err
 			}
+			// XXX: if some parts are missing, ignore them
+			if end > filesize {
+				end = filesize
+			}
 			io.CopyN(w, e.Input, end-start)
-
 		}
 	}
 	return "", nil
