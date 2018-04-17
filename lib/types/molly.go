@@ -20,6 +20,9 @@ type Molly struct {
 	OnMatchRule func(file *Input, match *Match)
 	OnMatchTag  func(file *Input, tag string)
 
+	MaxDepth  int
+	Processed map[string]*Input
+
 	pathCnt   int
 	pathCache map[string]string
 }
@@ -30,7 +33,9 @@ func NewMolly(extratDir, reportDir string, maxDepth int) *Molly {
 		ExtractDir: extratDir,
 		ReportDir:  reportDir,
 		Rules:      NewRuleSet(),
-		Files:      util.NewFileQueue(maxDepth, false),
+		Files:      util.NewFileQueue(false),
+		MaxDepth:   maxDepth,
+		Processed:  make(map[string]*Input),
 		pathCache:  make(map[string]string),
 	}
 }

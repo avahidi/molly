@@ -5,51 +5,38 @@ import (
 	"path/filepath"
 )
 
-// FileEntry represents a single file
-type FileEntry struct {
+// fileEntry represents a single file
+type fileEntry struct {
 	Filename string
-	Size     int64
-	Depth    int
-	Parent   *FileEntry
+	Parent   string
 }
 
 // FileQueue is a queue where files can be added for later extraction
 // it discards files already added and traverses directories
 type FileQueue struct {
-	MaxDepth int
-	Current  *FileEntry
-	Map      map[string]*FileEntry
-	Out      []*FileEntry
-	In       []*FileEntry
-
+	current        *fileEntry
+	seen           map[string]*fileEntry
+	in             []*fileEntry
 	followSymlinks bool
 }
 
 // NewFileQueue creates an empty FileQueue given a output directory
-func NewFileQueue(maxDepth int, followSymlinks bool) *FileQueue {
+func NewFileQueue(followSymlinks bool) *FileQueue {
 	return &FileQueue{
-		Map:            make(map[string]*FileEntry),
-		MaxDepth:       maxDepth,
+		seen:           make(map[string]*fileEntry),
 		followSymlinks: followSymlinks,
 	}
 
 }
 
-func (i *FileQueue) pushOne(path string, parent *FileEntry) {
-	if _, seen := i.Map[path]; seen {
+func (i *FileQueue) pushOne(path string, parent string) {
+	if _, seen := i.seen[path]; seen {
 		return
 	}
-	depth := 0
-	if parent != nil {
-		depth = parent.Depth + 1
-	}
-	if i.MaxDepth == 0 || depth < i.MaxDepth {
-		fe := &FileEntry{Filename: path, Parent: parent, Depth: depth}
-		i.Map[path] = fe
-		i.In = append(i.In, fe)
-	} else {
-		RegisterWarningf("ignoring file '%s' at max depth %d\n", path, depth)
-	}
+
+	fe := &fileEntry{Filename: path, Parent: parent}
+	i.seen[path] = fe
+	i.in = append(i.in, fe)
 }
 
 // decides if we should ignore a file
@@ -63,52 +50,60 @@ func (i FileQueue) acceptFile(path string, info os.FileInfo) bool {
 
 // Push puts a file in§to the queue
 func (i *FileQueue) Push(paths ...string) {
+	pname := ""
+	if i.current != nil {
+		pname = i.current.Filename
+	}
 	for _, path := range paths {
-		i.pushOne(path, i.Current)
+		i.pushOne(path, pname)
 	}
 }
 
 // Pop takes a file from the queue
-func (i *FileQueue) Pop() *FileEntry {
+func (i *FileQueue) Pop() (path string, size int64, parent string) {
 	for {
 		// pop one from the queue
-		n := len(i.In)
+		n := len(i.in)
 		if n == 0 {
-			return nil
+			return "", 0, ""
 		}
-		i.Current = i.In[n-1]
-		i.In = i.In[:n-1]
-		path := i.Current.Filename
+		i.current = i.in[n-1]
+		i.in = i.in[:n-1]
+
+		path = i.current.Filename
+		parent = i.current.Parent
 		fi, err := os.Stat(path)
 		if err != nil {
-			return i.Current // let someone else take care of the error
+			// let someone else take care of the error
+			return
 		}
 
 		if !i.acceptFile(path, fi) {
 			continue
 		}
 
+		size = fi.Size()
 		mode := fi.Mode()
 		if mode.IsDir() {
 			dir, err := os.Open(path)
 			if err != nil {
-				return i.Current // let someone else take care of the error
+				// let someone else take care of the error
+				return
 			}
 			defer dir.Close()
 
 			files, err := dir.Readdir(0)
 			if err != nil {
-				return i.Current // let someone else take care of the error
+				// let someone else take care of the error
+				return i.current.Filename, size, i.current.Parent
 			}
 			for _, file := range files {
 				if i.acceptFile(file.Name(), file) {
-					i.pushOne(filepath.Join(path, file.Name()), i.Current.Parent)
+					i.pushOne(filepath.Join(path, file.Name()), i.current.Parent)
 				}
 			}
 		} else if mode.IsRegular() {
-			i.Current.Size = fi.Size()
-			i.Out = append(i.Out, i.Current)
-			return i.Current
+			return
 		} else {
 			RegisterWarningf("Ignoring file '%s' (bad mode %s)\n", path, mode)
 		}

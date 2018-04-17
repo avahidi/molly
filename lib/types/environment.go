@@ -13,7 +13,10 @@ type Input struct {
 	Reader   io.ReadSeeker
 	Filename string
 	Filesize int64
-	Depth    int
+
+	// hierarchy
+	Depth  int
+	Parent *Input
 
 	// These are filled as we scan the file
 	Matches []*Match
@@ -25,12 +28,10 @@ type Input struct {
 }
 
 // NewInput creates a new Input with given name, size and stream
-func NewInput(r io.ReadSeeker, filename string, filesize int64, depth int) *Input {
+func NewInput(filename string, filesize int64) *Input {
 	return &Input{
-		Reader:   r,
 		Filename: filename,
 		Filesize: filesize,
-		Depth:    depth,
 	}
 }
 

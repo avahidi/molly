@@ -3,6 +3,9 @@ TODO
 ====
 
 
+* create an interface for Error/Warning/Log generation
+  - append warnings to Input (errors and logs are already being recorded)
+
 
 * better error messages in operations. for example this can panic
    m := o.(*Number) // ../prim/binary.go

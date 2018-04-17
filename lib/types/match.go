@@ -28,7 +28,6 @@ type FlatMatch struct {
 
 // Report contains all matches for all files
 type Report struct {
-	// Current *Input
 	Files []*Input
 }
 

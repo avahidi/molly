@@ -1,18 +1,17 @@
 package lib
 
 import (
-	"bytes"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
-
 	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
 	"bitbucket.org/vahidi/molly/lib/report"
 	"bitbucket.org/vahidi/molly/lib/scan"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // New creates a new molly context
@@ -65,31 +64,26 @@ func processTags(m *types.Molly, fr *types.Input) {
 	}
 }
 
-func scanReader(m *types.Molly, env *types.Env, r io.ReadSeeker,
-	filename string, filesize int64, depth int) *types.Input {
-	input := types.NewInput(r, filename, filesize, depth)
-	env.SetInput(input)
+func scanInput(m *types.Molly, env *types.Env, i *types.Input) {
+	env.SetInput(i)
 	for _, rule := range m.Rules.Top {
 		env.StartRule(rule)
 		match, errs := scan.AnalyzeFile(rule, env)
 		if match != nil {
-			input.Matches = append(input.Matches, match)
-			processMatch(m, input, match)
+			i.Matches = append(i.Matches, match)
+			processMatch(m, i, match)
 		}
-		input.Errors = append(input.Errors, errs...)
+		i.Errors = append(i.Errors, errs...)
 	}
-	processTags(m, input)
-
-	return input
+	processTags(m, i)
 }
 
 // ScanData scans a byte vector for matches.
 func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
-	dummyname := "nopath/nofile"
-	r := bytes.NewReader(data)
+	fr := types.NewInput("nopath/nofile", int64(len(data)))
+	fr.Reader = bytes.NewReader(data)
 	env := types.NewEnv(m)
-
-	fr := scanReader(m, env, r, dummyname, int64(len(data)), 0)
+	scanInput(m, env, fr)
 
 	report := types.NewReport()
 	if !fr.Empty() {
@@ -99,42 +93,56 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, entry *util.FileEntry) *types.Input {
-	filename := entry.Filename
+func scanFile(m *types.Molly, env *types.Env, filename string,
+	filesize int64, parent string) *types.Input {
+	fr := types.NewInput(filename, filesize)
+	fr.Parent = m.Processed[parent]
+	if fr.Parent != nil {
+		fr.Depth = fr.Parent.Depth + 1
+	}
+	m.Processed[filename] = fr
+
+	if m.MaxDepth != 0 && fr.Depth > m.MaxDepth {
+		fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
+		return fr
+	}
+
 	r, err := os.Open(filename)
 	if err != nil {
-		fr := types.NewInput(nil, filename, 0, 0)
 		fr.Errors = append(fr.Errors, err)
 		return fr
 	}
 	defer r.Close()
+	fr.Reader = r
 
-	return scanReader(m, env, r, filename, entry.Size, entry.Depth)
+	scanInput(m, env, fr)
+	return fr
 }
 
 // ScanFiles scans a set of files for matches.
-func ScanFiles(m *types.Molly, files []string) (*types.Report, int, error) {
+func ScanFiles(m *types.Molly, files []string) (*types.Report, error) {
 	env := types.NewEnv(m)
 
 	// add inputs
 	for _, file := range files {
 		abs, err := filepath.Abs(file)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		m.Files.Push(abs)
 	}
 
 	report := types.NewReport()
 	for {
-		entry := m.Files.Pop()
-		if entry == nil {
+		filename, size, parent := m.Files.Pop()
+		if filename == "" {
 			break
 		}
-		fr := scanFile(m, env, entry)
+
+		fr := scanFile(m, env, filename, size, parent)
 		if !fr.Empty() {
 			report.Add(fr)
 		}
 	}
-	return report, len(m.Files.Out), nil
+	return report, nil
 }

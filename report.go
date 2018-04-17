@@ -12,6 +12,52 @@ import (
 	"time"
 )
 
+// inputToReportEntry converts an input structure to a more readable format
+func inputToReportEntry(file *types.Input) map[string]interface{} {
+	ret := make(map[string]interface{})
+
+	ret["filename"] = file.Filename
+	ret["filesize"] = file.Filesize
+	ret["depth"] = file.Depth
+	ret["matches"] = report.ExtractFlatMatches(file)
+
+	if file.Parent != nil {
+		ret["parent"] = file.Parent.Filename
+	}
+
+	if tags := report.ExtractTags(file); len(tags) > 0 {
+		ret["tags"] = tags
+	}
+
+	errstrs := make([]string, len(file.Errors))
+	for i, e := range file.Errors {
+		errstrs[i] = e.Error()
+	}
+	ret["errors"] = errstrs
+
+	if len(file.Logs) > 0 {
+		ret["logs"] = file.Logs
+	}
+
+	return ret
+}
+
+func createConfigurationReport(molly *types.Molly) map[string]interface{} {
+	f2 := make(map[string]interface{})
+	f2["command"] = os.Args
+	f2["time"] = time.Now()
+	f2["outdir"] = molly.ExtractDir
+	f2["repdir"] = molly.ReportDir
+	f2["rulecount"] = len(molly.Rules.Flat)
+	maj, min, mnt := lib.Version()
+	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)
+	dir, err := os.Getwd()
+	if err != nil {
+		f2["dir"] = dir
+	}
+	return f2
+}
+
 func writeRuleFile(molly *types.Molly, base string) error {
 	w, err := os.Create(filepath.Join(base, "rules.json"))
 	if err != nil {
@@ -28,32 +74,28 @@ func writeRuleFile(molly *types.Molly, base string) error {
 	return nil
 }
 
-func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
-	w, err := os.Create(filepath.Join(base, "report.json"))
+func writeSummaryFile(molly *types.Molly, r *types.Report, base string) error {
+	w, err := os.Create(filepath.Join(base, "summary.json"))
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 
 	f1 := make(map[string]interface{})
-	f2 := make(map[string]interface{})
-	f2["command"] = os.Args
-	f2["time"] = time.Now()
-	f2["outdir"] = molly.ExtractDir
-	f2["repdir"] = molly.ReportDir
-	f2["rulecount"] = len(molly.Rules.Flat)
-	maj, min, mnt := lib.Version()
-	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)
-	dir, err := os.Getwd()
-	if err != nil {
-		f1["dir"] = dir
-	}
-
+	f1["configuration"] = createConfigurationReport(molly)
 	f1["file-hierarchy"] = report.ExtractFileHierarchy(molly)
 	f1["logs"] = report.ExtractLogHierarchy(r)
 	f1["tags"] = report.ExtractTagHierarchy(r)
-	f1["configuration"] = f2
-	f1["results"] = report.ExtractFlatReport(r)
+
+	matches := make(map[string]int)
+	for _, file := range molly.Processed {
+		matches[file.Filename] = 0 // update below!
+	}
+	for _, file := range r.Files {
+		fm := report.ExtractFlatMatches(file)
+		matches[file.Filename] = len(fm)
+	}
+	f1["matches"] = matches
 
 	// report errors for each file
 	errs := make(map[string][]string)
@@ -67,6 +109,31 @@ func writeReportFile(molly *types.Molly, r *types.Report, base string) error {
 		}
 	}
 	f1["errors"] = errs
+
+	bs, err := json.MarshalIndent(f1, "", "\t")
+	if err != nil {
+		return err
+	}
+	w.Write(bs)
+
+	return nil
+}
+
+func writeMatchFile(molly *types.Molly, r *types.Report, base string) error {
+	w, err := os.Create(filepath.Join(base, "match.json"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	f1 := make(map[string]interface{})
+	f1["configuration"] = createConfigurationReport(molly)
+
+	results := make(map[string]interface{})
+	for _, file := range r.Files {
+		results[file.Filename] = inputToReportEntry(file)
+	}
+	f1["matches"] = results
 
 	bs, err := json.MarshalIndent(f1, "", "\t")
 	if err != nil {

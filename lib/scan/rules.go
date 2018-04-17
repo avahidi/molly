@@ -110,21 +110,21 @@ func parseRuleStream(r io.Reader, filename string) ([]*parsedRule, error) {
 func ParseRuleFiles(db *types.Molly, files ...string) error {
 	var list []*parsedRule
 
-	inputs := util.NewFileQueue(0, true)
+	inputs := util.NewFileQueue(true)
 	inputs.Push(files...)
 
 	for {
-		entry := inputs.Pop()
-		if entry == nil {
+		filename, _, _ := inputs.Pop()
+		if filename == "" {
 			break
 		}
-		r, err := os.Open(entry.Filename)
+		r, err := os.Open(filename)
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
-		rules, err := parseRuleStream(r, entry.Filename)
+		rules, err := parseRuleStream(r, filename)
 		if err != nil {
 			return err
 		}

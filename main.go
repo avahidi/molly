@@ -151,7 +151,7 @@ func main() {
 		help("No input files", 20)
 	}
 
-	report, n, err := lib.ScanFiles(molly, ifiles)
+	report, err := lib.ScanFiles(molly, ifiles)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}
@@ -161,8 +161,13 @@ func main() {
 
 	var errors []error
 
-	// generate report file
-	if err := writeReportFile(molly, report, *repbase); err != nil {
+	// generate summary file
+	if err := writeSummaryFile(molly, report, *repbase); err != nil {
+		errors = append(errors, err)
+	}
+
+	// generate match file
+	if err := writeMatchFile(molly, report, *repbase); err != nil {
 		errors = append(errors, err)
 	}
 
@@ -181,7 +186,8 @@ func main() {
 		totalErrors += len(f.Errors)
 	}
 
-	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n", n, totalFiles, totalMatches)
+	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n",
+		len(molly.Processed), len(report.Files), totalMatches)
 	fmt.Printf("%d errors, %d warnings\n", totalErrors, len(util.Warnings()))
 	if totalErrors > 0 {
 		os.Exit(1)

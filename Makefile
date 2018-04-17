@@ -16,8 +16,8 @@ run: compile output
 	-./molly $(O) -R data/rules\
 		-outdir output/extracted  -repdir output/reports \
 		-enable create-file \
-		-disable execute \
-		-max-depth 20\
+		-enable execute \
+		-max-depth 12\
 		$(FILES)
 
 show: run
