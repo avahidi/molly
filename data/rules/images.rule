@@ -62,7 +62,7 @@ rule UImageExtra : UImage {
 	var minsize = 64;
 	var offset = (header_size + size + pad - 1) & ~(pad - 1);
 
-	if $filesize - offset > minsize;
+	if $filesize > minsize + offset;
 
-	extract("binary", name + "uimage.extra", offset, $filesize - offset);
+	extract("binary", name + ".uimage.extra", offset, $filesize - offset);
 }
