@@ -49,9 +49,11 @@ The command-line format is::
 
 Options are::
 
-   -h	                        help information
-   -V	                        show version number
-   -v	                        be verbose
+   -h                           help information
+   -hh	                        extended help information
+   -V                           show version number
+   -v                           be verbose
+   -max-depth  <num>            max extraction depth
    -R <rule files>              rules to load
    -r <inline rule>             inline rule string
    -disable <option>
@@ -86,28 +88,26 @@ For example::
     }
 
 Actions and operators
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 The following extraction operators can be used within rules::
 
     // extract functions
     String(offset, size int)
-	StringZ(offset, maxsize int)
-	Byte(int offset)
-	Short(int offset)
-	Long(int offset)
-	Quad(int offset)
+    StringZ(offset, maxsize int)
+    Byte(offset int)
+    Short(offset int)
+    Long(offset int)
+    Quad(offset int)
 
 Molly also provides a large number if built-in operators and actions
 ranging from simple string manipulation functions (e.g. strlen) to complex
-analysis and extraction actions.
+analysis and extraction actions. File a complete list execute::
 
-Users can also register their own actions grammatically. Furthermore some complex actions
-can register additional formats or algorithms. See the API section for more information.
-
+    molly -hh
 
 Special variables
------------------
+~~~~~~~~~~~~~~~~~
 
 The following special variables can be accessed in rules and match-actions (see below):
 filename, shortname, basename, dirname, ext (extension), filesize, parent and depth.
@@ -122,17 +122,15 @@ Within rules special variables have the "$" prefix, for example::
 
 
 Match actions
--------------
+~~~~~~~~~~~~~
+
 In addition to actions defined in rules one can also define match actions
 using the "-on-tag" and "-on-rule" command line parameters::
 
     $ echo hello > file1
     $ molly -r "rule any{ }" -on-rule "any:ls -l {filename}" file1
-    ...
     -rw-rw-r-- 1 mh mh 6 mar  6 13:55 file1
-    $
     $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {filename}" file1
-    ...
     hello
 
 Note that special variables use the "{variable}" format to avoid confusion
@@ -144,7 +142,7 @@ the action will produce new files that one wants to feed back to molly for analy
 
 
 Order of execution
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Conditions and actions are executed in the order they appear while variables
 are evaluated when needed. This means you can optimize rules by placing
@@ -157,7 +155,7 @@ actions if this action succeeds. Example::
 
     rule unknown {
         -printf("I don't know what %s is", $filename);  // this can fail
-        +extract("zip", ""); // could be a zip?         // if this doesnt fail...
+        +extract("zip", ""); // could be a zip?         // only if this fails...
         extract("tar", ""); // or maybe a tar?          // ... this will run
     }
 
@@ -166,7 +164,51 @@ actions if this action succeeds. Example::
 API
 ---
 
-UNDER CONSTRUCTION :)
+Molly source code is divided into a small command-line tool and a library
+that can be used separatly. Using the library in your own code is quite simple::
+
+    import "bitbucket.org/vahidi/molly/lib"
+    ...
+    // error handling not shown
+    molly := lib.New(... )
+    lib.LoadRules(molly, "my-rule-file", ...)
+    report, _ := lib.ScanFiles(molly, "my-binary-file", ...)
+
+
+Extending Molly
+~~~~~~~~~~~~~~~
+
+To extend the functionality you can register your own operators and actions::
+
+    import "bitbucket.org/vahidi/molly/lib/actions"
+    import "bitbucket.org/vahidi/molly/lib/types"
+    ...
+    actions.ActionRegister("example",  func(e *types.Env, n int) (int, error) { return n * 2, nil })
+
+Once registered you can use this like any other function in your rules::
+
+    rule test {
+        var x = example(0) + example(5);  // 10
+    }
+
+Format handlers
+~~~~~~~~~~~~~~~
+Some complex actions allow one to register handlers. For example one can
+add a new extraction type for the *extract("type", ... )* action::
+
+    actions.ExtractorRegister(type_ string, e func(*types.Env, string) (string, error))
+    actions.ExtractorSliceRegister(type_ string, e func(*types.Env, string, ...uint64) (string, error))
+
+For *checksum("type", ...)* function one can register new hash functions::
+
+    actions.RegisterChecksumFunction(type_ string, generator func() hash.Hash)
+
+For the *analyze("format", ...)* action one can register complex analyzer functions::
+
+    actions.AnalyzerRegister(format string, analyzerfunc Analyzer)
+
+Note that the API will handle any artifacts (logs or new files) these produce.
+
 
 
 FAQ

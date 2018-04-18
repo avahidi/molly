@@ -15,5 +15,5 @@ func lenFunction(e *types.Env, item interface{}) (int, error) {
 }
 
 func init() {
-	types.FunctionRegister("len", lenFunction)
+	ActionRegister("len", lenFunction)
 }

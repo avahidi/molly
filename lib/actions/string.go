@@ -44,15 +44,15 @@ func strsuffixFunction(e *types.Env, str1, str2 string) (bool, error) {
 }
 
 func init() {
-	types.FunctionRegister("strlen", strlenFunction)
-	types.FunctionRegister("strtol", strtoaFunction)
+	ActionRegister("strlen", strlenFunction)
+	ActionRegister("strtol", strtoaFunction)
 
-	types.FunctionRegister("strstr", strstrFunction)
-	types.FunctionRegister("strcasestr", strcasestrFunction)
-	types.FunctionRegister("stricmp", stricmpFunction)
+	ActionRegister("strstr", strstrFunction)
+	ActionRegister("strcasestr", strcasestrFunction)
+	ActionRegister("stricmp", stricmpFunction)
 
-	types.FunctionRegister("strupper", strupperFunction)
-	types.FunctionRegister("strlower", strlowerFunction)
-	types.FunctionRegister("strprefix", strprefixFunction)
-	types.FunctionRegister("strsuffix", strsuffixFunction)
+	ActionRegister("strupper", strupperFunction)
+	ActionRegister("strlower", strlowerFunction)
+	ActionRegister("strprefix", strprefixFunction)
+	ActionRegister("strsuffix", strsuffixFunction)
 }

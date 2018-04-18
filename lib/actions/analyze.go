@@ -102,5 +102,5 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 }
 
 func init() {
-	types.FunctionRegister("analyze", analyzeFunction)
+	ActionRegister("analyze", analyzeFunction)
 }

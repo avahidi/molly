@@ -41,9 +41,9 @@ func ExtractorHelp() {
 	fmt.Println("Available extractors:")
 	for name, ex := range extractorList {
 		if ex.full != nil {
-			fmt.Printf("\t%20s\t(full file)\n", name)
+			fmt.Printf("\t%-12s (full file)\n", name)
 		} else {
-			fmt.Printf("\t%20s\t(slice)\n", name)
+			fmt.Printf("\t%-12s (slice)\n", name)
 		}
 	}
 }
@@ -75,5 +75,5 @@ func extractFunction(e *types.Env, format string, name string, positions ...uint
 }
 
 func init() {
-	types.FunctionRegister("extract", extractFunction)
+	ActionRegister("extract", extractFunction)
 }

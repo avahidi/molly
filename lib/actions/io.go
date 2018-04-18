@@ -13,6 +13,6 @@ func dirFunction(e *types.Env, prefix string) (string, error) {
 }
 
 func init() {
-	types.FunctionRegister("file", fileFunction)
-	types.FunctionRegister("dir", dirFunction)
+	ActionRegister("file", fileFunction)
+	ActionRegister("dir", dirFunction)
 }

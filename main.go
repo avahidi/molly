@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/vahidi/molly/lib/actions"
 	"flag"
 	"fmt"
 	"log"
@@ -32,6 +33,7 @@ var repbase = flag.String("repdir", "output/reports", "report output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
+var showhelpExt = flag.Bool("hh", false, "extended help information")
 var maxDepth = flag.Int("max-depth", 0, "max scan depth")
 
 var rfiles, rtexts, tagops, matchops MultiFlag
@@ -46,7 +48,7 @@ func init() {
 	flag.Var(&pdisable, "disable", "remove permission")
 }
 
-func help(errmsg string, exitcode int) {
+func help(extended bool, errmsg string, exitcode int) {
 	if errmsg != "" {
 		fmt.Printf("%s\n", errmsg)
 	}
@@ -57,16 +59,21 @@ func help(errmsg string, exitcode int) {
 	flag.Usage()
 
 	fmt.Printf("  files\n\tinput files to be scanned\n")
+
+	if extended {
+		actions.ActionHelp()
+	}
 	os.Exit(exitcode)
 }
 
 func main() {
 	// 	parse arguments
 	flag.Parse()
-	if *showhelp {
-		help("", 0)
-		os.Exit(0)
+
+	if *showhelpExt || *showhelp {
+		help(*showhelpExt, "", 0)
 	}
+
 	ifiles := flag.Args()
 
 	if *showVersion {
@@ -82,7 +89,7 @@ func main() {
 			if !found {
 				fmt.Printf("Unknown permission '%s'. ", name)
 				util.PermissionHelp()
-				help("", 20)
+				help(false, "", 20)
 			}
 			util.PermissionSet(p, set)
 		}
@@ -143,12 +150,12 @@ func main() {
 	}
 
 	if len(molly.Rules.Top) == 0 {
-		help("No rules were loaded", 20)
+		help(false, "No rules were loaded", 20)
 	}
 
 	// scan input files
 	if len(ifiles) == 0 {
-		help("No input files", 20)
+		help(false, "No input files", 20)
 	}
 
 	report, err := lib.ScanFiles(molly, ifiles)

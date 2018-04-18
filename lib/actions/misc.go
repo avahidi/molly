@@ -36,7 +36,7 @@ func systemFunction(e *types.Env, format string, args ...interface{}) (string, e
 }
 
 func init() {
-	types.FunctionRegister("printf", printfFunction)
-	types.FunctionRegister("sprintf", sprintfFunction)
-	types.FunctionRegister("system", systemFunction)
+	ActionRegister("printf", printfFunction)
+	ActionRegister("sprintf", sprintfFunction)
+	ActionRegister("system", systemFunction)
 }

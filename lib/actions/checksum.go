@@ -33,7 +33,7 @@ var hashlist = map[string]func() hash.Hash{
 
 // ChecksumHelp prints checksum help text
 func ChecksumHelp() {
-	fmt.Println("Valid checksum functions are: ")
+	fmt.Println("Valid checksum types are: ")
 	for key, _ := range hashlist {
 		fmt.Println("\t", key)
 	}
@@ -78,5 +78,5 @@ func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, er
 }
 
 func init() {
-	types.FunctionRegister("checksum", checksumFunction)
+	ActionRegister("checksum", checksumFunction)
 }
