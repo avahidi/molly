@@ -85,6 +85,63 @@ For example::
         extract("zip", "");       /* apply  the ZIP extractor on this file */
     }
 
+Actions and operators
+---------------------
+
+The following extraction operators can be used within rules::
+
+    // extract functions
+    String(offset, size int)
+	StringZ(offset, maxsize int)
+	Byte(int offset)
+	Short(int offset)
+	Long(int offset)
+	Quad(int offset)
+
+Molly also provides a large number if built-in operators and actions
+ranging from simple string manipulation functions (e.g. strlen) to complex
+analysis and extraction actions.
+
+Users can also register their own actions grammatically. Furthermore some complex actions
+can register additional formats or algorithms. See the API section for more information.
+
+
+Special variables
+-----------------
+
+The following special variables can be accessed in rules and match-actions (see below):
+filename, shortname, basename, dirname, ext (extension), filesize, parent and depth.
+
+Within rules special variables have the "$" prefix, for example::
+
+    rule biggofile {
+        if $filesize > 4096;
+        if $ext == ".go";
+        printf("%s is one big Go file...\n", $filename);
+    }
+
+
+Match actions
+-------------
+In addition to actions defined in rules one can also define match actions
+using the "-on-tag" and "-on-rule" command line parameters::
+
+    $ echo hello > file1
+    $ molly -r "rule any{ }" -on-rule "any:ls -l {filename}" file1
+    ...
+    -rw-rw-r-- 1 mh mh 6 mar  6 13:55 file1
+    $
+    $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {filename}" file1
+    ...
+    hello
+
+Note that special variables use the "{variable}" format to avoid confusion
+with shell variables. In addition, match actions can access two new variables
+"{newfile[:suggestedname]}" and "{newdir[:suggestedname]}" for cases where
+the action will produce new files that one wants to feed back to molly for analysis::
+
+    $ molly -r 'rule cfiles { if $ext == ".c"; } -on-rule "cfiles:gcc {filename} -o {newfile:compiled.o}" src/
+
 
 Order of execution
 ------------------
@@ -103,26 +160,6 @@ actions if this action succeeds. Example::
         +extract("zip", ""); // could be a zip?         // if this doesnt fail...
         extract("tar", ""); // or maybe a tar?          // ... this will run
     }
-
-
-
-Match actions
--------------
-
-You can define additional molly actions using the "-on-tag" and "-on-rule"::
-
-    $ echo hello > file1
-    $ molly -r "rule any{ }" -on-rule "any:ls -l {filename}" file1
-    ...
-    -rw-rw-r-- 1 mh mh 6 mar  6 13:55 file1
-    $ molly -r "rule any (tag = \"text\") { }" -on-tag "text: cat {filename}" file1
-    ...
-    hello
-
-Note that you can "{newXXX[:name]}" to track files generated externally::
-
-    $ molly -r "rule cfiles { ...  }" -on-rule "cfiles:gcc {filename} -o {newfile:.o}" file1.c
-
 
 
 

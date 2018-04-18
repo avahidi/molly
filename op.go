@@ -2,6 +2,7 @@ package main
 
 import (
 	"bitbucket.org/vahidi/molly/lib/types"
+	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -20,82 +21,70 @@ func opListParse(opstrs []string) (map[string]string, error) {
 	return m, nil
 }
 
-// replaceVars find and replaces <token> with f()
-func replaceVars(s, token string, f func() (string, error)) (string, error) {
-	for {
-		n := strings.Index(s, token)
-		if n == -1 {
-			return s, nil
-		}
-		before, after := s[:n], s[n+len(token):]
-		replaced, err := f()
-		if err != nil {
-			return s, err
-		}
-		return fmt.Sprintf("%s%s%s", before, replaced, after), nil
+func opLookupVariable(m *types.Molly, i *types.Input, cmd, data string) (interface{}, error) {
+	// simple variables coming from the input file?
+	if o, found := i.Get(cmd); found {
+		return o, nil
 	}
-}
 
-// replaceVarsWithParam find and replaces <prefix><data><postfix> with f(<data>)
-func replaceVarsWithParam(s, prefix, postfix string, f func(data string) (string, error)) (string, error) {
-	for {
-		n := strings.Index(s, prefix)
-		if n == -1 {
-			return s, nil
-		}
-		m := strings.Index(s[n:], postfix)
-		if m == -1 {
-			return s, fmt.Errorf("'%s' without '%s'", postfix, prefix)
-		}
-
-		before, data, after := s[:n], s[n+len(prefix):n+m], s[n+m+len(postfix):]
-		replaced, err := f(data)
-		if err != nil {
-			return s, err
-		}
-		return fmt.Sprintf("%s%s%s", before, replaced, after), nil
+	// actions or complex variables
+	switch cmd {
+	case "newfile":
+		return m.CreateName(i, data, false), nil
+	case "newlog":
+		return m.CreateName(i, data, true), nil
 	}
+
+	return nil, fmt.Errorf("unknown variable: '%s'", cmd)
 }
 
 // opReplaceVariables replaces variables such as {filename} with values
 func opReplaceVariables(m *types.Molly, s string, i *types.Input) (string, error) {
-	var err error
+	str, cmd, data := bytes.Buffer{}, bytes.Buffer{}, bytes.Buffer{}
 
-	// start with the simple ones
-	s = strings.Replace(s, "{filename}", i.Filename, -1)
-	s = strings.Replace(s, "{filesize}", fmt.Sprintf("%d", i.Filesize), -1)
+	// simple state machine to extract cmd & data from "...{cmd:data}...""
+	state := 0
+	for _, r := range s {
+		switch state {
+		case 0:
+			if r == '{' {
+				cmd.Reset()
+				data.Reset()
+				state = 1
+			} else {
+				str.WriteRune(r)
+			}
+		case 1:
+			if r == ':' {
+				state = 2
+			} else if r == '}' {
+				state = 4
+			} else {
+				cmd.WriteRune(r)
+			}
+		case 2:
+			if r == '}' {
+				state = 4
+			} else {
+				data.WriteRune(r)
+			}
+		}
 
-	// complex variables widthout parameters
-	s, err = replaceVars(s, "{newfile}", func() (string, error) {
-		return m.CreateName(i, "", false), nil
-	})
-	if err != nil {
-		return s, err
+		// found a variable, look it up
+		if state == 4 {
+			o, err := opLookupVariable(m, i, cmd.String(), data.String())
+			if err != nil {
+				return "", err
+			}
+			str.WriteString(fmt.Sprintf("%v", o))
+			state = 0
+		}
 	}
 
-	s, err = replaceVars(s, "{newlog}", func() (string, error) {
-		return m.CreateName(i, "", true), nil
-	})
-	if err != nil {
-		return s, err
+	if state != 0 {
+		return "", fmt.Errorf("'{' not terminated")
 	}
-
-	// complex variables that have parameters
-	s, err = replaceVarsWithParam(s, "{newfile:", "}", func(name string) (string, error) {
-		return m.CreateName(i, name, false), nil
-	})
-	if err != nil {
-		return s, err
-	}
-
-	s, err = replaceVarsWithParam(s, "{newlog:", "}", func(name string) (string, error) {
-		return m.CreateName(i, name, true), nil
-	})
-	if err != nil {
-		return s, err
-	}
-
-	return s, nil
+	return str.String(), nil
 }
 
 func opExecute(m *types.Molly, cmdline string, i *types.Input) (string, error) {

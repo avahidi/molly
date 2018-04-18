@@ -64,7 +64,7 @@ rule cpio_ascii_old  (tag = "archive") {
     if magic == "070707";
 
     var namesize0 = String(59, 6);
-    var namesize = toInt(String(59, 6));
+    var namesize = strtol(String(59, 6));
     var filesize = String(65, 11);
 
     // some minimal sanity checks for cpio

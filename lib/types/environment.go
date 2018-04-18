@@ -2,53 +2,10 @@ package types
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"bitbucket.org/vahidi/molly/lib/util"
 )
-
-// Input represents a file scanned by molly
-type Input struct {
-	Reader   io.ReadSeeker
-	Filename string
-	Filesize int64
-
-	// hierarchy
-	Depth  int
-	Parent *Input
-
-	// These are filled as we scan the file
-	Matches []*Match
-	Errors  []error
-	Logs    []string
-
-	// private stuff
-	outdir string
-}
-
-// NewInput creates a new Input with given name, size and stream
-func NewInput(filename string, filesize int64) *Input {
-	return &Input{
-		Filename: filename,
-		Filesize: filesize,
-	}
-}
-
-// Read Implements io.Reader
-func (i *Input) Read(p []byte) (n int, err error) {
-	return i.Reader.Read(p)
-}
-
-// Seek Implements io.Seeker
-func (i *Input) Seek(offset int64, whence int) (int64, error) {
-	return i.Reader.Seek(offset, whence)
-}
-
-// Empty returns true if this report contains no data
-func (i Input) Empty() bool {
-	return len(i.Matches) == 0 && len(i.Errors) == 0 && len(i.Logs) == 0
-}
 
 // Env is the current environment during scanning
 type Env struct {

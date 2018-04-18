@@ -4,20 +4,15 @@ import (
 	"bitbucket.org/vahidi/molly/lib/exp/prim"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
+	"strings"
 )
 
-// encLookupSpecial checks for special variables that are from other sources
-func encLookupSpecial(e *types.Env, id string) (interface{}, bool) {
-	var val interface{}
-	switch id {
-	case "$filename":
-		val = e.Input.Filename
-	case "$filesize":
-		val = e.Input.Filesize
-	default:
-		return nil, false
+// envLookupSpecial checks for special variables that are from other sources
+func envLookupSpecial(e *types.Env, id string) (interface{}, bool) {
+	if strings.HasPrefix(id, "$") {
+		return e.Input.Get(id[1:])
 	}
-	return val, true
+	return nil, false
 }
 
 // EnvLookup returns a variable either from current scope or
@@ -45,7 +40,7 @@ func EnvLookup(e *types.Env, id string) (types.Expression, bool, error) {
 	// maybe a special variable?
 	if !found {
 		var val interface{}
-		val, found = encLookupSpecial(e, id)
+		val, found = envLookupSpecial(e, id)
 		if found {
 			exp = NewValueExpression(prim.ValueToPrimitive(val))
 		}

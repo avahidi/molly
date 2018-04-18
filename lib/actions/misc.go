@@ -18,7 +18,7 @@ func printfFunction(e *types.Env, format string, args ...interface{}) (string, e
 	return "", nil
 }
 
-func systemFunction(e *types.Env, format string, args ...interface{}) (interface{}, error) {
+func systemFunction(e *types.Env, format string, args ...interface{}) (string, error) {
 	if !util.PermissionGet(util.Execute) {
 		return "", fmt.Errorf("system actions are not allowed, action ignored (%s)", e)
 	}
@@ -32,7 +32,7 @@ func systemFunction(e *types.Env, format string, args ...interface{}) (interface
 		return string(out), nil
 	}
 	fmt.Println(string(out), err)
-	return nil, fmt.Errorf("system(%s ... ) failed: %v (%s)", cmd[0], err, string(out))
+	return string(out), fmt.Errorf("system(%s ... ) failed: %v (%s)", cmd[0], err, string(out))
 }
 
 func init() {

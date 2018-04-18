@@ -31,6 +31,14 @@ var hashlist = map[string]func() hash.Hash{
 	"crc64-ecma":       func() hash.Hash { return crc64.New(crc64.MakeTable(crc64.ECMA)) },
 }
 
+// ChecksumHelp prints checksum help text
+func ChecksumHelp() {
+	fmt.Println("Valid checksum functions are: ")
+	for key, _ := range hashlist {
+		fmt.Println("\t", key)
+	}
+}
+
 // RegisterChecksumFunction provides a method to register user checksum function
 func RegisterChecksumFunction(typ string, generator func() hash.Hash) {
 	hashlist[typ] = generator
@@ -47,6 +55,7 @@ func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, er
 
 	hnew, found := hashlist[typ]
 	if !found {
+		ChecksumHelp()
 		return nil, fmt.Errorf("Unknown checksum function: '%s'", typ)
 	}
 

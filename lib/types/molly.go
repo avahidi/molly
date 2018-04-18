@@ -81,6 +81,11 @@ func (m *Molly) CreateName(parent *Input, name string, islog bool) string {
 		m.Files.Push(newname)
 	}
 
+	path, _ := filepath.Split(newname)
+	if path != "" {
+		util.SafeMkdir(path)
+	}
+
 	return newname
 }
 
