@@ -32,37 +32,21 @@ rule SeattleImageFirmwareHeader {
 */
 
 
+
 rule UImage  {
 	var magic = Long(0);
-	var data = Long(8);
 	var size = Long(12);
-	var address = Long(16);
-	var entry = Long(20);
+
 	var os = Byte(28);
 	var arch = Byte(29);
+	var type = Byte(30);
+	var comp = Byte(31);
 
 	var name = StringZ(32, 32);
 
-	if (magic == 0x27051956) && (size > 0);
+	if (magic == 0x27051956);
+	if comp >= 0 && comp <= 5;
+	if type > 0 && os > 0 && arch > 0 && size > 0;
 
-	var header_size = 32 + 32;
-
-	printf("found uimage: '%s' in '%s'\n", name, $filename);
-	extract("binary", name + ".uimage", header_size, size);
-}
-
-
-rule UImageLinux : UImage {
-	if os == 5;
-}
-
-// often data at the end of uimage means a combined firmware  image
-rule UImageExtra : UImage {
-	var pad = 4096;
-	var minsize = 64;
-	var offset = (header_size + size + pad - 1) & ~(pad - 1);
-
-	if $filesize > minsize + offset;
-
-	extract("binary", name + ".uimage.extra", offset, $filesize - offset);
+	extract("uimage", "");
 }

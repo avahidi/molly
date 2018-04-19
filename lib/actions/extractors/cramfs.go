@@ -1,8 +1,6 @@
 package extractors
 
 import (
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 	"bytes"
 	"compress/zlib"
 	"encoding/binary"
@@ -10,6 +8,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 const (
@@ -68,10 +69,7 @@ func (c cramContext) inodeDir(inode *cramInode, name string) error {
 		if _, err := c.Reader.Read(nbuf); err != nil {
 			return err
 		}
-		if n := bytes.IndexByte(nbuf, 0); n != -1 {
-			nbuf = nbuf[:n]
-		}
-		dirname := string(nbuf)
+		dirname := util.AsciizToString(nbuf)
 
 		if err := c.inode(&next, filepath.Join(name, dirname)); err != nil {
 			return err

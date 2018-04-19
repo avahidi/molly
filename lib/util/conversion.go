@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -66,4 +67,12 @@ func DecodeString(bs []byte) ([]byte, error) {
 	}
 
 	return ret, nil
+}
+
+// AsciizToString converts a null terminated byte array to a string
+func AsciizToString(data []byte) string {
+	if n := bytes.IndexByte(data, 0); n != -1 {
+		data = data[:n]
+	}
+	return string(data)
 }

@@ -35,3 +35,19 @@ func TestDecodeString(t *testing.T) {
 		}
 	}
 }
+
+func TestAsciizToString(t *testing.T) {
+	testdata := map[string][]byte{
+		"abc": []byte{'a', 'b', 'c'},
+		"xyz": []byte{'x', 'y', 'z', 0},
+		"123": []byte{'1', '2', '3', 0},
+		"":    []byte{0, 'g', 'n', 'u'},
+	}
+
+	for str, data := range testdata {
+		ret := AsciizToString(data)
+		if str != ret {
+			t.Errorf("AsciizToString failed: got %v wanted %v", ret, str)
+		}
+	}
+}

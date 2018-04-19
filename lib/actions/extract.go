@@ -25,6 +25,7 @@ var extractorList = map[string]extractor{
 	"mbrlba": extractor{full: extractors.MbrLba},
 	"cramfs": extractor{full: extractors.Uncramfs},
 	"jffs2":  extractor{full: extractors.Unjffs2},
+	"uimage": extractor{full: extractors.UnUimage},
 }
 
 // ExtractorRegister provides a method to register user extractor functions
