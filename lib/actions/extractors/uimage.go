@@ -17,9 +17,11 @@ const (
 )
 
 var uimageComp = map[uint8]string{1: "gz", 2: "bz2", 3: "lzma", 4: "lzo"}
-var uimageOs = map[uint8]string{5: "linux", 13: "lynxos", 14: "vxworks",
-	16: "qnx", 17: "uboot", 22: "ose"}
+var uimageOs = map[uint8]string{
+	5: "linux", 13: "lynxos", 14: "vxworks", 16: "qnx", 17: "uboot", 22: "ose"}
+var uimageArch = map[uint8]string{2: "arm", 3: "i386", 4: "ia64", 5: "mips"}
 
+// UnUimage extracts u-boot uimage files
 func UnUimage(e *types.Env, prefix string) (string, error) {
 	img := util.Structured{Reader: e.Input, Order: binary.BigEndian}
 	var head struct {
@@ -46,6 +48,9 @@ func UnUimage(e *types.Env, prefix string) (string, error) {
 
 	// decide filename
 	name := prefix + util.AsciizToString(head.Name[:])
+	if arch, found := uimageArch[head.Arch]; found {
+		name = name + "_" + arch
+	}
 	if os, found := uimageOs[head.OS]; found {
 		name = name + "_" + os
 	}
