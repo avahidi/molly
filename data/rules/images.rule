@@ -42,6 +42,10 @@ rule UImage  {
 	var type = Byte(30);
 	var comp = Byte(31);
 
+	var time = Long(8);
+	var timestr = epoch2time(time);
+
+
 	var name = StringZ(32, 32);
 
 	if (magic == 0x27051956);

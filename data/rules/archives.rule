@@ -10,18 +10,30 @@ rule LZMANew (tag = "archive") {
 }
 
 
-rule LZMA_7z (tag = "archive", bigendian = false)  {
+rule LZMA_7z (tag = "archive", bigendian = false) {
+	// LZMA format as implemented in 7Z
 	var magic = Byte(0);
 	var dsize = Long(1);
 	var usize = Quad(5);
 
-	// The 7Z LZMA format is not very well defined, hence this mess:
 	if magic == 0x51 || magic == 0x5d;
 	if dsize != 0 && (dsize & (dsize - 1)) == 0; // assume dict size is pow 2
 	if (usize >> 32) < 4; // assume output above 16GB is invalid
 
 	var dir = dir("");
 	system("7z e -o\"%s\" \"%s\"", dir, $filename);
+}
+
+rule LZMA_lzip (tag = "archive", bigendian = false) {
+	// LZMA with an lzip head
+	var magic = String(0, 4);
+	var type = Byte(4);
+	var dsize = Byte(5);
+
+	if magic == "LZIP";
+	if dsize >= (1 << 12) && dsize <= (1 << 29);
+
+	// TODO: extract lzip files
 }
 
 rule xz ( tag = "archive") {
