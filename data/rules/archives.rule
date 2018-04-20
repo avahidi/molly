@@ -9,13 +9,28 @@ rule LZMANew (tag = "archive") {
 	system("7z e -o\"%s\" \"%s\"", dir, $filename);
 }
 
-rule LZMA5x (tag = "archive")  {
-    var header = String(0, 3);
-    if header == { 0x51, 0x00, 0x00 } || header == { 0x5D, 0x00, 0x00 };
+
+rule LZMA_7z (tag = "archive", bigendian = false)  {
+	var magic = Byte(0);
+	var dsize = Long(1);
+	var usize = Quad(5);
+
+	// The 7Z LZMA format is not very well defined, hence this mess:
+	if magic == 0x51 || magic == 0x5d;
+	if dsize != 0 && (dsize & (dsize - 1)) == 0; // assume dict size is pow 2
+	if (usize >> 32) < 4; // assume output above 16GB is invalid
 
 	var dir = dir("");
 	system("7z e -o\"%s\" \"%s\"", dir, $filename);
 }
+
+rule xz ( tag = "archive") {
+	// https://tukaani.org/xz/xz-file-format.txt
+	var magic = String(0, 6);
+	if magic == { 0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00 };
+	// TODO: extract xz files
+}
+
 
 
 rule ZIP (bigendian = false, tag = "archive") {

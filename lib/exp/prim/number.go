@@ -86,6 +86,10 @@ func (n *Number) Binary(o Primitive, op Operation) (Primitive, error) {
 		ret.Set(n.Value | m.Value)
 	case XOR:
 		ret.Set(n.Value ^ m.Value)
+	case LSL:
+		ret.Set(n.Value << m.Value)
+	case LSR:
+		ret.Set(n.Value >> m.Value)
 	default:
 		return nil, fmt.Errorf("Unknown number binary operation: %v", op)
 	}

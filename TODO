@@ -2,6 +2,8 @@
 TODO
 ====
 
+* RuleEval seems to ignore all errors when evaluating expressions.
+What we want to report anything other than extraction errors (e.g. unexpected EOF)
 
 * create an interface for Error/Warning/Log generation
   - append warnings to Input (errors and logs are already being recorded)
