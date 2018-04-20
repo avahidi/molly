@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
+func epoch2time(e *types.Env, epoch int64) (string, error) {
+	t := time.Unix(epoch, 0).Local()
+	return t.String(), nil
+}
 func sprintfFunction(e *types.Env, format string, args ...interface{}) (string, error) {
 	return fmt.Sprintf(format, args...), nil
 }
@@ -39,4 +44,5 @@ func init() {
 	ActionRegister("printf", printfFunction)
 	ActionRegister("sprintf", sprintfFunction)
 	ActionRegister("system", systemFunction)
+	ActionRegister("epoch2time", epoch2time)
 }
