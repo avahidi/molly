@@ -1,8 +1,10 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"bitbucket.org/vahidi/molly/lib/util"
 )
@@ -38,6 +40,24 @@ func newFunction(name string, fun interface{}) *Function {
 
 func (f Function) String() string {
 	return f.name
+}
+
+// Signature returns function signature in human readable-form
+// and excluding molly internal elements
+func (f Function) Signature() (string, string, string) {
+	buf := bytes.Buffer{}
+	for i, ins := range f.ins[1:] {
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+		str := strings.Replace(ins.String(), "interface {}", "any", -1)
+		if f.variadic && i == len(f.ins)-2 {
+			str = "..." + str[2:] // []xx -> ...xx
+		}
+		buf.WriteString(str)
+	}
+	out := strings.Replace(f.outs[0].String(), "interface {}", "any", -1)
+	return f.name, buf.String(), out
 }
 
 // Call does the actuall function call using golang reflection, after some
@@ -129,6 +149,7 @@ func FunctionFind(name string) (*Function, bool) {
 func FunctionHelp() {
 	fmt.Printf("Available functions are:\n")
 	for _, v := range actionRegister {
-		fmt.Printf("%20s: %v\t->%v\n", v.name, v.ins, v.outs)
+		name, in, out := v.Signature()
+		fmt.Printf("\t%-12s (%s) -> %s\n", name, in, out)
 	}
 }

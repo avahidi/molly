@@ -1,10 +1,11 @@
 molly
 =====
 
-molly is an automated file analysis and extraction tool.
+molly is an automated file analysis and extraction tool. It can search files for
+user-defined patterns and perform various actions when those patterns are found.
 
 
-Molly was initially developed in the `Seconds <http://www.secondssolutions.com/>`_
+molly was initially developed in the `Seconds <http://www.secondssolutions.com/>`_
 project for binary extraction from firmware images.
 
 
@@ -19,25 +20,18 @@ To install Go on Ubuntu 16.04 LTS::
    export PATH=$PATH:$GOPATH/bin
    mkdir $GOPATH
 
-Now download and build Molly::
+Now download and build molly::
 
     go get -u bitbucket.org/vahidi/molly/...
-    go install bitbucket.org/vahidi/molly/...
 
 For development builds we use make::
 
     cd $GOPATH/src/bitbucket.org/vahidi/molly
-    make
-    make test
-    make run
-    ...
+    make && makea test && make run
 
-
-Download
---------
-
-If you prefer to download pre-built binaries, go to the
-`download page <https://bitbucket.org/vahidi/molly/downloads/>`_ .
+Pre-built binaries are found on the
+`download page <https://bitbucket.org/vahidi/molly/downloads/>`_,
+but might be slightly out of date.
 
 
 Usage
@@ -69,7 +63,7 @@ A small set of default rules are provided in the distribution.
 Rule format
 -----------
 
-Rules have the following format::
+Patterns and (most) operations are defined in rules with the following format::
 
    rule <rule name> [(<metadata>, ...)] [ : <parent name>] {
        <variables>
@@ -90,7 +84,7 @@ For example::
 Actions and operators
 ~~~~~~~~~~~~~~~~~~~~~
 
-The following extraction operators can be used within rules::
+The following extraction functions are used in rules to read parts of a file::
 
     // extract functions
     String(offset, size int)
@@ -100,9 +94,10 @@ The following extraction operators can be used within rules::
     Long(offset int)
     Quad(offset int)
 
-Molly also provides a large number if built-in operators and actions
-ranging from simple string manipulation functions (e.g. strlen) to complex
-analysis and extraction actions. File a complete list execute::
+These are usually enough to build most types of rules. But molly also provides
+a large number of other operators and actions ranging from simple string
+manipulation functions (e.g. strlen) to complex analysis and extraction actions.
+Extended help will print complete list ::
 
     molly -hh
 
@@ -164,8 +159,8 @@ actions if this action succeeds. Example::
 API
 ---
 
-Molly source code is divided into a small command-line tool and a library
-that can be used separatly. Using the library in your own code is quite simple::
+molly source code is divided into a small command-line tool and a library
+that can be used separately. Using the library in your own code is quite simple::
 
     import "bitbucket.org/vahidi/molly/lib"
     ...
@@ -175,7 +170,7 @@ that can be used separatly. Using the library in your own code is quite simple::
     report, _ := lib.ScanFiles(molly, "my-binary-file", ...)
 
 
-Extending Molly
+Extending molly
 ~~~~~~~~~~~~~~~
 
 To extend the functionality you can register your own operators and actions::
@@ -218,7 +213,7 @@ FAQ
 Why the name?
 ~~~~~~~~~~~~~
 
-molly was named after Molly Hooper, from the BBC TV-series Sherlock.
-According to Wikipedia "Molly Hooper [...] is a 31-year-old specialist registrar
+molly was named after molly Hooper, from the BBC TV-series Sherlock.
+According to Wikipedia "molly Hooper [...] is a 31-year-old specialist registrar
 working in the morgue at St Bartholomew's Hospital [...]". This seemed appropriate
 for a software used to dissect long dead binaries.
