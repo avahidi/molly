@@ -1,17 +1,18 @@
 package lib
 
 import (
-	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
-	"bitbucket.org/vahidi/molly/lib/report"
-	"bitbucket.org/vahidi/molly/lib/scan"
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
+	"bitbucket.org/vahidi/molly/lib/report"
+	"bitbucket.org/vahidi/molly/lib/scan"
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // New creates a new molly context
@@ -102,7 +103,7 @@ func scanFile(m *types.Molly, env *types.Env, filename string,
 	}
 	m.Processed[filename] = fr
 
-	if m.MaxDepth != 0 && fr.Depth > m.MaxDepth {
+	if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
 		fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
 		return fr
 	}

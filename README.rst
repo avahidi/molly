@@ -213,7 +213,7 @@ FAQ
 Why the name?
 ~~~~~~~~~~~~~
 
-molly was named after molly Hooper, from the BBC TV-series Sherlock.
-According to Wikipedia "molly Hooper [...] is a 31-year-old specialist registrar
+molly was named after Molly Hooper, from the BBC TV-series Sherlock.
+According to Wikipedia "Molly Hooper [...] is a 31-year-old specialist registrar
 working in the morgue at St Bartholomew's Hospital [...]". This seemed appropriate
 for a software used to dissect long dead binaries.
