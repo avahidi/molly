@@ -9,6 +9,15 @@ func NewRegister() *Register {
 	return &Register{data: make(map[string]interface{})}
 }
 
+// Walk all values in the register
+func (r Register) Walk(visitor func(key string, val interface{}) bool) {
+	for k, v := range r.data {
+		if !visitor(k, v) {
+			return
+		}
+	}
+}
+
 func (r *Register) SetParent(parent *Register) {
 	r.parent = parent
 }

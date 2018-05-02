@@ -87,6 +87,13 @@ func addParsedToSet(rs *types.RuleSet, parsed []*parsedRule) error {
 		exp.RuleClose(pr.rule)
 	}
 
+	// 5. final check:
+	for _, pr := range parsed {
+		if err := checkRule(pr.rule); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -483,18 +490,26 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 		}
 	}
 
-	expr, err := findExtractFunction(id, argv, metadata)
-	if err == nil && expr == nil {
-		// not an extract function? try a regular one
-		if _, found := types.FunctionFind(id); !found {
-			fmt.Printf("Unknown function '%s'. ", id)
-			types.FunctionHelp()
-			util.RegisterFatalf("Unknown function, cannot continue")
-		}
-
-		expr, err = exp.NewFunctionExpression(id, metadata, argv...)
+	// extract function maybe?
+	extr, err := findExtractFunction(id, argv, metadata)
+	if err != nil {
+		return nil, err
+	}
+	if extr != nil {
+		return extr, err
 	}
 
+	// not an extract function? try a regular one
+	if _, found := types.FunctionFind(id); !found {
+		fmt.Printf("Unknown function '%s'. ", id)
+		types.FunctionHelp()
+		util.RegisterFatalf("Unknown function, cannot continue")
+	}
+
+	expr, err := exp.NewFunctionExpression(id, metadata, argv...)
+	if err == nil {
+		err = checkFunction(expr)
+	}
 	return expr, err
 }
 
