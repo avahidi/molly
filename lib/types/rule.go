@@ -6,6 +6,8 @@ const (
 	ActionModeNormal = 0
 	ActionModeIgnore = 1
 	ActionModeExit   = 2
+	RulePassMin      = 0
+	RulePassMax      = 2
 )
 
 type Action struct {

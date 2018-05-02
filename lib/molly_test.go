@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"testing"
 
 	"bitbucket.org/vahidi/molly/lib/types"
@@ -114,7 +115,7 @@ func TestLoadRule(t *testing.T) {
 }
 
 func TestLoadRuleMetadata(t *testing.T) {
-	text := "rule test (name = \"joe\", age = 99, dead = false)  { }"
+	text := "rule test (tag = \"testing\", pass = 2, bigendian = false)  { }"
 	_, dut := loadRule(t, text, "test")
 	if dut == nil {
 		return
@@ -125,13 +126,13 @@ func TestLoadRuleMetadata(t *testing.T) {
 	}
 
 	mt := dut.Metadata
-	if val, found := mt.GetBoolean("dead", true); val != false || !found {
+	if val, found := mt.GetBoolean("bigendian", true); val != false || !found {
 		t.Errorf("Missing boolean metadata")
 	}
-	if val, found := mt.GetNumber("age", 0); val != 99 || !found {
+	if val, found := mt.GetNumber("pass", 0); val != 2 || !found {
 		t.Errorf("Missing number metadata: %v %v %v", val, found, mt)
 	}
-	if val, found := mt.GetString("name", "nobody"); val != "joe" || !found {
+	if val, found := mt.GetString("tag", ""); val != "testing" || !found {
 		t.Errorf("Missing string metadata")
 	}
 }
@@ -184,6 +185,34 @@ func TestScanData(t *testing.T) {
 		matchCheck(t, match, "a", test.a)
 		matchCheck(t, match, "b", test.b)
 		matchCheck(t, match, "c", test.c)
+	}
+}
+
+func TestSCanPass(t *testing.T) {
+	ruletext := `
+	rule p0 (pass = 0) { }
+	rule p2 (pass = 2) { }
+	rule p1 (pass = 1) { }
+	`
+
+	molly := New("", "", 0)
+	if err := LoadRulesFromText(molly, ruletext); err != nil {
+		t.Fatalf("Could not load rule from text: %v", err)
+	}
+
+	mr, err := ScanData(molly, []byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(len(mr.Files), len(mr.Files[0].Matches))
+	if len(mr.Files) != 1 || len(mr.Files[0].Matches) != 3 {
+		t.Fatalf("Incorrect number of matches")
+	}
+
+	ms := mr.Files[0].Matches
+	if ms[0].Rule.ID != "p0" || ms[1].Rule.ID != "p1" || ms[2].Rule.ID != "p2" {
+		t.Fatalf("Rule pass not respected during scann")
 	}
 }
 

@@ -46,6 +46,17 @@ func checkRule(r *types.Rule) error {
 	var cs = constraint{
 		"tag":       {reflect.String, nil},
 		"bigendian": {reflect.Bool, nil},
+		"pass": {reflect.Uint64, func(name string, data interface{}) error {
+			if r.Parent != nil {
+				return fmt.Errorf("Only parent rules can have 'pass'")
+			}
+			n := data.(uint64)
+			if n < types.RulePassMin || n > types.RulePassMax {
+				return fmt.Errorf("valid range for pass is %d to %d",
+					types.RulePassMin, types.RulePassMax)
+			}
+			return nil
+		}},
 	}
 
 	return checkMetadata(r.Metadata, cs)

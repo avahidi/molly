@@ -67,14 +67,20 @@ func processTags(m *types.Molly, fr *types.Input) {
 
 func scanInput(m *types.Molly, env *types.Env, i *types.Input) {
 	env.SetInput(i)
-	for _, rule := range m.Rules.Top {
-		env.StartRule(rule)
-		match, errs := scan.AnalyzeFile(rule, env)
-		if match != nil {
-			i.Matches = append(i.Matches, match)
-			processMatch(m, i, match)
+	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
+		for _, rule := range m.Rules.Top {
+			p, _ := rule.Metadata.GetNumber("pass", uint64(types.RulePassMin))
+			if p != uint64(pass) {
+				continue
+			}
+			env.StartRule(rule)
+			match, errs := scan.AnalyzeFile(rule, env)
+			if match != nil {
+				i.Matches = append(i.Matches, match)
+				processMatch(m, i, match)
+			}
+			i.Errors = append(i.Errors, errs...)
 		}
-		i.Errors = append(i.Errors, errs...)
 	}
 	processTags(m, i)
 }
