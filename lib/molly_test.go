@@ -176,7 +176,6 @@ func TestScanData(t *testing.T) {
 			t.Errorf("No match in scan data")
 			continue
 		}
-
 		// get the deepest match:
 		match := mr.Files[0].Matches[0]
 		for len(match.Children) != 0 {
@@ -231,11 +230,11 @@ func TestScanNum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if a, valid := report.FindInReportNumber(mr, "", "p0", "a"); !valid || a != 0 {
+	if a, valid := report.FindInReportVarNumber(mr, "", "p0", "a"); !valid || a != 0 {
 		t.Errorf("Num match failed (1)")
 	}
 
-	if b, valid := report.FindInReportNumber(mr, "", "p1", "b"); !valid || b != 1 {
+	if b, valid := report.FindInReportVarNumber(mr, "", "p1", "b"); !valid || b != 1 {
 		t.Errorf("Num match failed (2)")
 	}
 }
@@ -256,11 +255,11 @@ func TestScanHas(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if a, valid := report.FindInReportNumber(mr, "", "p0", "a"); !valid || a != 0 {
+	if a, valid := report.FindInReportVarBool(mr, "", "p0", "a"); !valid || a {
 		t.Errorf("has match failed (1)")
 	}
 
-	if b, valid := report.FindInReportNumber(mr, "", "p1", "b"); !valid || b != 1 {
+	if b, valid := report.FindInReportVarBool(mr, "", "p1", "b"); !valid || !b {
 		t.Errorf("has match failed (2)")
 	}
 }
