@@ -40,9 +40,27 @@ func systemFunction(e *types.Env, format string, args ...interface{}) (string, e
 	return string(out), fmt.Errorf("system(%s ... ) failed: %v (%s)", cmd[0], err, string(out))
 }
 
+func hasFunction(e *types.Env, typ string, val string) (bool, error) {
+	switch typ {
+	case "match":
+		for _, m := range e.Input.Matches {
+			if !m.Walk(func(m *types.Match) bool {
+				return m.Rule.ID != val
+			}) {
+				return true, nil
+			}
+		}
+	default:
+		return false, fmt.Errorf("Unknown has-property: %s", typ)
+	}
+
+	return false, nil
+}
+
 func init() {
 	ActionRegister("printf", printfFunction)
 	ActionRegister("sprintf", sprintfFunction)
 	ActionRegister("system", systemFunction)
 	ActionRegister("epoch2time", epoch2time)
+	ActionRegister("has", hasFunction)
 }

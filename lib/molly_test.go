@@ -3,6 +3,7 @@ package lib
 import (
 	"testing"
 
+	"bitbucket.org/vahidi/molly/lib/report"
 	"bitbucket.org/vahidi/molly/lib/types"
 )
 
@@ -230,26 +231,37 @@ func TestScanNum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(mr.Files) != 1 || len(mr.Files[0].Matches) != 2 {
-		t.Fatalf("Incorrect number of matches")
+	if a, valid := report.FindInReportNumber(mr, "", "p0", "a"); !valid || a != 0 {
+		t.Errorf("Num match failed (1)")
 	}
 
-	for _, m := range mr.Files[0].Matches {
-		failed := false
-		switch m.Rule.ID {
-		case "p0":
-			a, found := m.Vars["a"]
-			an, valid := a.(uint64)
-			failed = !found || !valid || an != 0
-		case "p1":
-			b, found := m.Vars["b"]
-			bn, valid := b.(uint64)
-			failed = !found || !valid || bn != 1
-		}
-		if failed {
-			t.Errorf("Num match not correct for %s: %v", m.Rule.ID, m.Vars)
-		}
+	if b, valid := report.FindInReportNumber(mr, "", "p1", "b"); !valid || b != 1 {
+		t.Errorf("Num match failed (2)")
+	}
+}
 
+func TestScanHas(t *testing.T) {
+	ruletext := `
+	rule p0 (pass = 0) { var a = has("match", "p0"); }
+	rule p1 (pass = 1) { var b = has("match", "p0"); }
+	`
+
+	molly := New("", "", 0)
+	if err := LoadRulesFromText(molly, ruletext); err != nil {
+		t.Fatalf("Could not load rule from text: %v", err)
+	}
+
+	mr, err := ScanData(molly, []byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if a, valid := report.FindInReportNumber(mr, "", "p0", "a"); !valid || a != 0 {
+		t.Errorf("has match failed (1)")
+	}
+
+	if b, valid := report.FindInReportNumber(mr, "", "p1", "b"); !valid || b != 1 {
+		t.Errorf("has match failed (2)")
 	}
 }
 

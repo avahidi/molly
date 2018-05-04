@@ -12,11 +12,16 @@ type Match struct {
 }
 
 // Walk visits all the nodes in a tree of matches
-func (me *Match) Walk(visitor func(*Match)) {
-	visitor(me)
-	for _, c := range me.Children {
-		c.Walk(visitor)
+func (me *Match) Walk(visitor func(*Match) bool) bool {
+	if !visitor(me) {
+		return false
 	}
+	for _, c := range me.Children {
+		if !c.Walk(visitor) {
+			return false
+		}
+	}
+	return true
 }
 
 // FlatMatch is a flatten version of Match
