@@ -79,6 +79,12 @@ func (i Input) Get(name string) (interface{}, bool) {
 			return "", true
 		}
 		return i.Parent.Filename, true
+	case "num_matches":
+		return len(i.Matches), true
+	case "num_errors":
+		return len(i.Errors), true
+	case "num_logs":
+		return len(i.Logs), true
 	default:
 		return nil, false
 	}

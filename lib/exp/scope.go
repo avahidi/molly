@@ -2,7 +2,7 @@ package exp
 
 import "bitbucket.org/vahidi/molly/lib/types"
 
-// Extract values from all expressions that have any
+// ScopeExtract extracts value from a scope
 func ScopeExtract(s *types.Scope) map[string]interface{} {
 	ret := make(map[string]interface{})
 	for k, v := range s.GetAll() {

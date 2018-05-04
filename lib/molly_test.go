@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"fmt"
 	"testing"
 
 	"bitbucket.org/vahidi/molly/lib/types"
@@ -188,7 +187,7 @@ func TestScanData(t *testing.T) {
 	}
 }
 
-func TestSCanPass(t *testing.T) {
+func TestScanPass(t *testing.T) {
 	ruletext := `
 	rule p0 (pass = 0) { }
 	rule p2 (pass = 2) { }
@@ -205,7 +204,6 @@ func TestSCanPass(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(len(mr.Files), len(mr.Files[0].Matches))
 	if len(mr.Files) != 1 || len(mr.Files[0].Matches) != 3 {
 		t.Fatalf("Incorrect number of matches")
 	}
@@ -213,6 +211,45 @@ func TestSCanPass(t *testing.T) {
 	ms := mr.Files[0].Matches
 	if ms[0].Rule.ID != "p0" || ms[1].Rule.ID != "p1" || ms[2].Rule.ID != "p2" {
 		t.Fatalf("Rule pass not respected during scann")
+	}
+}
+
+func TestScanNum(t *testing.T) {
+	ruletext := `
+	rule p0 (pass = 0) { var a = $num_matches; }
+	rule p1 (pass = 1) { var b = $num_matches; }
+	`
+
+	molly := New("", "", 0)
+	if err := LoadRulesFromText(molly, ruletext); err != nil {
+		t.Fatalf("Could not load rule from text: %v", err)
+	}
+
+	mr, err := ScanData(molly, []byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(mr.Files) != 1 || len(mr.Files[0].Matches) != 2 {
+		t.Fatalf("Incorrect number of matches")
+	}
+
+	for _, m := range mr.Files[0].Matches {
+		failed := false
+		switch m.Rule.ID {
+		case "p0":
+			a, found := m.Vars["a"]
+			an, valid := a.(uint64)
+			failed = !found || !valid || an != 0
+		case "p1":
+			b, found := m.Vars["b"]
+			bn, valid := b.(uint64)
+			failed = !found || !valid || bn != 1
+		}
+		if failed {
+			t.Errorf("Num match not correct for %s: %v", m.Rule.ID, m.Vars)
+		}
+
 	}
 }
 
