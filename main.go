@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bitbucket.org/vahidi/molly/lib/actions"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"bitbucket.org/vahidi/molly/lib/actions"
 
 	"bitbucket.org/vahidi/molly/lib"
 	"bitbucket.org/vahidi/molly/lib/types"
@@ -74,8 +75,6 @@ func main() {
 		help(*showhelpExt, "", 0)
 	}
 
-	ifiles := flag.Args()
-
 	if *showVersion {
 		maj, min, mnt := lib.Version()
 		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
@@ -92,6 +91,22 @@ func main() {
 				help(false, "", 20)
 			}
 			util.PermissionSet(p, set)
+		}
+	}
+
+	// input sanity check
+	ifiles := flag.Args()
+	if len(rfiles) == 0 && len(rtexts) == 0 {
+		help(false, "No rules were given", 20)
+	}
+
+	if len(ifiles) == 0 {
+		help(false, "No input was given", 20)
+	}
+
+	for _, filename := range ifiles {
+		if strings.HasPrefix(filename, "-") {
+			help(false, "Options must come first", 20)
 		}
 	}
 
