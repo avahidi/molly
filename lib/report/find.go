@@ -2,8 +2,31 @@ package report
 
 import "bitbucket.org/vahidi/molly/lib/types"
 
-// FindInFileVar finds a variable in a match in a file
-func FindInFileVar(f *types.Input, rulename, varname string) (interface{}, bool) {
+// FindInReportFile find a file in a report, filename "" means any
+func FindInReportFile(r *types.Report, filename string) *types.Input {
+	for _, f := range r.Files {
+		if filename == "" || filename == f.Filename {
+			return f
+		}
+	}
+	return nil
+}
+
+// FindInReportMatch find a file in a report, filename or rulename "" means any
+func FindInReportMatch(r *types.Report, filename, rulename string) *types.Match {
+	for _, f := range r.Files {
+		if filename != "" && filename != f.Filename {
+			continue
+		}
+		if m := FindInFileMatch(f, rulename); m != nil {
+			return m
+		}
+	}
+	return nil
+}
+
+// FindInFileMatch find match to a rule in a file, rulename "" means any
+func FindInFileMatch(f *types.Input, rulename string) *types.Match {
 	var match *types.Match
 	for _, m0 := range f.Matches {
 		m0.Walk(func(m *types.Match) bool {
@@ -13,15 +36,21 @@ func FindInFileVar(f *types.Input, rulename, varname string) (interface{}, bool)
 			}
 			return true
 		})
-		if match == nil {
-			continue
-		}
-		data, found := match.Vars[varname]
-		if found {
-			return data, true
+		if match != nil {
+			return match
 		}
 	}
-	return nil, false
+	return nil
+}
+
+// FindInFileVar finds a variable in a match in a file
+func FindInFileVar(f *types.Input, rulename, varname string) (interface{}, bool) {
+	match := FindInFileMatch(f, rulename)
+	if match == nil {
+		return nil, false
+	}
+	data, found := match.Vars[varname]
+	return data, found
 }
 
 // FindInReportVar returns variable from a match
