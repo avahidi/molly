@@ -1,22 +1,16 @@
 package actions
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"bitbucket.org/vahidi/molly/lib/actions/analyzers"
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
-	"encoding/json"
-	"fmt"
-	"io"
 )
 
-// Analyzer is the type of functions that will be called in
-// an analyze() operation
-// type Analyzer func(io.ReadSeeker, io.Writer, ...interface{}) error
-type Analyzer func(io.ReadSeeker,
-	func(string, string, interface{}), ...interface{}) error
-
 // AnalyzerRegister registers a user analyzer
-func AnalyzerRegister(typ string, analyzerfunc Analyzer) {
+func AnalyzerRegister(typ string, analyzerfunc analyzers.Analyzer) {
 	analyzersList[typ] = analyzerfunc
 }
 
@@ -28,7 +22,7 @@ func AnalyzerHelp() {
 	}
 }
 
-var analyzersList = map[string]Analyzer{
+var analyzersList = map[string]analyzers.Analyzer{
 	"strings":   analyzers.StringAnalyzer,
 	"version":   analyzers.VersionAnalyzer,
 	"histogram": analyzers.HistogramAnalyzer,

@@ -5,15 +5,13 @@ import (
 )
 
 // StringAnalyzer extracts and reports strings found in a file
-func StringAnalyzer(r io.ReadSeeker,
-	gen func(name string, typ string, data interface{}),
-	data ...interface{}) error {
+func StringAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 
 	strs, err := extractStrings(r, 5)
 	if err != nil {
 		return err
 	}
 	report := map[string]interface{}{"strings": strs}
-	gen("", "json", report)
+	rep("", "json", report)
 	return nil
 }

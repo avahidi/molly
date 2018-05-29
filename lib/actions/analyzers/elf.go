@@ -1,16 +1,15 @@
 package analyzers
 
 import (
-	"bitbucket.org/vahidi/molly/lib/util"
 	"debug/elf"
 	"fmt"
 	"io"
+
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // ElfAnalyzer examinies ELF binaries
-func ElfAnalyzer(r io.ReadSeeker,
-	gen func(name string, typ string, data interface{}),
-	data ...interface{}) error {
+func ElfAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 
 	rsa := util.NewReaderAt(r)
 	file, err := elf.NewFile(rsa)
@@ -54,6 +53,6 @@ func ElfAnalyzer(r io.ReadSeeker,
 		report["libraries"] = libs
 	}
 
-	gen("", "json", report)
+	rep("", "json", report)
 	return nil
 }

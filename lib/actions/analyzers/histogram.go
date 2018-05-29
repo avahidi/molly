@@ -24,9 +24,7 @@ func histogramToImage(hist []int, max int) image.Image {
 }
 
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(r io.ReadSeeker,
-	gen func(name string, typ string, data interface{}),
-	data ...interface{}) error {
+func HistogramAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 
 	// extract histogram file file
 	count := make([]int, 256)
@@ -63,7 +61,7 @@ func HistogramAnalyzer(r io.ReadSeeker,
 		"max":        max,
 		"avg":        avg,
 	}
-	gen("", "json", report)
+	rep("", "json", report)
 
 	// PNG image
 	img := histogramToImage(count, max)
@@ -71,7 +69,7 @@ func HistogramAnalyzer(r io.ReadSeeker,
 	if err := png.Encode(buff, img); err != nil {
 		return err
 	}
-	gen("", "png", buff.Bytes())
+	rep("", "png", buff.Bytes())
 
 	return nil
 }

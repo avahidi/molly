@@ -25,9 +25,7 @@ func stringIsCopyright(str string) bool {
 }
 
 // VersionAnalyzer is a first attempt to extract version information from binaries
-func VersionAnalyzer(r io.ReadSeeker,
-	gen func(name string, typ string, data interface{}),
-	data ...interface{}) error {
+func VersionAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 	strs, err := extractStrings(r, 5)
 	if err != nil {
 		return err
@@ -58,6 +56,6 @@ func VersionAnalyzer(r io.ReadSeeker,
 		"possible-version":   versions,
 		"possible-copyright": copyrights,
 	}
-	gen("", "json", report)
+	rep("", "json", report)
 	return nil
 }

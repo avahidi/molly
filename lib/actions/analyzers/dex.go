@@ -1,12 +1,13 @@
 package analyzers
 
 import (
-	"bitbucket.org/vahidi/molly/lib/util"
 	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"sort"
+
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // DEX class analyzer based on
@@ -341,9 +342,7 @@ func extractKeys(m map[interface{}]interface{}, a []interface{}) []interface{} {
 }
 
 // DexAnalyzer examines DEX files
-func DexAnalyzer(r io.ReadSeeker,
-	gen func(name string, typ string, data interface{}),
-	data ...interface{}) error {
+func DexAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 	var header struct {
 		DexMagic    uint32
 		DexVersion  [8]uint8
@@ -398,7 +397,7 @@ func DexAnalyzer(r io.ReadSeeker,
 		"00-disclaimer": "dex analyzer is still under construction",
 	}
 	dexCreateReport(ctx, report)
-	gen("", "json", report)
+	rep("", "json", report)
 	return nil
 }
 
