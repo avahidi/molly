@@ -42,7 +42,7 @@ func (i *FileQueue) pushOne(path string, parent string) {
 // decides if we should ignore a file
 func (i FileQueue) acceptFile(path string, info os.FileInfo) bool {
 	if !i.followSymlinks && (info.Mode()&os.ModeSymlink) != 0 {
-		RegisterWarningf("Ignoring symlink '%s'\n", path)
+		RegisterWarningf("Ignoring symlink '%s'", path)
 		return false
 	}
 	return true
@@ -105,7 +105,7 @@ func (i *FileQueue) Pop() (path string, size int64, parent string) {
 		} else if mode.IsRegular() {
 			return
 		} else {
-			RegisterWarningf("Ignoring file '%s' (bad mode %s)\n", path, mode)
+			RegisterWarningf("Ignoring file '%s' (bad mode %s)", path, mode)
 		}
 	}
 }

@@ -129,7 +129,7 @@ func (c cramContext) inode(inode *cramInode, name string) error {
 	case s_IFREG:
 		return c.inodeFile(inode, name)
 	default:
-		util.RegisterWarningf("Warning: ignoring unknown file type: %08x\n", inode.Mode)
+		util.RegisterWarningf("Warning: ignoring unknown file type: %08x", inode.Mode)
 	}
 	return nil
 }
