@@ -9,7 +9,7 @@ import (
 )
 
 // ElfAnalyzer examinies ELF binaries
-func ElfAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
+func ElfAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 
 	rsa := util.NewReaderAt(r)
 	file, err := elf.NewFile(rsa)

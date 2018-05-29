@@ -22,7 +22,7 @@ func TestGitrefVersion(t *testing.T) {
 	}
 }
 
-func TestStringVersion(t *testing.T) {
+func TestVersionVersion(t *testing.T) {
 	testdata := map[string]bool{
 		"version 1.2.3": true,
 		"version 1.2b":  true,
@@ -44,7 +44,7 @@ func TestStringVersion(t *testing.T) {
 	}
 }
 
-func TestStringCopyright(t *testing.T) {
+func TestVersionCopyright(t *testing.T) {
 	testdata := map[string]bool{
 		"Crashware 10.7 Copyright evilcorp 2013-2022":               true,
 		"Copyleft civilcorp 2000":                                   false,
@@ -62,6 +62,24 @@ func TestStringCopyright(t *testing.T) {
 		got := stringIsCopyright(str)
 		if got != ret {
 			t.Errorf("version detection error on %s", str)
+		}
+	}
+}
+func TestVersionFilenameVersion(t *testing.T) {
+	testdata := map[string]bool{
+		"":                        false,
+		"bash":                    false,
+		"gcc-3":                   false,
+		"gcc-3-3":                 false,
+		"libstuff-0.2.3.so":       true,
+		"libstuff-0.2.3.a":        true,
+		"libstuff_0.2x.a":         true,
+		"libstuff_10.29.0-rc23.a": true,
+	}
+	for filename, ret := range testdata {
+		got := filenameIsVersion(filename)
+		if got != ret {
+			t.Errorf("filenameversion detection error on %s", filename)
 		}
 	}
 }

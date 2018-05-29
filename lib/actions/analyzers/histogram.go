@@ -24,7 +24,7 @@ func histogramToImage(hist []int, max int) image.Image {
 }
 
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(r io.ReadSeeker, rep Reporter, data ...interface{}) error {
+func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interface{}) error {
 
 	// extract histogram file file
 	count := make([]int, 256)

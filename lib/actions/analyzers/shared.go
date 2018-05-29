@@ -11,7 +11,7 @@ import (
 type Reporter func(name string, typ string, data interface{})
 
 // Analyzer is a function for analyzing a stream and generating one or more reports
-type Analyzer func(r io.ReadSeeker, gen Reporter, data ...interface{}) error
+type Analyzer func(filename string, r io.ReadSeeker, gen Reporter, data ...interface{}) error
 
 // extractStrings extract strings from reader, similar to UNIX strings utility
 func extractStrings(r io.Reader, minsize int) ([]string, error) {
