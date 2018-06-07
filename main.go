@@ -29,8 +29,7 @@ func (mf *MultiFlag) Set(val string) error {
 }
 
 // flags and usage
-var outbase = flag.String("outdir", "output/extracted", "output directory")
-var repbase = flag.String("repdir", "output/reports", "report output directory")
+var outdir = flag.String("outdir", "output", "output directory")
 var verbose = flag.Bool("v", false, "be verbose")
 var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
@@ -111,7 +110,7 @@ func main() {
 	}
 
 	// create context
-	molly := lib.New(*outbase, *repbase, *maxDepth)
+	molly := lib.New(*outdir, *maxDepth)
 
 	// create callbacks
 	listmatch, err := opListParse(matchops)
@@ -184,17 +183,17 @@ func main() {
 	var errors []error
 
 	// generate summary file
-	if err := writeSummaryFile(molly, report, *repbase); err != nil {
+	if err := writeSummaryFile(molly, report, *outdir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate match file
-	if err := writeMatchFile(molly, report, *repbase); err != nil {
+	if err := writeMatchFile(molly, report, *outdir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate rule file
-	if err := writeRuleFile(molly, *repbase); err != nil {
+	if err := writeRuleFile(molly, *outdir); err != nil {
 		errors = append(errors, err)
 	}
 

@@ -9,7 +9,7 @@ import (
 
 // some helper functions to simplify the code
 func loadRule(t *testing.T, text string, name string) (*types.Molly, *types.Rule) {
-	molly := New("", "", 0)
+	molly := New("", 0)
 	if err := LoadRulesFromText(molly, text); err != nil {
 		t.Errorf("Could not load rule from text: %v", err)
 		return nil, nil
@@ -56,7 +56,7 @@ func TestLoadRuleSeries(t *testing.T) {
 	}
 	totalRules, totalTop := 0, 0
 
-	molly := New("", "", 0)
+	molly := New("", 0)
 	for _, test := range testdata {
 		var err error
 		if err = LoadRulesFromText(molly, test.text); err != nil {
@@ -194,7 +194,7 @@ func TestScanPass(t *testing.T) {
 	rule p1 (pass = 1) { }
 	`
 
-	molly := New("", "", 0)
+	molly := New("", 0)
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestScanNum(t *testing.T) {
 	rule p1 (pass = 1) { var b = $num_matches; }
 	`
 
-	molly := New("", "", 0)
+	molly := New("", 0)
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestScanHas(t *testing.T) {
 	rule p1 (pass = 1) { var b = has("match", "p0"); }
 	`
 
-	molly := New("", "", 0)
+	molly := New("", 0)
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
@@ -302,7 +302,7 @@ func BenchmarkMollyExpr(b *testing.B) {
 	}
 
 	for _, test := range testdata {
-		molly := New("", "", 0)
+		molly := New("", 0)
 		if err := LoadRulesFromText(molly, test.rule); err != nil {
 			b.Errorf("Could not load benchmark rule: %v", err)
 		}

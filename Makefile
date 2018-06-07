@@ -14,7 +14,7 @@ molly:
 run: compile output
 	rm -rf output
 	-./molly $(O) -R data/rules\
-		-outdir output/extracted  -repdir output/reports \
+		-outdir output \
 		-enable create-file \
 		-enable execute \
 		-max-depth 12\

@@ -1,15 +1,16 @@
 package main
 
 import (
-	"bitbucket.org/vahidi/molly/lib"
-	"bitbucket.org/vahidi/molly/lib/report"
-	"bitbucket.org/vahidi/molly/lib/types"
-	"bitbucket.org/vahidi/molly/lib/util"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"bitbucket.org/vahidi/molly/lib"
+	"bitbucket.org/vahidi/molly/lib/report"
+	"bitbucket.org/vahidi/molly/lib/types"
+	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // inputToReportEntry converts an input structure to a more readable format
@@ -46,8 +47,7 @@ func createConfigurationReport(molly *types.Molly) map[string]interface{} {
 	f2 := make(map[string]interface{})
 	f2["command"] = os.Args
 	f2["time"] = time.Now()
-	f2["outdir"] = molly.ExtractDir
-	f2["repdir"] = molly.ReportDir
+	f2["outdir"] = molly.OutDir
 	f2["rulecount"] = len(molly.Rules.Flat)
 	maj, min, mnt := lib.Version()
 	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
@@ -16,39 +17,41 @@ import (
 
 // newEmptyDir accepts a new or empty dir and if new creates it
 func newEmptyDir(dirname string) error {
-	if info, err := os.Stat(dirname); err == nil {
-		if !info.IsDir() {
-			return fmt.Errorf("'%s' is a file", dirname)
+	typ := util.GetPathType(dirname)
+	switch typ {
+	case util.File:
+		return fmt.Errorf("'%s' is a file", dirname)
+	case util.NonEmptyDir:
+		return fmt.Errorf("'%s' exists and is not empty", dirname)
+	case util.Error:
+		return fmt.Errorf("'%s' could not be checked", dirname)
+	default:
+		return util.Mkdir(dirname)
+	}
+}
+
+// suggestBaseName picks a new base name for a file
+func suggestBaseName(m *types.Molly, input *types.Input) string {
+	for i := 0; ; i++ {
+		basename := filepath.Join(m.OutDir, util.SanitizeFilename(input.Filename))
+		if i != 0 {
+			basename = fmt.Sprintf("%s_%04d", basename, i)
+		}
+		if util.GetPathType(basename) == util.NoFile && util.GetPathType(basename+"_") == util.NoFile {
+			return basename
 		}
 	}
-	if file, err := os.Open(dirname); err == nil {
-		defer file.Close()
-		if files, err := file.Readdir(1); err == nil {
-			if len(files) > 0 {
-				return fmt.Errorf("'%s' exists and is not empty", dirname)
-			}
-		}
-	}
-	return util.Mkdir(dirname)
 }
 
 // New creates a new molly context
-func New(extratDir, reportDir string, maxDepth int) *types.Molly {
-	if extratDir == "" {
-		extratDir, _ = ioutil.TempDir("", "molly-out")
+func New(outdir string, maxDepth int) *types.Molly {
+	if outdir == "" {
+		outdir, _ = ioutil.TempDir("", "molly-out")
 	}
-	if reportDir == "" {
-		reportDir, _ = ioutil.TempDir("", "molly-log")
+	if err := newEmptyDir(outdir); err != nil {
+		util.RegisterFatalf("Failed to create output dir: %v", err)
 	}
-
-	if err := newEmptyDir(extratDir); err != nil {
-		util.RegisterFatalf("Failed to create extraction dir: %v", err)
-	}
-	if err := newEmptyDir(reportDir); err != nil {
-		util.RegisterFatalf("Failed to create report dir: %v", err)
-	}
-
-	return types.NewMolly(extratDir, reportDir, maxDepth)
+	return types.NewMolly(outdir, maxDepth)
 }
 
 // LoadRules reads rules from files
@@ -84,6 +87,16 @@ func processTags(m *types.Molly, fr *types.Input) {
 }
 
 func scanInput(m *types.Molly, env *types.Env, i *types.Input) {
+	// update basename to something we can use to create files from
+	if i.Parent == nil {
+		i.Basename = suggestBaseName(m, i)
+
+		// make sure its path is there and we have a soft link to the real file
+		path, _ := filepath.Split(i.Basename)
+		util.SafeMkdir(path)
+		os.Symlink(i.Filename, i.Basename)
+	}
+
 	env.SetInput(i)
 	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
 		for _, rule := range m.Rules.Top {
@@ -157,7 +170,6 @@ func ScanFiles(m *types.Molly, files []string) (*types.Report, error) {
 		if filename == "" {
 			break
 		}
-
 		fr := scanFile(m, env, filename, size, parent)
 		if !fr.Empty() {
 			report.Add(fr)

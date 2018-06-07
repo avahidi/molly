@@ -23,21 +23,16 @@ func Extensions(filename string) []string {
 }
 
 // SanitizeFilename performs file name sanitization
-func SanitizeFilename(filename string, filter func(rune) bool) string {
-	var buf bytes.Buffer
-	if filter == nil {
-		filter = func(r rune) bool {
-			const badchars = "()\\;<>?* \000"
-			return strings.IndexRune(badchars, r) != -1 || !strconv.IsPrint(r)
-		}
-	}
-
+func SanitizeFilename(filename string) string {
+	const badchars = "()\\;<>?* \000"
 	filename = strings.Replace(filename, "..", "_", -1)
+
+	var buf bytes.Buffer
 	for _, r := range filename {
 		if r == 0 {
 			break
 		}
-		if filter(r) {
+		if strings.IndexRune(badchars, r) != -1 || !strconv.IsPrint(r) {
 			buf.WriteRune('_')
 		} else {
 			buf.WriteRune(r)
@@ -72,4 +67,36 @@ func SafeCreateFile(filename string) (*os.File, error) {
 	}
 
 	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0644)
+}
+
+// PathType is type of a path such as /tmp, i.e. wether its a file or a dir etc
+type PathType int
+
+const (
+	Error PathType = iota
+	NoFile
+	File
+	EmptyDir
+	NonEmptyDir
+)
+
+// GetPathType returns type of a path
+func GetPathType(path string) PathType {
+	info, err := os.Stat(path)
+	if err != nil {
+		return NoFile
+	}
+	if !info.IsDir() {
+		return File
+	}
+
+	if file, err := os.Open(path); err == nil {
+		defer file.Close()
+		files, _ := file.Readdir(1)
+		if len(files) == 0 {
+			return EmptyDir
+		}
+		return NonEmptyDir
+	}
+	return Error
 }

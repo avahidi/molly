@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bitbucket.org/vahidi/molly/lib/types"
 	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"bitbucket.org/vahidi/molly/lib/types"
 )
 
 func opListParse(opstrs []string) (map[string]string, error) {
@@ -30,9 +31,9 @@ func opLookupVariable(m *types.Molly, i *types.Input, cmd, data string) (interfa
 	// actions or complex variables
 	switch cmd {
 	case "newfile":
-		return m.CreateName(i, data, false), nil
+		return m.CreateName(i, data, false, false), nil
 	case "newlog":
-		return m.CreateName(i, data, true), nil
+		return m.CreateName(i, data, false, true), nil
 	}
 
 	return nil, fmt.Errorf("unknown variable: '%s'", cmd)

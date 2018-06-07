@@ -10,6 +10,7 @@ import (
 type Input struct {
 	Reader   io.ReadSeeker
 	Filename string
+	Basename string
 	Filesize int64
 
 	// hierarchy
@@ -29,6 +30,7 @@ type Input struct {
 func NewInput(filename string, filesize int64) *Input {
 	return &Input{
 		Filename: filename,
+		Basename: filename,
 		Filesize: filesize,
 	}
 }

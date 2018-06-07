@@ -52,8 +52,7 @@ Options are::
    -r <inline rule>             inline rule string
    -disable <option>
    -enable <option>
-   -outdir <output directory>   (default "output/extracted")
-   -repdir <report directory>   (default "output/reports")
+   -outdir <output directory>   (default "output")
    -on-rule <rulename:cmd>      rule match operation definition
    -on-tag <tagname:cmd>        tag match operation definition
 

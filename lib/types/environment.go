@@ -59,7 +59,7 @@ func (e Env) GetSize() uint64 {
 }
 
 func (e *Env) Name(name string, islog bool) (string, error) {
-	return e.m.CreateName(e.Input, name, islog), nil
+	return e.m.CreateName(e.Input, name, false, islog), nil
 }
 
 func (e *Env) Create(name string) (*os.File, error) {

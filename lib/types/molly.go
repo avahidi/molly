@@ -3,16 +3,14 @@ package types
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
+	"path"
 
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
 // Molly represents the context of a molly program
 type Molly struct {
-	ExtractDir string
-	ReportDir  string
+	OutDir string
 
 	Rules *RuleSet
 	Files *util.FileQueue
@@ -22,79 +20,66 @@ type Molly struct {
 
 	MaxDepth  int
 	Processed map[string]*Input
-
-	pathCnt   int
-	pathCache map[string]string
 }
 
 // NewMolly creates a new Molly context
-func NewMolly(extratDir, reportDir string, maxDepth int) *Molly {
+func NewMolly(outdir string, maxDepth int) *Molly {
 	return &Molly{
-		ExtractDir: extratDir,
-		ReportDir:  reportDir,
-		Rules:      NewRuleSet(),
-		Files:      util.NewFileQueue(false),
-		MaxDepth:   maxDepth,
-		Processed:  make(map[string]*Input),
-		pathCache:  make(map[string]string),
+		OutDir:    outdir,
+		Rules:     NewRuleSet(),
+		Files:     util.NewFileQueue(false),
+		MaxDepth:  maxDepth,
+		Processed: make(map[string]*Input),
 	}
 }
 
-func (m *Molly) CreateName(parent *Input, name string, islog bool) string {
-	var parentName string
-	if parent != nil {
-		parentName = parent.Filename
-	}
+func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string {
+	name = util.SanitizeFilename(name)
+	var newname string
 
-	home := m.ExtractDir
-	if islog {
-		home = m.ReportDir
-	}
-
-	base, found := m.pathCache[parentName]
-	if !found {
-		subdir := parentName
-		if strings.HasPrefix(subdir, home) {
-			subdir = subdir[len(home):]
+	// get a unique name we can use
+	for i := 0; ; i++ {
+		if islog {
+			if i == 0 {
+				newname = fmt.Sprintf("%s_molly_%s", parent.Basename, name)
+			} else {
+				newname = fmt.Sprintf("%s_molly_%04d_%s", parent.Basename, i, name)
+			}
 		} else {
-			_, subdir = filepath.Split(subdir)
+			if i == 0 {
+				newname = fmt.Sprintf("%s_/%s", parent.Basename, name)
+			} else {
+				newname = fmt.Sprintf("%s_/%04d_%s", parent.Basename, i, name)
+			}
 		}
-		subdir = fmt.Sprintf("%s_%04d", subdir, m.pathCnt)
-		m.pathCnt++
-		base = filepath.Join(home, subdir)
-		m.pathCache[parentName] = base
-	}
-	name = util.SanitizeFilename(name, nil)
-	newname := filepath.Join(base, name)
-	for {
-		if _, err := os.Stat(newname); err != nil {
+		if util.GetPathType(newname) == util.NoFile {
 			break
 		}
-		newname = filepath.Join(base, fmt.Sprintf("%04d_%s", m.pathCnt, name))
-		m.pathCnt++
 	}
 
-	// register it!
+	// make sure parent folders exist
+	if isdir {
+		util.SafeMkdir(newname)
+	} else {
+		base, _ := path.Split(newname)
+		util.SafeMkdir(base)
+	}
+
+	// remember it:
 	if islog {
 		parent.Logs = append(parent.Logs, newname)
 	} else {
 		m.Files.Push(newname)
 	}
-
-	path, _ := filepath.Split(newname)
-	if path != "" {
-		util.SafeMkdir(path)
-	}
-
 	return newname
 }
 
 func (m *Molly) CreateFile(parent *Input, name string, islog bool) (*os.File, error) {
-	newfile := m.CreateName(parent, name, islog)
+	newfile := m.CreateName(parent, name, false, islog)
 	return util.SafeCreateFile(newfile)
 }
 
 func (m *Molly) CreateDir(parent *Input, name string) (string, error) {
-	newdir := m.CreateName(parent, name, false)
+	newdir := m.CreateName(parent, name, true, false)
 	return newdir, util.SafeMkdir(newdir)
 }
