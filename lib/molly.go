@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 
 	_ "bitbucket.org/vahidi/molly/lib/actions" // import default actions
@@ -15,6 +14,24 @@ import (
 	"bitbucket.org/vahidi/molly/lib/util"
 )
 
+// newEmptyDir accepts a new or empty dir and if new creates it
+func newEmptyDir(dirname string) error {
+	if info, err := os.Stat(dirname); err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("'%s' is a file", dirname)
+		}
+	}
+	if file, err := os.Open(dirname); err == nil {
+		defer file.Close()
+		if files, err := file.Readdir(1); err == nil {
+			if len(files) > 0 {
+				return fmt.Errorf("'%s' exists and is not empty", dirname)
+			}
+		}
+	}
+	return util.Mkdir(dirname)
+}
+
 // New creates a new molly context
 func New(extratDir, reportDir string, maxDepth int) *types.Molly {
 	if extratDir == "" {
@@ -23,10 +40,11 @@ func New(extratDir, reportDir string, maxDepth int) *types.Molly {
 	if reportDir == "" {
 		reportDir, _ = ioutil.TempDir("", "molly-log")
 	}
-	if err := util.Mkdir(extratDir); err != nil {
+
+	if err := newEmptyDir(extratDir); err != nil {
 		util.RegisterFatalf("Failed to create extraction dir: %v", err)
 	}
-	if err := util.Mkdir(reportDir); err != nil {
+	if err := newEmptyDir(reportDir); err != nil {
 		util.RegisterFatalf("Failed to create report dir: %v", err)
 	}
 
@@ -131,13 +149,7 @@ func ScanFiles(m *types.Molly, files []string) (*types.Report, error) {
 	env := types.NewEnv(m)
 
 	// add inputs
-	for _, file := range files {
-		abs, err := filepath.Abs(file)
-		if err != nil {
-			return nil, err
-		}
-		m.Files.Push(abs)
-	}
+	m.Files.Push(files...)
 
 	report := types.NewReport()
 	for {
