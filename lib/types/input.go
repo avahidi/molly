@@ -8,30 +8,28 @@ import (
 
 // Input represents a file scanned by molly
 type Input struct {
-	Reader   io.ReadSeeker
-	Filename string
-	Basename string
-	Filesize int64
+	Reader      io.ReadSeeker
+	Filename    string
+	FilenameOut string
+	Filesize    int64
 
 	// hierarchy
-	Depth  int
-	Parent *Input
+	Depth    int
+	Parent   *Input
+	Children []string
 
 	// These are filled as we scan the file
 	Matches []*Match
 	Errors  []error
 	Logs    []string
-
-	// private stuff
-	outdir string
 }
 
 // NewInput creates a new Input with given name, size and stream
 func NewInput(filename string, filesize int64) *Input {
 	return &Input{
-		Filename: filename,
-		Basename: filename,
-		Filesize: filesize,
+		Filename:    filename,
+		FilenameOut: filename,
+		Filesize:    filesize,
 	}
 }
 

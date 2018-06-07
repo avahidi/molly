@@ -86,15 +86,15 @@ func processTags(m *types.Molly, fr *types.Input) {
 	}
 }
 
-func scanInput(m *types.Molly, env *types.Env, i *types.Input) {
+func scanInput(m *types.Molly, env *types.Env, r *types.Report, i *types.Input) {
 	// update basename to something we can use to create files from
 	if i.Parent == nil {
-		i.Basename = suggestBaseName(m, i)
+		i.FilenameOut = suggestBaseName(m, i)
 
 		// make sure its path is there and we have a soft link to the real file
-		path, _ := filepath.Split(i.Basename)
+		path, _ := filepath.Split(i.FilenameOut)
 		util.SafeMkdir(path)
-		os.Symlink(i.Filename, i.Basename)
+		os.Symlink(i.Filename, i.FilenameOut)
 	}
 
 	env.SetInput(i)
@@ -114,6 +114,15 @@ func scanInput(m *types.Molly, env *types.Env, i *types.Input) {
 		}
 	}
 	processTags(m, i)
+
+	// this file might have generated a report, so log it
+	if !i.Empty() {
+		r.Add(i)
+	}
+	// this file may have created new files, scan them too
+	for _, offspring := range i.Children {
+		scanFile(m, env, r, offspring, i)
+	}
 }
 
 // ScanData scans a byte vector for matches.
@@ -121,59 +130,65 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	fr := types.NewInput("nopath/nofile", int64(len(data)))
 	fr.Reader = bytes.NewReader(data)
 	env := types.NewEnv(m)
-	scanInput(m, env, fr)
-
 	report := types.NewReport()
-	if !fr.Empty() {
-		report.Add(fr)
-	}
+	scanInput(m, env, report, fr)
+
 	return report, nil
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, filename string,
-	filesize int64, parent string) *types.Input {
-	fr := types.NewInput(filename, filesize)
-	fr.Parent = m.Processed[parent]
-	if fr.Parent != nil {
-		fr.Depth = fr.Parent.Depth + 1
-	}
-	m.Processed[filename] = fr
+func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
+	filename_ string, parent *types.Input) {
 
-	if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
-		fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
-		return fr
-	}
+	fl := &util.FileList{}
+	fl.Push(filename_)
+	for {
+		filename, size, err := fl.Pop()
+		if filename == "" {
+			return
+		}
 
-	r, err := os.Open(filename)
-	if err != nil {
-		fr.Errors = append(fr.Errors, err)
-		return fr
-	}
-	defer r.Close()
-	fr.Reader = r
+		if _, found := m.Processed[filename]; found {
+			continue // how can this even happen?
+		}
 
-	scanInput(m, env, fr)
-	return fr
+		fr := types.NewInput(filename, size)
+		fr.Parent = parent
+		if fr.Parent != nil {
+			fr.Depth = fr.Parent.Depth + 1
+		}
+		m.Processed[filename] = fr
+
+		// started with an error, no point moving in
+		if err != nil {
+			fr.Errors = append(fr.Errors, err)
+			continue
+		}
+
+		if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
+			fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
+			continue
+		}
+
+		r, err := os.Open(filename)
+		if err != nil {
+			fr.Errors = append(fr.Errors, err)
+		}
+		defer r.Close()
+		fr.Reader = r
+
+		scanInput(m, env, rep, fr)
+	}
 }
 
 // ScanFiles scans a set of files for matches.
 func ScanFiles(m *types.Molly, files []string) (*types.Report, error) {
 	env := types.NewEnv(m)
-
-	// add inputs
-	m.Files.Push(files...)
-
 	report := types.NewReport()
-	for {
-		filename, size, parent := m.Files.Pop()
-		if filename == "" {
-			break
-		}
-		fr := scanFile(m, env, filename, size, parent)
-		if !fr.Empty() {
-			report.Add(fr)
-		}
+
+	for _, filename := range files {
+		scanFile(m, env, report, filename, nil)
 	}
+
 	return report, nil
 }

@@ -117,14 +117,16 @@ func parseRuleStream(r io.Reader, filename string) ([]*parsedRule, error) {
 func ParseRuleFiles(db *types.Molly, files ...string) error {
 	var list []*parsedRule
 
-	inputs := util.NewFileQueue(true)
-	inputs.Push(files...)
-
+	fl := &util.FileList{FollowSymlinks: true, In: files}
 	for {
-		filename, _, _ := inputs.Pop()
-		if filename == "" {
-			break
+		filename, _, err := fl.Pop()
+		if err != nil {
+			return err
 		}
+		if filename == "" {
+			return addParsedToSet(db.Rules, list)
+		}
+
 		r, err := os.Open(filename)
 		if err != nil {
 			return err
@@ -137,8 +139,6 @@ func ParseRuleFiles(db *types.Molly, files ...string) error {
 		}
 		list = append(list, rules...)
 	}
-
-	return addParsedToSet(db.Rules, list)
 }
 
 // ParseRuleStream loads rules from a stream

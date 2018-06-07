@@ -11,9 +11,7 @@ import (
 // Molly represents the context of a molly program
 type Molly struct {
 	OutDir string
-
-	Rules *RuleSet
-	Files *util.FileQueue
+	Rules  *RuleSet
 
 	OnMatchRule func(file *Input, match *Match)
 	OnMatchTag  func(file *Input, tag string)
@@ -27,7 +25,6 @@ func NewMolly(outdir string, maxDepth int) *Molly {
 	return &Molly{
 		OutDir:    outdir,
 		Rules:     NewRuleSet(),
-		Files:     util.NewFileQueue(false),
 		MaxDepth:  maxDepth,
 		Processed: make(map[string]*Input),
 	}
@@ -41,15 +38,15 @@ func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string
 	for i := 0; ; i++ {
 		if islog {
 			if i == 0 {
-				newname = fmt.Sprintf("%s_molly_%s", parent.Basename, name)
+				newname = fmt.Sprintf("%s_molly_%s", parent.FilenameOut, name)
 			} else {
-				newname = fmt.Sprintf("%s_molly_%04d_%s", parent.Basename, i, name)
+				newname = fmt.Sprintf("%s_molly_%04d_%s", parent.FilenameOut, i, name)
 			}
 		} else {
 			if i == 0 {
-				newname = fmt.Sprintf("%s_/%s", parent.Basename, name)
+				newname = fmt.Sprintf("%s_/%s", parent.FilenameOut, name)
 			} else {
-				newname = fmt.Sprintf("%s_/%04d_%s", parent.Basename, i, name)
+				newname = fmt.Sprintf("%s_/%04d_%s", parent.FilenameOut, i, name)
 			}
 		}
 		if util.GetPathType(newname) == util.NoFile {
@@ -69,7 +66,7 @@ func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string
 	if islog {
 		parent.Logs = append(parent.Logs, newname)
 	} else {
-		m.Files.Push(newname)
+		parent.Children = append(parent.Children, newname)
 	}
 	return newname
 }
