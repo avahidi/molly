@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"syscall"
 
 	"bitbucket.org/vahidi/molly/lib/types"
 	"bitbucket.org/vahidi/molly/lib/util"
@@ -34,6 +33,13 @@ const (
 	// compression
 	jffs2ComprNone = 0x00
 	jffs2ComprZlib = 0x06
+)
+
+// these are in syscall but thats not available on Windows:
+const (
+	DT_DIR = 0x4
+	DT_REG = 0x8
+	DT_LNK = 0xa
 )
 
 // jinode is our internal representation of an inode
@@ -254,15 +260,15 @@ func (c *jcontext) writeLink(prefix string, j *jdnode) error {
 
 func (c *jcontext) create(prefix string, j *jdnode) error {
 	switch int(j.typ) {
-	case syscall.DT_DIR:
+	case DT_DIR:
 		for _, ch := range j.children {
 			if err := c.create(path.Join(prefix, j.name), ch); err != nil {
 				return err
 			}
 		}
-	case syscall.DT_REG:
+	case DT_REG:
 		return c.writeFile(prefix, j)
-	case syscall.DT_LNK:
+	case DT_LNK:
 		return c.writeLink(prefix, j)
 	default:
 		fmt.Printf("jff2s: ignoring file of type %08x\n", j.typ)
