@@ -25,7 +25,8 @@ func Extensions(filename string) []string {
 // SanitizeFilename performs file name sanitization
 func SanitizeFilename(filename string) string {
 	const badchars = "()\\;<>?* \000"
-	filename = strings.Replace(filename, "..", "_", -1)
+	filename = strings.Replace(filename, "../", "", -1)
+	filename = strings.Replace(filename, "..", "", -1)
 
 	var buf bytes.Buffer
 	for _, r := range filename {

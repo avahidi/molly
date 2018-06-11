@@ -94,7 +94,10 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report, i *types.Input) 
 		// make sure its path is there and we have a soft link to the real file
 		path, _ := filepath.Split(i.FilenameOut)
 		util.SafeMkdir(path)
-		os.Symlink(i.Filename, i.FilenameOut)
+
+		// make sure we link to the absolute path
+		filename_abs, _ := filepath.Abs(i.Filename)
+		os.Symlink(filename_abs, i.FilenameOut)
 	}
 
 	env.SetInput(i)
