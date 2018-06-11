@@ -22,12 +22,12 @@ To install Go on Ubuntu 16.04 LTS::
 
 Now download and build molly::
 
-    go get -u bitbucket.org/vahidi/molly/...
+    go get -u bitbucket.org/vahidi/molly/cmd/...
 
 For development builds we use make::
 
     cd $GOPATH/src/bitbucket.org/vahidi/molly
-    make && makea test && make run
+    make && make test && make run
 
 Pre-built binaries are found on the
 `download page <https://bitbucket.org/vahidi/molly/downloads/>`_,
@@ -161,7 +161,7 @@ API
 molly source code is divided into a small command-line tool and a library
 that can be used separately. Using the library in your own code is quite simple::
 
-    import "bitbucket.org/vahidi/molly/lib"
+    import "bitbucket.org/vahidi/molly"
     ...
     // error handling not shown
     molly := lib.New(... )
@@ -174,8 +174,8 @@ Extending molly
 
 To extend the functionality you can register your own operators and actions::
 
-    import "bitbucket.org/vahidi/molly/lib/actions"
-    import "bitbucket.org/vahidi/molly/lib/types"
+    import "bitbucket.org/vahidi/molly/actions"
+    import "bitbucket.org/vahidi/molly/types"
     ...
     actions.ActionRegister("example",  func(e *types.Env, n int) (int, error) { return n * 2, nil })
 

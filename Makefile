@@ -9,7 +9,8 @@ compile: molly
 
 .PHONY: molly
 molly:
-	go build
+	go build ./...
+	go build ./cmd/...
 
 run: compile output
 	rm -rf output
@@ -71,5 +72,6 @@ output:
 clean:
 	go clean
 	rm -rf build output
+	rm -f molly
 
 .PHYONY: fmt clean run compile test molly
