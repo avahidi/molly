@@ -49,7 +49,7 @@ func New(outdir string, maxDepth int) *types.Molly {
 		outdir, _ = ioutil.TempDir("", "molly-out")
 	}
 	if err := newEmptyDir(outdir); err != nil {
-		util.RegisterFatalf("Failed to create output dir: %v", err)
+		util.RegisterFatalf("Failed to create output directory: %v", err)
 	}
 	return types.NewMolly(outdir, maxDepth)
 }

@@ -30,6 +30,7 @@ test:
 fmt:
 	go fmt ./...
 
+.PHONY: report
 report:
 	-go get -u github.com/client9/misspell/cmd/misspell
 	-go get -u github.com/fzipp/gocyclo
