@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -71,12 +72,12 @@ func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string
 	return newname
 }
 
-func (m *Molly) CreateFile(parent *Input, name string, islog bool) (*os.File, error) {
+func (m *Molly) CreateFile(parent *Input, name string, t *time.Time, islog bool) (*os.File, error) {
 	newfile := m.CreateName(parent, name, false, islog)
-	return util.SafeCreateFile(newfile)
+	return util.SafeCreateFileWithTime(newfile, t)
 }
 
-func (m *Molly) CreateDir(parent *Input, name string) (string, error) {
+func (m *Molly) CreateDir(parent *Input, name string, t *time.Time) (string, error) {
 	newdir := m.CreateName(parent, name, true, false)
-	return newdir, util.SafeMkdir(newdir)
+	return newdir, util.SafeMkdirWithTime(newdir, t)
 }

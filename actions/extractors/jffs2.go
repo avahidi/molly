@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -119,7 +120,7 @@ type jdnode struct {
 // jcontext is our internal context holder
 type jcontext struct {
 	util.Structured
-	Create  func(string) (*os.File, error)
+	Create  func(string, *time.Time) (*os.File, error)
 	nodemap map[uint32]*jdnode
 }
 
@@ -235,7 +236,7 @@ func (c *jcontext) writeFile(prefix string, j *jdnode) error {
 	if len(data) > 0 { // remove EOF?
 		data = data[:len(data)-1]
 	}
-	file, err := c.Create(path.Join(prefix, j.name))
+	file, err := c.Create(path.Join(prefix, j.name), nil)
 	if err != nil {
 		return err
 	}
@@ -249,7 +250,7 @@ func (c *jcontext) writeLink(prefix string, j *jdnode) error {
 	if err != nil {
 		return err
 	}
-	file, err := c.Create(path.Join(prefix, j.name+".link"))
+	file, err := c.Create(path.Join(prefix, j.name+".link"), nil)
 	if err != nil {
 		return err
 	}

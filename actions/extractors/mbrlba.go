@@ -35,7 +35,7 @@ func MbrLba(e *types.Env, name string) (string, error) {
 		end := start + int64(partition.LbaSize)*512
 		if end > start && start < filesize {
 			filename := fmt.Sprintf("%s%d_%x_%x_%02x", name, i+1, start, end, partition.Typ)
-			w, err := e.Create(filename)
+			w, err := e.Create(filename, nil)
 			if err != nil {
 				return "", err
 			}

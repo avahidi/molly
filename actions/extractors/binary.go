@@ -10,7 +10,7 @@ import (
 
 // BinarySlice creates a file from a slice
 func BinarySlice(e *types.Env, name string, positions ...uint64) (string, error) {
-	w, err := e.Create(name)
+	w, err := e.Create(name, nil)
 	if err != nil {
 		return "", err
 	}

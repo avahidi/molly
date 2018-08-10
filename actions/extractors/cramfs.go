@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -51,7 +52,7 @@ func (c cramInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
 
 type cramContext struct {
 	util.Structured
-	Create func(string) (*os.File, error)
+	Create func(string, *time.Time) (*os.File, error)
 }
 
 func (c cramContext) inodeDir(inode *cramInode, name string) error {
@@ -84,7 +85,7 @@ func (c cramContext) inodeFile(inode *cramInode, name string) error {
 	size := int64(inode.Size())
 	nblocks := (size-1)/cramBlkSize + 1
 
-	w, err := c.Create(name)
+	w, err := c.Create(name, nil)
 	if err != nil {
 		return err
 	}

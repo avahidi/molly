@@ -17,7 +17,7 @@ func extractOneFile(e *types.Env, f *zip.File, prefix string) error {
 	// in reality, we should use f.Mode() but we are replacing it
 	// with our own default permissions
 	if !f.FileInfo().IsDir() {
-		w, err := e.Create(prefix + f.Name)
+		w, err := e.Create(prefix+f.Name, nil)
 		if err != nil {
 			return err
 		}

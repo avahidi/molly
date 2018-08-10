@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -62,15 +63,15 @@ func (e *Env) Name(name string, islog bool) (string, error) {
 	return e.m.CreateName(e.Input, name, false, islog), nil
 }
 
-func (e *Env) Create(name string) (*os.File, error) {
-	return e.m.CreateFile(e.Input, name, false)
+func (e *Env) Create(name string, t *time.Time) (*os.File, error) {
+	return e.m.CreateFile(e.Input, name, t, false)
 }
 
-func (e *Env) Mkdir(path string) (string, error) {
-	return e.m.CreateDir(e.Input, path)
+func (e *Env) Mkdir(path string, t *time.Time) (string, error) {
+	return e.m.CreateDir(e.Input, path, t)
 }
 
 // CreateLog creates a new log
 func (e *Env) CreateLog(name string) (*os.File, error) {
-	return e.m.CreateFile(e.Input, name, true)
+	return e.m.CreateFile(e.Input, name, nil, true)
 }

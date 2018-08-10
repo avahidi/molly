@@ -96,7 +96,7 @@ func Uncpio(e *types.Env, prefix string) (string, error) {
 
 		// copy file contents
 		if filesize > 0 {
-			w, err := e.Create(prefix + string(name))
+			w, err := e.Create(prefix+string(name), nil)
 			if err != nil {
 				return "", err
 			}

@@ -21,7 +21,7 @@ func Untar(e *types.Env, prefix string) (string, error) {
 		}
 
 		if !h.FileInfo().IsDir() {
-			w, err := e.Create(prefix + h.Name)
+			w, err := e.Create(prefix+h.Name, nil)
 			if err != nil {
 				return "", err
 			}

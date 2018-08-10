@@ -29,7 +29,7 @@ func Ungzip(e *types.Env, prefix string) (string, error) {
 	}
 
 	// open output file and unpack gzip to it
-	w, err := e.Create(name)
+	w, err := e.Create(name, nil)
 	if err != nil {
 		return "", err
 	}

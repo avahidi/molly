@@ -9,7 +9,7 @@ func fileFunction(e *types.Env, prefix string) (string, error) {
 }
 
 func dirFunction(e *types.Env, prefix string) (string, error) {
-	return e.Mkdir(prefix)
+	return e.Mkdir(prefix, nil)
 }
 
 func init() {
