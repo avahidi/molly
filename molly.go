@@ -177,10 +177,12 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		if err != nil {
 			fr.Errors = append(fr.Errors, err)
 		}
-		defer r.Close()
-		fr.Reader = r
 
+		fr.Reader = r
 		scanInput(m, env, rep, fr)
+
+		// manual Close insted of defer Close, or we will have too many files open
+		r.Close()
 	}
 }
 

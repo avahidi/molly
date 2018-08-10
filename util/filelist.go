@@ -30,10 +30,10 @@ func (fl *FileList) Pop() (string, int64, error) {
 		filename := fl.In[n-1]
 		fl.In = fl.In[:n-1]
 
-		fi, err := os.Stat(filename)
+		fi, err := os.Lstat(filename)
 		if err != nil {
 			// let someone else take care of the error
-			return "", 0, err
+			return filename, 0, err
 		}
 
 		if !fl.FollowSymlinks && (fi.Mode()&os.ModeSymlink) != 0 {
