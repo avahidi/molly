@@ -154,8 +154,7 @@ func writeMatchFile(molly *types.Molly, r *types.Report, base string) error {
 
 	results := make(map[string]interface{})
 	for _, file := range r.Files {
-		// results[file.Filename] = inputToReportEntry(file)
-		results[file.Filename] = report.ExtractFlatMatches(file)
+		results[file.Filename] = report.ExtractMatchNames(file, true)
 	}
 	f1["matches"] = results
 

@@ -44,3 +44,18 @@ func ExtractFlatMatches(fr *types.Input) []*types.FlatMatch {
 	}
 	return ret
 }
+
+// ExtractMatchNames return name of all matches
+func ExtractMatchNames(i *types.Input, flatten bool) []string {
+	var ret []string
+	for _, m := range i.Matches {
+		m.Walk(func(match *types.Match) bool {
+			if !flatten && len(match.Children) > 0 {
+				return true
+			}
+			ret = append(ret, match.Rule.ID)
+			return true
+		})
+	}
+	return ret
+}

@@ -2,14 +2,14 @@ package types
 
 import (
 	"testing"
+	"time"
 )
 
 func TestInputGet(t *testing.T) {
-	i1 := NewInput("/dir1/dir2/filename.c", 1023)
-	i2 := NewInput("some.file.go", 555)
-	i3 := NewInput("new file", 0)
-	i2.Depth = 1
-	i2.Parent = i1
+	tid := time.Now()
+	i1 := NewInput(nil, "/dir1/dir2/filename.c", 1023, tid)
+	i2 := NewInput(i1, "some.file.go", 555, tid)
+	i3 := NewInput(i2, "new file", 0, tid)
 
 	var testdata = []struct {
 		target *Input
@@ -38,6 +38,8 @@ func TestInputGet(t *testing.T) {
 		{i3, "shortname", "new file"},
 		{i3, "dirname", ""},
 		{i3, "ext", ""},
+		{i3, "parent", i2.Filename},
+		{i3, "time", tid},
 	}
 
 	for _, test := range testdata {

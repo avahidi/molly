@@ -68,6 +68,8 @@ func (i Input) Empty() bool {
 // in the actions as {name}
 func (i Input) Get(name string) (interface{}, bool) {
 	switch name {
+	case "time":
+		return i.Time, true
 	case "filename":
 		return i.Filename, true
 	case "shortname":
