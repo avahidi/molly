@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	_ "bitbucket.org/vahidi/molly/actions" // import default actions
 	"bitbucket.org/vahidi/molly/report"
@@ -130,7 +131,7 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report, i *types.Input) 
 
 // ScanData scans a byte vector for matches.
 func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
-	fr := types.NewInput("nopath/nofile", int64(len(data)))
+	fr := types.NewInput(nil, "nopath/nofile", int64(len(data)), time.Now())
 	fr.Reader = bytes.NewReader(data)
 	env := types.NewEnv(m)
 	report := types.NewReport()
@@ -146,7 +147,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 	fl := &util.FileList{}
 	fl.Push(filename_)
 	for {
-		filename, size, err := fl.Pop()
+		filename, fi, err := fl.Pop()
 		if filename == "" {
 			return
 		}
@@ -155,11 +156,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 			continue // how can this even happen?
 		}
 
-		fr := types.NewInput(filename, size)
-		fr.Parent = parent
-		if fr.Parent != nil {
-			fr.Depth = fr.Parent.Depth + 1
-		}
+		fr := types.NewInput(parent, filename, fi.Size(), fi.ModTime())
 		m.Processed[filename] = fr
 
 		// started with an error, no point moving in

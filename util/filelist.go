@@ -19,12 +19,13 @@ func (fl *FileList) Push(paths ...string) {
 }
 
 // Pop takes a file from the queue
-func (fl *FileList) Pop() (string, int64, error) {
+func (fl *FileList) Pop() (string, os.FileInfo, error) {
+	var fi os.FileInfo
 	for {
 		// pop one from the queue
 		n := len(fl.In)
 		if n == 0 {
-			return "", 0, nil
+			return "", fi, nil
 		}
 
 		filename := fl.In[n-1]
@@ -33,7 +34,7 @@ func (fl *FileList) Pop() (string, int64, error) {
 		fi, err := os.Lstat(filename)
 		if err != nil {
 			// let someone else take care of the error
-			return filename, 0, err
+			return filename, fi, err
 		}
 
 		if !fl.FollowSymlinks && (fi.Mode()&os.ModeSymlink) != 0 {
@@ -45,19 +46,19 @@ func (fl *FileList) Pop() (string, int64, error) {
 		if mode.IsDir() {
 			dir, err := os.Open(filename)
 			if err != nil {
-				return filename, 0, err
+				return filename, fi, err
 			}
 			defer dir.Close()
 
 			files, err := dir.Readdir(0)
 			if err != nil {
-				return filename, 0, err
+				return filename, fi, err
 			}
 			for _, file := range files {
 				fl.Push(filepath.Join(filename, file.Name()))
 			}
 		} else if mode.IsRegular() {
-			return filename, fi.Size(), nil
+			return filename, fi, nil
 		} else {
 			RegisterWarningf("Ignoring file '%s' (bad mode %s)", filename, mode)
 		}

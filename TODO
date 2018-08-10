@@ -2,6 +2,10 @@
 TODO
 ====
 
+* Input can now hold creation data, but we have no way of communicating that to
+extractors such as ZIP which extract their own date fields
+
+
 * RuleEval seems to ignore all errors when evaluating expressions.
 What we want to report anything other than extraction errors (e.g. unexpected EOF)
 

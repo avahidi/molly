@@ -182,6 +182,11 @@ func main() {
 
 	var errors []error
 
+	// generate scan file
+	if err := writeScanFiles(molly, report); err != nil {
+		errors = append(errors, err)
+	}
+
 	// generate summary file
 	if err := writeSummaryFile(molly, report, *outdir); err != nil {
 		errors = append(errors, err)

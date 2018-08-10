@@ -4,6 +4,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Input represents a file scanned by molly
@@ -12,6 +13,8 @@ type Input struct {
 	Filename    string
 	FilenameOut string
 	Filesize    int64
+
+	Time time.Time
 
 	// hierarchy
 	Depth    int
@@ -25,12 +28,24 @@ type Input struct {
 }
 
 // NewInput creates a new Input with given name, size and stream
-func NewInput(filename string, filesize int64) *Input {
-	return &Input{
+func NewInput(parent *Input, filename string, filesize int64, filetime time.Time) *Input {
+	i := &Input{
 		Filename:    filename,
 		FilenameOut: filename,
 		Filesize:    filesize,
+		Parent:      parent,
+		Time:        filetime,
 	}
+
+	// update parent data and make sure child is not newer than parent
+	if parent != nil {
+		i.Depth = parent.Depth + 1
+		if filetime.After(i.Time) {
+			i.Time = parent.Time
+		}
+	}
+
+	return i
 }
 
 // Read Implements io.Reader

@@ -20,7 +20,11 @@ func inputToReportEntry(file *types.Input) map[string]interface{} {
 	ret["filename"] = file.Filename
 	ret["filesize"] = file.Filesize
 	ret["depth"] = file.Depth
-	ret["matches"] = report.ExtractFlatMatches(file)
+	ret["time"] = file.Time.Format(time.RFC3339)
+
+	if len(file.Matches) > 0 {
+		ret["matches"] = report.ExtractFlatMatches(file)
+	}
 
 	if file.Parent != nil {
 		ret["parent"] = file.Parent.Filename
@@ -119,6 +123,25 @@ func writeSummaryFile(molly *types.Molly, r *types.Report, base string) error {
 	return nil
 }
 
+func writeScanFiles(molly *types.Molly, r *types.Report) error {
+	for _, file := range molly.Processed {
+		rep := inputToReportEntry(file)
+
+		bs, err := json.MarshalIndent(rep, "", "\t")
+		if err != nil {
+			return err
+		}
+
+		w, err := os.Create(fmt.Sprintf("%s_molly.json", file.FilenameOut))
+		if err != nil {
+			return err
+		}
+		w.Write(bs)
+		w.Close() // manual Close() or we will have too many files open
+	}
+	return nil
+}
+
 func writeMatchFile(molly *types.Molly, r *types.Report, base string) error {
 	w, err := os.Create(filepath.Join(base, "match.json"))
 	if err != nil {
@@ -131,7 +154,8 @@ func writeMatchFile(molly *types.Molly, r *types.Report, base string) error {
 
 	results := make(map[string]interface{})
 	for _, file := range r.Files {
-		results[file.Filename] = inputToReportEntry(file)
+		// results[file.Filename] = inputToReportEntry(file)
+		results[file.Filename] = report.ExtractFlatMatches(file)
 	}
 	f1["matches"] = results
 
