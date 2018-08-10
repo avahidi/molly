@@ -6,50 +6,74 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 )
 
-func cpioBinaryParser(r io.Reader) (int64, int64, error) {
+type cpioFileHead struct {
+	namesize int
+	filesize int64
+	mtime    int64
+}
+
+func cpioBinaryParser(r io.Reader) (*cpioFileHead, error) {
 	var head struct {
 		Magic     uint16
-		Garbage   [9]uint16
+		Garbage   [7]uint16
+		MTime     [2]uint16
 		NameSize  uint16
 		FileSizes [2]uint16
 	}
 	if err := binary.Read(r, binary.LittleEndian, &head); err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	if head.Magic != 0x71c7 {
-		return 0, 0, fmt.Errorf("Not CPIO header?")
+		return nil, fmt.Errorf("Not CPIO header?")
 	}
-	return int64(head.NameSize),
-		int64(head.FileSizes[1]) + (int64(head.FileSizes[0]) << 16), nil
+
+	return &cpioFileHead{
+		namesize: int(head.NameSize),
+		filesize: int64(head.FileSizes[1]) + (int64(head.FileSizes[0]) << 16),
+		mtime:    int64(head.MTime[1]) + (int64(head.MTime[0]) << 16),
+	}, nil
 }
 
-func cpioAsciiParser(r io.Reader) (int64, int64, error) {
+func cpioAsciiParser(r io.Reader) (*cpioFileHead, error) {
 	var head struct {
 		Magic    [6]byte
-		Garbage  [53]byte
+		Garbage  [42]byte
+		MTime    [11]byte
 		NameSize [6]byte
 		FileSize [11]byte
 	}
 	if err := binary.Read(r, binary.LittleEndian, &head); err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	if string(head.Magic[:]) != "070707" {
-		return 0, 0, fmt.Errorf("Not CPIO header?")
+		return nil, fmt.Errorf("Not CPIO header?")
 	}
 	ns, err := strconv.ParseInt(string(head.NameSize[:]), 8, 64)
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	fs, err := strconv.ParseInt(string(head.FileSize[:]), 8, 64)
-	return int64(ns), int64(fs), err
+	if err != nil {
+		return nil, err
+	}
+
+	// cpio ascii mdate is octal ascii :(
+	mtime, err := strconv.ParseInt(string(head.MTime[:]), 8, 32)
+
+	return &cpioFileHead{
+		namesize: int(ns),
+		filesize: int64(fs),
+		mtime:    mtime,
+	}, err
 }
 
 func Uncpio(e *types.Env, prefix string) (string, error) {
-	var parser func(io.Reader) (int64, int64, error)
+	var parser func(io.Reader) (*cpioFileHead, error)
 	mustPad := false
 	r := e.Input
 
@@ -76,15 +100,15 @@ func Uncpio(e *types.Env, prefix string) (string, error) {
 	}
 	pad := make([]byte, 1)
 	for {
-		namesize, filesize, err := parser(r)
+		fh, err := parser(r)
 		if err != nil {
 			return "", err
 		}
 
 		// read name
-		name := make([]byte, namesize)
+		name := make([]byte, fh.namesize)
 		r.Read(name)
-		if mustPad && namesize%2 == 1 {
+		if mustPad && fh.namesize%2 == 1 {
 			r.Read(pad)
 		}
 		if name[len(name)-1] == 0 {
@@ -95,17 +119,19 @@ func Uncpio(e *types.Env, prefix string) (string, error) {
 		}
 
 		// copy file contents
-		if filesize > 0 {
-			w, err := e.Create(prefix+string(name), nil)
+		if fh.filesize > 0 {
+			tim := time.Unix(fh.mtime, 0)
+
+			w, err := e.Create(prefix+string(name), &tim)
 			if err != nil {
 				return "", err
 			}
 			defer w.Close()
 
-			if _, err = io.CopyN(w, r, filesize); err != nil {
+			if _, err = io.CopyN(w, r, fh.filesize); err != nil {
 				return "", err
 			}
-			if mustPad && filesize%2 == 1 {
+			if mustPad && fh.filesize%2 == 1 {
 				r.Read(pad)
 			}
 		}

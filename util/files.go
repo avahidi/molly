@@ -59,7 +59,7 @@ func SafeMkdir(path string) error {
 // SafeMkdirWithTime is similar to SafeMkdir but also sets dirtime
 func SafeMkdirWithTime(filename string, tim *time.Time) error {
 	err := SafeMkdir(filename)
-	if tim != nil && err != nil {
+	if err == nil && tim != nil {
 		err = os.Chtimes(filename, *tim, *tim)
 	}
 	return err
@@ -84,7 +84,7 @@ func SafeCreateFile(filename string) (*os.File, error) {
 // SafeCreateFileWithTime is similar to SafeMkdir but also sets dirtime
 func SafeCreateFileWithTime(filename string, tim *time.Time) (*os.File, error) {
 	fil, err := SafeCreateFile(filename)
-	if tim != nil && err != nil {
+	if err == nil && tim != nil {
 		err = os.Chtimes(filename, *tim, *tim)
 	}
 	return fil, err
