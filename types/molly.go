@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -14,26 +13,27 @@ type Molly struct {
 	OutDir string
 	Rules  *RuleSet
 
-	OnMatchRule func(file *Input, match *Match)
-	OnMatchTag  func(file *Input, tag string)
+	OnMatchRule func(file *FileData, match *Match)
+	OnMatchTag  func(file *FileData, tag string)
 
-	MaxDepth  int
-	Processed map[string]*Input
+	MaxDepth int
+	Files    map[string]*FileData
 }
 
 // NewMolly creates a new Molly context
 func NewMolly(outdir string, maxDepth int) *Molly {
 	return &Molly{
-		OutDir:    outdir,
-		Rules:     NewRuleSet(),
-		MaxDepth:  maxDepth,
-		Processed: make(map[string]*Input),
+		OutDir:   outdir,
+		Rules:    NewRuleSet(),
+		MaxDepth: maxDepth,
+		Files:    make(map[string]*FileData),
 	}
 }
 
-func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string {
+func (m *Molly) New(parent *FileData, name string, isdir, islog bool) (string, *FileData) {
 	name = util.SanitizeFilename(name)
 	var newname string
+	var newdata *FileData
 
 	// get a unique name we can use
 	for i := 0; ; i++ {
@@ -50,7 +50,7 @@ func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string
 				newname = fmt.Sprintf("%s_/%04d_%s", parent.FilenameOut, i, name)
 			}
 		}
-		if util.GetPathType(newname) == util.NoFile {
+		if _, found := m.Files[newname]; !found && util.GetPathType(newname) == util.NoFile {
 			break
 		}
 	}
@@ -67,17 +67,21 @@ func (m *Molly) CreateName(parent *Input, name string, isdir, islog bool) string
 	if islog {
 		parent.Logs = append(parent.Logs, newname)
 	} else {
-		parent.Children = append(parent.Children, newname)
+		newdata = NewFileData(newname, parent)
+		m.Files[newname] = newdata
+		parent.Children = append(parent.Children, newdata)
 	}
-	return newname
+
+	return newname, newdata
 }
 
-func (m *Molly) CreateFile(parent *Input, name string, t *time.Time, islog bool) (*os.File, error) {
-	newfile := m.CreateName(parent, name, false, islog)
-	return util.SafeCreateFileWithTime(newfile, t)
+func (m *Molly) CreateFile(parent *FileData, name string, islog bool) (*os.File, *FileData, error) {
+	newfile, newdata := m.New(parent, name, false, islog)
+	f, err := util.SafeCreateFile(newfile)
+	return f, newdata, err
 }
 
-func (m *Molly) CreateDir(parent *Input, name string, t *time.Time) (string, error) {
-	newdir := m.CreateName(parent, name, true, false)
-	return newdir, util.SafeMkdirWithTime(newdir, t)
+func (m *Molly) CreateDir(parent *FileData, name string) (string, *FileData, error) {
+	newdir, newdata := m.New(parent, name, true, false)
+	return newdir, newdata, util.SafeMkdir(newdir)
 }

@@ -22,7 +22,7 @@ func opListParse(opstrs []string) (map[string]string, error) {
 	return m, nil
 }
 
-func opLookupVariable(m *types.Molly, i *types.Input, cmd, data string) (interface{}, error) {
+func opLookupVariable(m *types.Molly, i *types.FileData, cmd, data string) (interface{}, error) {
 	// simple variables coming from the input file?
 	if o, found := i.Get(cmd); found {
 		return o, nil
@@ -31,16 +31,18 @@ func opLookupVariable(m *types.Molly, i *types.Input, cmd, data string) (interfa
 	// actions or complex variables
 	switch cmd {
 	case "newfile":
-		return m.CreateName(i, data, false, false), nil
+		newname, _ := m.New(i, data, false, false)
+		return newname, nil
 	case "newlog":
-		return m.CreateName(i, data, false, true), nil
+		newname, _ := m.New(i, data, false, true)
+		return newname, nil
 	}
 
 	return nil, fmt.Errorf("unknown variable: '%s'", cmd)
 }
 
 // opReplaceVariables replaces variables such as {filename} with values
-func opReplaceVariables(m *types.Molly, s string, i *types.Input) (string, error) {
+func opReplaceVariables(m *types.Molly, s string, i *types.FileData) (string, error) {
 	str, cmd, data := bytes.Buffer{}, bytes.Buffer{}, bytes.Buffer{}
 
 	// simple state machine to extract cmd & data from "...{cmd:data}...""
@@ -88,7 +90,7 @@ func opReplaceVariables(m *types.Molly, s string, i *types.Input) (string, error
 	return str.String(), nil
 }
 
-func opExecute(m *types.Molly, cmdline string, i *types.Input) (string, error) {
+func opExecute(m *types.Molly, cmdline string, i *types.FileData) (string, error) {
 	var err error
 	// create list of command and arguments,
 	cmds := strings.Split(cmdline, " ")

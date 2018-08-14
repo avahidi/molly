@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -120,7 +119,7 @@ type jdnode struct {
 // jcontext is our internal context holder
 type jcontext struct {
 	util.Structured
-	Create  func(string, *time.Time) (*os.File, error)
+	Create  func(string) (*os.File, *types.FileData, error)
 	nodemap map[uint32]*jdnode
 }
 
@@ -236,7 +235,7 @@ func (c *jcontext) writeFile(prefix string, j *jdnode) error {
 	if len(data) > 0 { // remove EOF?
 		data = data[:len(data)-1]
 	}
-	file, err := c.Create(path.Join(prefix, j.name), nil)
+	file, _, err := c.Create(path.Join(prefix, j.name))
 	if err != nil {
 		return err
 	}
@@ -250,7 +249,7 @@ func (c *jcontext) writeLink(prefix string, j *jdnode) error {
 	if err != nil {
 		return err
 	}
-	file, err := c.Create(path.Join(prefix, j.name+".link"), nil)
+	file, _, err := c.Create(path.Join(prefix, j.name+".link"))
 	if err != nil {
 		return err
 	}
@@ -304,7 +303,7 @@ func (c jcontext) findPageSize(filesize int64) (int64, error) {
 // NOTE: link files are created as regular files named <name>.link
 func Unjffs2(e *types.Env, prefix string) (string, error) {
 	ctx := &jcontext{Create: e.Create, nodemap: make(map[uint32]*jdnode)}
-	ctx.Reader = e.Input
+	ctx.Reader = e.Reader
 
 	// endian?
 	if err := ctx.findEndian(); err != nil {

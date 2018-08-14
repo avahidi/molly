@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -52,7 +51,7 @@ func (c cramInode) Ofsset() uint32  { return uint32(c.NameWidthOffset>>6) * 4 }
 
 type cramContext struct {
 	util.Structured
-	Create func(string, *time.Time) (*os.File, error)
+	Create func(string) (*os.File, *types.FileData, error)
 }
 
 func (c cramContext) inodeDir(inode *cramInode, name string) error {
@@ -85,7 +84,7 @@ func (c cramContext) inodeFile(inode *cramInode, name string) error {
 	size := int64(inode.Size())
 	nblocks := (size-1)/cramBlkSize + 1
 
-	w, err := c.Create(name, nil)
+	w, _, err := c.Create(name)
 	if err != nil {
 		return err
 	}
@@ -142,7 +141,7 @@ func (c cramContext) inode(inode *cramInode, name string) error {
 // code fails to handle your images.
 func Uncramfs(e *types.Env, prefix string) (string, error) {
 	ctx := &cramContext{Create: e.Create}
-	ctx.Reader = e.Input
+	ctx.Reader = e.Reader
 
 	// we don't know the native byte-order, try both:
 	for _, ctx.Order = range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {

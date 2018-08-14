@@ -36,7 +36,7 @@ func ExtractFlatMatch(m *types.Match) []*types.FlatMatch {
 }
 
 // ExtractFlatMatches creates a flat match list for all rules that have no children
-func ExtractFlatMatches(fr *types.Input) []*types.FlatMatch {
+func ExtractFlatMatches(fr *types.FileData) []*types.FlatMatch {
 	var ret []*types.FlatMatch
 	for _, match := range fr.Matches {
 		fms := ExtractFlatMatch(match)
@@ -46,7 +46,7 @@ func ExtractFlatMatches(fr *types.Input) []*types.FlatMatch {
 }
 
 // ExtractMatchNames return name of all matches
-func ExtractMatchNames(i *types.Input, flatten bool) []string {
+func ExtractMatchNames(i *types.FileData, flatten bool) []string {
 	var ret []string
 	for _, m := range i.Matches {
 		m.Walk(func(match *types.Match) bool {

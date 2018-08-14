@@ -117,7 +117,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("match op error: %s", err)
 	}
-	molly.OnMatchRule = func(i *types.Input, match *types.Match) {
+	molly.OnMatchRule = func(i *types.FileData, match *types.Match) {
 		id := match.Rule.ID
 		if cmd, found := listmatch[id]; found {
 			output, err := opExecute(molly, cmd, i)
@@ -133,7 +133,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("tag op error: %s", err)
 	}
-	molly.OnMatchTag = func(i *types.Input, tag string) {
+	molly.OnMatchTag = func(i *types.FileData, tag string) {
 		if cmd, found := listtag[tag]; found {
 			output, err := opExecute(molly, cmd, i)
 			fmt.Printf("TAG %s on %s: %s\n", tag, i.Filename, output)
@@ -213,7 +213,7 @@ func main() {
 	}
 
 	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n",
-		len(molly.Processed), len(report.Files), totalMatches)
+		len(molly.Files), len(report.Files), totalMatches)
 	fmt.Printf("%d errors, %d warnings\n", totalErrors, len(util.Warnings()))
 	if totalErrors > 0 {
 		os.Exit(1)

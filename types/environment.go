@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
+	"io"
 	"os"
-	"time"
 
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -13,7 +13,8 @@ type Env struct {
 	m *Molly
 
 	// Input is valid while we are scanning a file
-	Input *Input
+	Reader  io.ReadSeeker
+	Current *FileData
 
 	// Scope is valid while we are scanning a file and a rule
 	Scope *Scope
@@ -41,37 +42,40 @@ func (e *Env) PopRule() {
 }
 
 func (e Env) String() string {
-	if e.Input != nil {
-		return fmt.Sprintf("{%s:%s}", e.Scope.Rule.ID, e.Input.Filename)
+	if e.Current != nil {
+		return fmt.Sprintf("{%s:%s}", e.Scope.Rule.ID, e.Current.Filename)
 	}
 	return fmt.Sprintf("{%s}", e.Scope.Rule.ID)
 }
 
-func (e *Env) SetInput(i *Input) {
-	e.Input = i
+func (e *Env) SetInput(r io.ReadSeeker, d *FileData) {
+	e.Reader = r
+	e.Current = d
 }
 
 func (e Env) GetFile() string {
-	return e.Input.Filename
+	return e.Current.Filename
 }
 
 func (e Env) GetSize() uint64 {
-	return uint64(e.Input.Filesize)
+	return uint64(e.Current.Filesize)
 }
 
-func (e *Env) Name(name string, islog bool) (string, error) {
-	return e.m.CreateName(e.Input, name, false, islog), nil
+func (e *Env) New(name string, islog bool) (string, *FileData, error) {
+	newname, newdata := e.m.New(e.Current, name, false, islog)
+	return newname, newdata, nil
 }
 
-func (e *Env) Create(name string, t *time.Time) (*os.File, error) {
-	return e.m.CreateFile(e.Input, name, t, false)
+func (e *Env) Create(name string) (*os.File, *FileData, error) {
+	return e.m.CreateFile(e.Current, name, false)
 }
 
-func (e *Env) Mkdir(path string, t *time.Time) (string, error) {
-	return e.m.CreateDir(e.Input, path, t)
+func (e *Env) Mkdir(path string) (string, *FileData, error) {
+	return e.m.CreateDir(e.Current, path)
 }
 
 // CreateLog creates a new log
 func (e *Env) CreateLog(name string) (*os.File, error) {
-	return e.m.CreateFile(e.Input, name, nil, true)
+	newfile, _, err := e.m.CreateFile(e.Current, name, true)
+	return newfile, err
 }

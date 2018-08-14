@@ -23,7 +23,7 @@ var uimageArch = map[uint8]string{2: "arm", 3: "i386", 4: "ia64", 5: "mips"}
 
 // UnUimage extracts u-boot uimage files
 func UnUimage(e *types.Env, prefix string) (string, error) {
-	img := util.Structured{Reader: e.Input, Order: binary.BigEndian}
+	img := util.Structured{Reader: e.Reader, Order: binary.BigEndian}
 	var head struct {
 		Magic    uint32
 		Hcrc     uint32
@@ -67,7 +67,7 @@ func UnUimage(e *types.Env, prefix string) (string, error) {
 	}
 
 	// single image
-	w, err := e.Create(name, nil)
+	w, _, err := e.Create(name)
 	if err != nil {
 		return "", err
 	}

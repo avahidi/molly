@@ -12,7 +12,7 @@ import (
 // Ungzip extracts a gzip file
 func Ungzip(e *types.Env, prefix string) (string, error) {
 
-	gr, err := gzip.NewReader(e.Input)
+	gr, err := gzip.NewReader(e.Reader)
 	if err != nil {
 		return "", err
 	}
@@ -29,12 +29,13 @@ func Ungzip(e *types.Env, prefix string) (string, error) {
 	}
 
 	// open output file and unpack gzip to it
-	w, err := e.Create(name, nil)
+	w, d, err := e.Create(name)
 	if err != nil {
 		return "", err
 	}
 	defer w.Close()
 
+	d.SetTime(gr.ModTime)
 	io.Copy(w, gr)
 	return w.Name(), nil
 }

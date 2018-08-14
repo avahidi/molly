@@ -6,7 +6,7 @@ type Match struct {
 	Vars map[string]interface{}
 
 	Children []*Match
-	Parent   *Match `json:"-"` // this will avoid circular marshallingw
+	Parent   *Match `json:"-"` // this will avoid circular marshalling
 
 	FailedChildren []*Rule `json:"-"` // this will avoid circular marshalling
 }
@@ -33,7 +33,7 @@ type FlatMatch struct {
 
 // Report contains all matches for all files
 type Report struct {
-	Files []*Input
+	Files []*FileData
 }
 
 // NewReport creates a new empty report
@@ -42,7 +42,7 @@ func NewReport() *Report {
 }
 
 // Add adds a FileReport to this report
-func (mr *Report) Add(fr *Input) {
+func (mr *Report) Add(fr *FileData) {
 	// mr.Current = fr
 	mr.Files = append(mr.Files, fr)
 }

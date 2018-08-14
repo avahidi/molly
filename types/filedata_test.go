@@ -5,14 +5,20 @@ import (
 	"time"
 )
 
-func TestInputGet(t *testing.T) {
+func TestFileDataGet(t *testing.T) {
 	tid := time.Now()
-	i1 := NewInput(nil, "/dir1/dir2/filename.c", 1023, tid)
-	i2 := NewInput(i1, "some.file.go", 555, tid)
-	i3 := NewInput(i2, "new file", 0, tid)
+	i1 := NewFileData("/dir1/dir2/filename.c", nil)
+	i1.Filesize = 1023
+	i1.SetTime(tid)
+	i2 := NewFileData("some.file.go", i1)
+	i2.Filesize = 555
+	i2.SetTime(tid)
+	i3 := NewFileData("new file", i2)
+	i3.Filesize = 0
+	i3.SetTime(tid)
 
 	var testdata = []struct {
-		target *Input
+		target *FileData
 		name   string
 		data   interface{}
 	}{

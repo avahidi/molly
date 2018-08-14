@@ -13,7 +13,7 @@ func executeRuleActions(rule *types.Rule, env *types.Env) []error {
 	var errors []error
 	for _, a := range rule.Actions {
 		// make sure all actions start from the beginning of the file
-		env.Input.Seek(0, os.SEEK_SET)
+		env.Reader.Seek(0, os.SEEK_SET)
 		_, err := a.Action.Eval(env)
 		if err == nil {
 			if a.Mode == types.ActionModeExit {
@@ -35,7 +35,7 @@ func executeRuleActions(rule *types.Rule, env *types.Env) []error {
 // AnalyzeFile evaluates one rule against one file,
 // if the rule has children they will also be evaluated
 func AnalyzeFile(rule *types.Rule, env *types.Env) (*types.Match, []error) {
-	reader := env.Input
+	reader := env.Reader
 	reader.Seek(0, os.SEEK_SET)
 
 	// 1. evaluate the rule

@@ -75,7 +75,7 @@ func cpioAsciiParser(r io.Reader) (*cpioFileHead, error) {
 func Uncpio(e *types.Env, prefix string) (string, error) {
 	var parser func(io.Reader) (*cpioFileHead, error)
 	mustPad := false
-	r := e.Input
+	r := e.Reader
 
 	// vad type is this?
 	magic := make([]byte, 6)
@@ -120,14 +120,14 @@ func Uncpio(e *types.Env, prefix string) (string, error) {
 
 		// copy file contents
 		if fh.filesize > 0 {
-			tim := time.Unix(fh.mtime, 0)
 
-			w, err := e.Create(prefix+string(name), &tim)
+			w, d, err := e.Create(prefix + string(name))
 			if err != nil {
 				return "", err
 			}
 			defer w.Close()
 
+			d.SetTime(time.Unix(fh.mtime, 0))
 			if _, err = io.CopyN(w, r, fh.filesize); err != nil {
 				return "", err
 			}

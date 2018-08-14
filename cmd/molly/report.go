@@ -14,13 +14,13 @@ import (
 )
 
 // inputToReportEntry converts an input structure to a more readable format
-func inputToReportEntry(file *types.Input) map[string]interface{} {
+func inputToReportEntry(file *types.FileData) map[string]interface{} {
 	ret := make(map[string]interface{})
 
 	ret["filename"] = file.Filename
 	ret["filesize"] = file.Filesize
 	ret["depth"] = file.Depth
-	ret["time"] = file.Time.Format(time.RFC3339)
+	ret["time"] = file.GetTime().Format(time.RFC3339)
 
 	if len(file.Matches) > 0 {
 		ret["matches"] = report.ExtractFlatMatches(file)
@@ -92,7 +92,7 @@ func writeSummaryFile(molly *types.Molly, r *types.Report, base string) error {
 	f1["tags"] = report.ExtractTagHierarchy(r)
 
 	matches := make(map[string]int)
-	for _, file := range molly.Processed {
+	for _, file := range molly.Files {
 		matches[file.Filename] = 0 // update below!
 	}
 	for _, file := range r.Files {
@@ -124,7 +124,7 @@ func writeSummaryFile(molly *types.Molly, r *types.Report, base string) error {
 }
 
 func writeScanFiles(molly *types.Molly, r *types.Report) error {
-	for _, file := range molly.Processed {
+	for _, file := range molly.Files {
 		rep := inputToReportEntry(file)
 
 		bs, err := json.MarshalIndent(rep, "", "\t")

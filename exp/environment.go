@@ -11,7 +11,7 @@ import (
 // envLookupSpecial checks for special variables that are from other sources
 func envLookupSpecial(e *types.Env, id string) (interface{}, bool) {
 	if strings.HasPrefix(id, "$") {
-		return e.Input.Get(id[1:])
+		return e.Current.Get(id[1:])
 	}
 	return nil, false
 }

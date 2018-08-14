@@ -8,7 +8,7 @@ import (
 )
 
 func Untar(e *types.Env, prefix string) (string, error) {
-	r := e.Input
+	r := e.Reader
 
 	tr := tar.NewReader(r)
 	for {
@@ -21,11 +21,13 @@ func Untar(e *types.Env, prefix string) (string, error) {
 		}
 
 		if !h.FileInfo().IsDir() {
-			w, err := e.Create(prefix+h.Name, nil)
+			w, d, err := e.Create(prefix + h.Name)
 			if err != nil {
 				return "", err
 			}
 			defer w.Close()
+
+			d.SetTime(h.ChangeTime)
 			if _, err := io.CopyN(w, tr, h.Size); err != nil {
 				return "", err
 			}

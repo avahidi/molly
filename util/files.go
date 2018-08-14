@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Extensions returns all extensions of a file, e.g. a.tar.gz -> ["gz","tar"]
@@ -56,15 +55,6 @@ func SafeMkdir(path string) error {
 	return Mkdir(path)
 }
 
-// SafeMkdirWithTime is similar to SafeMkdir but also sets dirtime
-func SafeMkdirWithTime(filename string, tim *time.Time) error {
-	err := SafeMkdir(filename)
-	if err == nil && tim != nil {
-		err = os.Chtimes(filename, *tim, *tim)
-	}
-	return err
-}
-
 // SafeCreateFile creates a file, fails if CreateFile permission is missing
 func SafeCreateFile(filename string) (*os.File, error) {
 	if !PermissionGet(CreateFile) {
@@ -78,16 +68,6 @@ func SafeCreateFile(filename string) (*os.File, error) {
 	}
 
 	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_TRUNC, 0644)
-}
-
-//  creates a file, fails if CreateFile permission is missing
-// SafeCreateFileWithTime is similar to SafeMkdir but also sets dirtime
-func SafeCreateFileWithTime(filename string, tim *time.Time) (*os.File, error) {
-	fil, err := SafeCreateFile(filename)
-	if err == nil && tim != nil {
-		err = os.Chtimes(filename, *tim, *tim)
-	}
-	return fil, err
 }
 
 // PathType is type of a path such as /tmp, i.e. wether its a file or a dir etc

@@ -17,11 +17,14 @@ func extractOneFile(e *types.Env, f *zip.File, prefix string) error {
 	// in reality, we should use f.Mode() but we are replacing it
 	// with our own default permissions
 	if !f.FileInfo().IsDir() {
-		w, err := e.Create(prefix+f.Name, nil)
+		w, d, err := e.Create(prefix + f.Name)
 		if err != nil {
 			return err
 		}
 		defer w.Close()
+
+		d.SetTime(f.FileInfo().ModTime())
+
 		if _, err = io.Copy(w, rc); err != nil {
 			return err
 		}

@@ -3,11 +3,11 @@ package lib
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	_ "bitbucket.org/vahidi/molly/actions" // import default actions
 	"bitbucket.org/vahidi/molly/report"
@@ -32,7 +32,7 @@ func newEmptyDir(dirname string) error {
 }
 
 // suggestBaseName picks a new base name for a file
-func suggestBaseName(m *types.Molly, input *types.Input) string {
+func suggestBaseName(m *types.Molly, input *types.FileData) string {
 	for i := 0; ; i++ {
 		basename := filepath.Join(m.OutDir, util.SanitizeFilename(input.Filename))
 		if i != 0 {
@@ -66,7 +66,7 @@ func LoadRulesFromText(m *types.Molly, text string) error {
 }
 
 // processMatch will process a match on a rule
-func processMatch(m *types.Molly, i *types.Input, match *types.Match) {
+func processMatch(m *types.Molly, i *types.FileData, match *types.Match) {
 	if len(match.Children) == 0 {
 		if m.OnMatchRule != nil {
 			m.OnMatchRule(i, match)
@@ -78,7 +78,7 @@ func processMatch(m *types.Molly, i *types.Input, match *types.Match) {
 }
 
 // processMatch will process a tag on a file
-func processTags(m *types.Molly, fr *types.Input) {
+func processTags(m *types.Molly, fr *types.FileData) {
 	if m.OnMatchTag != nil {
 		tags := report.ExtractTags(fr)
 		for _, tag := range tags {
@@ -87,21 +87,22 @@ func processTags(m *types.Molly, fr *types.Input) {
 	}
 }
 
-func scanInput(m *types.Molly, env *types.Env, r *types.Report, i *types.Input) {
+func scanInput(m *types.Molly, env *types.Env, r *types.Report,
+	reader io.ReadSeeker, data *types.FileData) {
 	// update basename to something we can use to create files from
-	if i.Parent == nil {
-		i.FilenameOut = suggestBaseName(m, i)
+	if data.Parent == nil {
+		data.FilenameOut = suggestBaseName(m, data)
 
 		// make sure its path is there and we have a soft link to the real file
-		path, _ := filepath.Split(i.FilenameOut)
+		path, _ := filepath.Split(data.FilenameOut)
 		util.SafeMkdir(path)
 
 		// make sure we link to the absolute path
-		filename_abs, _ := filepath.Abs(i.Filename)
-		os.Symlink(filename_abs, i.FilenameOut)
+		filename_abs, _ := filepath.Abs(data.Filename)
+		os.Symlink(filename_abs, data.FilenameOut)
 	}
 
-	env.SetInput(i)
+	env.SetInput(reader, data)
 	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
 		for _, rule := range m.Rules.Top {
 			p, _ := rule.Metadata.GetNumber("pass", uint64(types.RulePassMin))
@@ -111,38 +112,49 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report, i *types.Input) 
 			env.StartRule(rule)
 			match, errs := scan.AnalyzeFile(rule, env)
 			if match != nil {
-				i.Matches = append(i.Matches, match)
-				processMatch(m, i, match)
+				data.Matches = append(data.Matches, match)
+				processMatch(m, data, match)
 			}
-			i.Errors = append(i.Errors, errs...)
+			data.Errors = append(data.Errors, errs...)
 		}
 	}
-	processTags(m, i)
+	processTags(m, data)
 
 	// this file might have generated a report, so log it
-	if !i.Empty() {
-		r.Add(i)
+	if !data.Empty() {
+		r.Add(data)
 	}
 	// this file may have created new files, scan them too
-	for _, offspring := range i.Children {
-		scanFile(m, env, r, offspring, i)
+	for _, offspring := range data.Children {
+		scanFile(m, env, r, offspring.Filename, data)
 	}
 }
 
 // ScanData scans a byte vector for matches.
 func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
-	fr := types.NewInput(nil, "nopath/nofile", int64(len(data)), time.Now())
-	fr.Reader = bytes.NewReader(data)
+
+	// we need a dummy file name that is unique:
+	var fd *types.FileData
+	for i := 0; fd == nil; i++ {
+		dummyname := fmt.Sprintf("nopath/nofile_%04d", i)
+		if _, found := m.Files[dummyname]; !found {
+			fd = types.NewFileData(dummyname, nil)
+			m.Files[dummyname] = fd
+		}
+	}
+	fd.Filesize = int64(len(data))
+
 	env := types.NewEnv(m)
 	report := types.NewReport()
-	scanInput(m, env, report, fr)
+	reader := bytes.NewReader(data)
+	scanInput(m, env, report, reader, fd)
 
 	return report, nil
 }
 
 // scanFile opens and scans a single file
 func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
-	filename_ string, parent *types.Input) {
+	filename_ string, parent *types.FileData) {
 
 	fl := &util.FileList{}
 	fl.Push(filename_)
@@ -152,12 +164,21 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 			return
 		}
 
-		if _, found := m.Processed[filename]; found {
-			continue // how can this even happen?
+		fr, found := m.Files[filename]
+		if !found {
+			fr = types.NewFileData(filename, parent)
+			m.Files[filename] = fr
 		}
 
-		fr := types.NewInput(parent, filename, fi.Size(), fi.ModTime())
-		m.Processed[filename] = fr
+		// if we for some reason have done this one before, just skip it
+		if fr.Processed {
+			continue
+		}
+		fr.Processed = true
+
+		// record what we know about it so far
+		fr.SetTime(fi.ModTime())
+		fr.Filesize = fi.Size()
 
 		// started with an error, no point moving in
 		if err != nil {
@@ -170,16 +191,20 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 			continue
 		}
 
-		r, err := os.Open(filename)
+		reader, err := os.Open(filename)
 		if err != nil {
 			fr.Errors = append(fr.Errors, err)
 		}
 
-		fr.Reader = r
-		scanInput(m, env, rep, fr)
+		scanInput(m, env, rep, reader, fr)
 
 		// manual Close insted of defer Close, or we will have too many files open
-		r.Close()
+		reader.Close()
+
+		// now that the file is closed, attempt to adjust its time
+		if t := fr.GetTime(); t != fi.ModTime() {
+			os.Chtimes(fr.FilenameOut, t, t)
+		}
 	}
 }
 

@@ -43,7 +43,7 @@ func systemFunction(e *types.Env, format string, args ...interface{}) (string, e
 func hasFunction(e *types.Env, typ string, val string) (bool, error) {
 	switch typ {
 	case "match":
-		for _, m := range e.Input.Matches {
+		for _, m := range e.Current.Matches {
 			if !m.Walk(func(m *types.Match) bool {
 				return m.Rule.ID != val
 			}) {

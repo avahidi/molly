@@ -7,7 +7,7 @@ import (
 // ExtractFileHierarchy creates file hierarchy for generated files
 func ExtractFileHierarchy(m *types.Molly) map[string][]string {
 	ret := make(map[string][]string)
-	for _, i := range m.Processed {
+	for _, i := range m.Files {
 		if i.Parent != nil {
 			tmp := ret[i.Parent.Filename]
 			tmp = append(tmp, i.Filename)
@@ -20,7 +20,7 @@ func ExtractFileHierarchy(m *types.Molly) map[string][]string {
 // ExtractFileList creates a list of all scanned files
 func ExtractFileList(m *types.Molly) []string {
 	var ret []string
-	for _, i := range m.Processed {
+	for _, i := range m.Files {
 		ret = append(ret, i.Filename)
 	}
 	return ret

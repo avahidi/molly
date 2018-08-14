@@ -3,7 +3,7 @@ package report
 import "bitbucket.org/vahidi/molly/types"
 
 // FindInReportFile find a file in a report, filename "" means any
-func FindInReportFile(r *types.Report, filename string) *types.Input {
+func FindInReportFile(r *types.Report, filename string) *types.FileData {
 	for _, f := range r.Files {
 		if filename == "" || filename == f.Filename {
 			return f
@@ -26,7 +26,7 @@ func FindInReportMatch(r *types.Report, filename, rulename string) *types.Match 
 }
 
 // FindInFileMatch find match to a rule in a file, rulename "" means any
-func FindInFileMatch(f *types.Input, rulename string) *types.Match {
+func FindInFileMatch(f *types.FileData, rulename string) *types.Match {
 	var match *types.Match
 	for _, m0 := range f.Matches {
 		m0.Walk(func(m *types.Match) bool {
@@ -44,7 +44,7 @@ func FindInFileMatch(f *types.Input, rulename string) *types.Match {
 }
 
 // FindInFileVar finds a variable in a match in a file
-func FindInFileVar(f *types.Input, rulename, varname string) (interface{}, bool) {
+func FindInFileVar(f *types.FileData, rulename, varname string) (interface{}, bool) {
 	match := FindInFileMatch(f, rulename)
 	if match == nil {
 		return nil, false
