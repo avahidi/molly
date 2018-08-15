@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -67,11 +68,12 @@ func UnUimage(e *types.Env, prefix string) (string, error) {
 	}
 
 	// single image
-	w, _, err := e.Create(name)
+	w, fd, err := e.Create(name)
 	if err != nil {
 		return "", err
 	}
 
+	fd.SetTime(time.Unix(int64(head.Time), 0))
 	_, err = io.CopyN(w, img.Reader, int64(head.Size))
 	return "", err
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"time"
 
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -110,6 +111,7 @@ func (j jdatalist) generate(src *jcontext) ([]byte, error) {
 type jdnode struct {
 	name     string
 	version  uint32
+	time     uint32
 	typ      uint8
 	parent   *jdnode
 	children []*jdnode
@@ -150,7 +152,9 @@ type jffs2Inode struct {
 	Uid     uint16
 	Guid    uint16
 	Isize   uint32
-	Time    [3]uint32
+	ATime   uint32 // access time
+	MTime   uint32 // modification time
+	CTime   uint32 // change time (??)
 	Ofsset  uint32
 	CSize   uint32
 	DSize   uint32
@@ -163,7 +167,7 @@ func (c *jcontext) scan(prefix string, offset int64) error {
 	var head jffs2Header
 	for {
 		if err := c.ReadAt(offset, &head); err != nil {
-			return err
+			return nil // not really an error...
 		}
 		if head.Magic != jffs2Magic {
 			return nil
@@ -186,6 +190,7 @@ func (c *jcontext) scan(prefix string, offset int64) error {
 					jdnode := &jdnode{
 						name:    string(name),
 						typ:     dirent.Type,
+						time:    dirent.Mctime,
 						version: dirent.Version,
 					}
 					c.nodemap[dirent.Ino] = jdnode
@@ -232,14 +237,17 @@ func (c *jcontext) writeFile(prefix string, j *jdnode) error {
 	if err != nil {
 		return err
 	}
-	if len(data) > 0 { // remove EOF?
-		data = data[:len(data)-1]
-	}
-	file, _, err := c.Create(path.Join(prefix, j.name))
+	/*
+		if len(data) > 0 { // remove EOF?
+			data = data[:len(data)-1]
+		}*/
+	file, fd, err := c.Create(path.Join(prefix, j.name))
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+
+	fd.SetTime(time.Unix(int64(j.time), 0))
 	_, err = file.Write(data)
 	return err
 }
@@ -332,5 +340,6 @@ func Unjffs2(e *types.Env, prefix string) (string, error) {
 			}
 		}
 	}
+
 	return "", nil
 }

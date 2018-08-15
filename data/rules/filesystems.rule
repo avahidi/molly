@@ -97,13 +97,9 @@ rule cramfs (tag = "filesystem", bigendian = false) {
 	var name = String(48, 16);
 	var inode = Long(68);
 
-	// struct cramfs_info fsid;
-	// u8 name[16];
-	// struct cramfs_inode root;
-
 	if magic == 0x28cd3d45;
 	if signature == "Compressed ROMFS";
-	if $filesize == size + 16;
+	if ($filesize == size + 16) || ($filesize == size); // mkfs bug fix?
 
 	extract("cramfs", "cramfs");
 }

@@ -2,9 +2,6 @@
 TODO
 ====
 
-* seems like creation time cannot be set after a call to os.Create?
-* extract creation time for the following formats: cramfs, jffs2. mbrlba, uimage, (done: gzip, cpio, tar, zip)
-
 * RuleEval seems to ignore all errors when evaluating expressions.
 What we want to report anything other than extraction errors (e.g. unexpected EOF)
 
