@@ -176,15 +176,15 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		}
 		fr.Processed = true
 
-		// record what we know about it so far
-		fr.SetTime(fi.ModTime())
-		fr.Filesize = fi.Size()
-
 		// started with an error, no point moving in
 		if err != nil {
 			fr.Errors = append(fr.Errors, err)
 			continue
 		}
+
+		// record what we know about it so far
+		fr.SetTime(fi.ModTime())
+		fr.Filesize = fi.Size()
 
 		if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
 			fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
