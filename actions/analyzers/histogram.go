@@ -61,7 +61,7 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...i
 		"max":        max,
 		"avg":        avg,
 	}
-	rep("", "json", report)
+	rep("", report)
 
 	// PNG image
 	img := histogramToImage(count, max)
@@ -69,7 +69,7 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...i
 	if err := png.Encode(buff, img); err != nil {
 		return err
 	}
-	rep("", "png", buff.Bytes())
+	rep("image.png", buff.Bytes())
 
 	return nil
 }

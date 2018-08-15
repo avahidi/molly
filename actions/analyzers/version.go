@@ -68,6 +68,6 @@ func VersionAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...int
 		"possible-version":   versions,
 		"possible-copyright": copyrights,
 	}
-	rep("", "json", report)
+	rep("", report)
 	return nil
 }

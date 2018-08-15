@@ -30,6 +30,8 @@ func inputToReportEntry(file *types.FileData) map[string]interface{} {
 		ret["parent"] = file.Parent.Filename
 	}
 
+	ret["information"] = file.Information
+
 	if tags := report.ExtractTags(file); len(tags) > 0 {
 		ret["tags"] = tags
 	}

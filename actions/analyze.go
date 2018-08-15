@@ -1,8 +1,8 @@
 package actions
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
 
 	"bitbucket.org/vahidi/molly/actions/analyzers"
 	"bitbucket.org/vahidi/molly/types"
@@ -42,36 +42,32 @@ func (l *logContext) error(err error) {
 	}
 }
 
-func (l *logContext) newLog(name string, typ string, data interface{}) {
-	var filename string
+func (l *logContext) newLog(name string, data interface{}) {
+
+	// XXX: assuming two logs wont have the same name:
+	var logname string
 	if name != "" {
-		filename = fmt.Sprintf("%s_%s.%s", l.basename, name, typ)
+		logname = fmt.Sprintf("%s_%s", l.basename, name)
 	} else {
-		filename = fmt.Sprintf("%s.%s", l.basename, typ)
+		logname = l.basename
 	}
 
-	w, err := l.env.CreateLog(filename)
-	if err != nil {
-		l.error(err)
-		return
-	}
-	defer w.Close()
-
-	switch typ {
-	case "json":
-		bs, err := json.MarshalIndent(data, "", "\t")
+	switch v := data.(type) {
+	case []byte:
+		w, err := l.env.CreateLog(logname)
 		if err != nil {
 			l.error(err)
 			return
 		}
-		w.Write(bs)
+		defer w.Close()
+		w.Write(v)
+		l.env.Current.Information[logname] = fmt.Sprintf("see external file '%s'", w.Name())
+
+	case map[string]interface{}:
+		l.env.Current.Information[logname] = v
+		log.Println("DATA interface", logname)
 	default:
-		bs, isbytes := data.([]byte) // just some binary data?
-		if isbytes {
-			w.Write(bs)
-			return
-		}
-		l.error(fmt.Errorf("Unknown log format: %s", typ))
+		l.error(fmt.Errorf("Unknown analyzer result, in format %t", v))
 	}
 }
 

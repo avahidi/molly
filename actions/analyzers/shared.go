@@ -8,7 +8,7 @@ import (
 )
 
 // Reporter is the callback used to generate the reports from data
-type Reporter func(name string, typ string, data interface{})
+type Reporter func(name string, data interface{})
 
 // Analyzer is a function for analyzing a stream and generating one or more reports
 type Analyzer func(filename string, r io.ReadSeeker, gen Reporter, data ...interface{}) error

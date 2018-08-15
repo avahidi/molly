@@ -397,7 +397,7 @@ func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 		"00-disclaimer": "dex analyzer is still under construction",
 	}
 	dexCreateReport(ctx, report)
-	rep("", "json", report)
+	rep("", report)
 	return nil
 }
 

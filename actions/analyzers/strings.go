@@ -12,6 +12,6 @@ func StringAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...inte
 		return err
 	}
 	report := map[string]interface{}{"strings": strs}
-	rep("", "json", report)
+	rep("", report)
 	return nil
 }

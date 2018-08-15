@@ -53,6 +53,6 @@ func ElfAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 		report["libraries"] = libs
 	}
 
-	rep("", "json", report)
+	rep("", report)
 	return nil
 }
