@@ -2,7 +2,6 @@ package actions
 
 import (
 	"fmt"
-	"log"
 
 	"bitbucket.org/vahidi/molly/actions/analyzers"
 	"bitbucket.org/vahidi/molly/types"
@@ -65,7 +64,6 @@ func (l *logContext) newLog(name string, data interface{}) {
 
 	case map[string]interface{}:
 		l.env.Current.Information[logname] = v
-		log.Println("DATA interface", logname)
 	default:
 		l.error(fmt.Errorf("Unknown analyzer result, in format %t", v))
 	}
