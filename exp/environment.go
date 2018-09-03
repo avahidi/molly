@@ -11,7 +11,10 @@ import (
 // envLookupSpecial checks for special variables that are from other sources
 func envLookupSpecial(e *types.Env, id string) (interface{}, bool) {
 	if strings.HasPrefix(id, "$") {
-		return e.Current.Get(id[1:])
+		if val, found := e.Current.Get(id[1:]); found {
+			return val, true
+		}
+		types.FileDataGetHelp()
 	}
 	return nil, false
 }

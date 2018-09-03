@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -62,6 +63,7 @@ func (fd FileData) Empty() bool {
 // These can be referensed in rules as $name or
 // in the actions as {name}
 func (fd FileData) Get(name string) (interface{}, bool) {
+	// note: if you update this one, also update FileDataGetHelp
 	switch name {
 	case "time":
 		return fd.time, true
@@ -99,5 +101,19 @@ func (fd FileData) Get(name string) (interface{}, bool) {
 		return len(fd.Logs), true
 	default:
 		return nil, false
+	}
+}
+
+// FileDataGetHelp dump help about the special variables such as $time
+func FileDataGetHelp() {
+	list := []string{
+		"time",
+		"filename", "shortname", "dirname", "ext", "basename",
+		"filesize", "depth", "parent",
+		"num_matches", "num_errors", "num_logs",
+	}
+	fmt.Printf("Valid special variables are:\n")
+	for _, v := range list {
+		fmt.Printf("\t%s\n", v)
 	}
 }
