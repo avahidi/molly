@@ -15,6 +15,13 @@ type constraint map[string]struct {
 	ctrl func(name string, data interface{}) error
 }
 
+func showMetadataHelp(cs constraint) {
+	fmt.Println("Valid metadata in this context:")
+	for k, v := range cs {
+		fmt.Printf("\t%-20s: %v\n", k, v.kind)
+	}
+}
+
 // checkMetadata checks a metadata register against some constraints
 func checkMetadata(r *util.Register, cs constraint) error {
 	var err error
@@ -38,6 +45,10 @@ func checkMetadata(r *util.Register, cs constraint) error {
 		}
 		return true
 	})
+
+	if err != nil {
+		showMetadataHelp(cs)
+	}
 	return err
 }
 
