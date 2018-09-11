@@ -32,12 +32,15 @@ const (
 	jffs2NodetypeMask        = 0x000F
 
 	// compression
-	jffs2ComprNone = 0x00
-	jffs2ComprZlib = 0x06
+	jffs2ComprNone  = 0x00
+	jffs2ComprRtime = 0x02
+	jffs2ComprZlib  = 0x06
 )
 
 // these are in syscall but thats not available on Windows:
 const (
+	DT_CHR = 0x2
+	DT_BLK = 0x6
 	DT_DIR = 0x4
 	DT_REG = 0x8
 	DT_LNK = 0xa
@@ -73,7 +76,7 @@ func (j jdatalist) size() int {
 	return size
 }
 
-func (j jdatalist) generate(src *jcontext) ([]byte, error) {
+func (j jdatalist) generate(ctx *jcontext) ([]byte, error) {
 	size := j.size()
 	data := make([]byte, size)
 	for i := 0; i < size; i++ {
@@ -82,21 +85,20 @@ func (j jdatalist) generate(src *jcontext) ([]byte, error) {
 
 	sort.Sort(j) // sort by version -> old data will be overwritten by new
 	for _, v := range j {
-		srcData := make([]byte, v.srcSize)
-		if err := src.ReadAt(int64(v.srcOffset), srcData); err != nil {
+		dst := data[v.dstOffset:]
+		src := make([]byte, v.srcSize)
+		if err := ctx.ReadAt(int64(v.srcOffset), src); err != nil {
 			return nil, err
 		}
 		switch v.compression {
 		case jffs2ComprNone:
-			copy(data[v.dstOffset:], srcData)
+			copy(dst, src)
 		case jffs2ComprZlib:
-			bin := bytes.NewReader(srcData)
-			zr, err := zlib.NewReader(bin)
-			if err != nil {
+			if err := copyZlib(data[v.dstOffset:v.dstOffset+v.dstSize-1], src); err != nil {
 				return nil, err
 			}
-			defer zr.Close()
-			if _, err := zr.Read(data[v.dstOffset : v.dstOffset+v.dstSize-1]); err != nil {
+		case jffs2ComprRtime:
+			if err := copyRtime(dst, src); err != nil {
 				return nil, err
 			}
 		default:
@@ -105,6 +107,42 @@ func (j jdatalist) generate(src *jcontext) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// copyRtime decompress rtime bytes into another byte array
+// it is based on linux jffs2_rtime_decompress()
+func copyRtime(dst, src []byte) error {
+	posmap, spos, dpos := make([]int, 256), 0, 0
+
+	for dpos < len(dst) {
+		value, repeat := src[spos], src[spos+1]
+		spos += 2
+
+		dst[dpos] = value
+		dpos++
+		backoffs := int(posmap[value])
+		posmap[value] = dpos
+
+		if repeat > 0 {
+			for i := 0; i < int(repeat); i++ {
+				dst[dpos] = dst[backoffs]
+				dpos++
+				backoffs++
+			}
+		}
+	}
+	return nil
+}
+
+func copyZlib(dst, src []byte) error {
+	bin := bytes.NewReader(src)
+	zr, err := zlib.NewReader(bin)
+	if err != nil {
+		return err
+	}
+	defer zr.Close()
+	_, err = zr.Read(dst)
+	return err
 }
 
 // jdnode is out internal representation of a dir entry
@@ -194,6 +232,7 @@ func (c *jcontext) scan(prefix string, offset int64) error {
 						version: dirent.Version,
 					}
 					c.nodemap[dirent.Ino] = jdnode
+
 					if p, found := c.nodemap[dirent.Pino]; found {
 						jdnode.parent = p
 						p.children = append(p.children, jdnode)
@@ -278,8 +317,11 @@ func (c *jcontext) create(prefix string, j *jdnode) error {
 		return c.writeFile(prefix, j)
 	case DT_LNK:
 		return c.writeLink(prefix, j)
+	case DT_CHR, DT_BLK:
+		// dont care
+		break
 	default:
-		fmt.Printf("jff2s: ignoring file of type %08x\n", j.typ)
+		fmt.Printf("jff2s: ignoring file of type %08x for %s/%s\n", j.typ, prefix, j.name)
 	}
 	return nil
 }
