@@ -55,6 +55,7 @@ Options are::
    -outdir <output directory>   (default "output")
    -on-rule <rulename:cmd>      rule match operation definition
    -on-tag <tagname:cmd>        tag match operation definition
+   -no-std-rules                don't include molly standard rules
 
 A small set of default rules are provided in the distribution.
 

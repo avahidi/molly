@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strings"
 
 	"bitbucket.org/vahidi/molly/actions"
@@ -35,6 +36,7 @@ var showVersion = flag.Bool("V", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
 var showhelpExt = flag.Bool("hh", false, "extended help information")
 var maxDepth = flag.Int("max-depth", 0, "max scan depth")
+var nostdrules = flag.Bool("no-std-rules", false, "Don't include molly standard rules")
 
 var rfiles, rtexts, tagops, matchops MultiFlag
 var penable, pdisable MultiFlag
@@ -66,6 +68,25 @@ func help(extended bool, errmsg string, exitcode int) {
 	os.Exit(exitcode)
 }
 
+// getStandardRules attempts to find the standard rules included in molly.
+// We don't know how molly is installed on this system so we will try a few
+// different paths to see if we can find any rules
+func getStandardRules() string {
+	gopath := os.Getenv("GOPATH")
+	dirs := []string{
+		path.Join(gopath, "src/bitbucket.org/vahidi/molly/data/rules"),
+		"/usr/share/molly/rules",
+		"/usr/lib/molly/rules",
+	}
+
+	for _, dir := range dirs {
+		if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+			return dir
+		}
+	}
+	return ""
+}
+
 func main() {
 	// 	parse arguments
 	flag.Parse()
@@ -91,6 +112,16 @@ func main() {
 			}
 			util.PermissionSet(p, set)
 		}
+	}
+
+	// include standrad rules if not exdcluded and we can find them
+	if !*nostdrules {
+		stdrules := getStandardRules()
+		if stdrules == "" {
+			help(false, "Could not find standard rules. You may need to add -no-std-rules", 20)
+		}
+		rfiles = append(rfiles, stdrules)
+		fmt.Println(stdrules, rfiles)
 	}
 
 	// input sanity check

@@ -14,7 +14,7 @@ molly:
 
 run: compile output
 	rm -rf output
-	-./molly $(O) -R data/rules\
+	-./molly $(O) \
 		-outdir output \
 		-enable create-file \
 		-enable execute \
