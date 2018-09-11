@@ -121,7 +121,6 @@ func main() {
 			help(false, "Could not find standard rules. You may need to add -no-std-rules", 20)
 		}
 		rfiles = append(rfiles, stdrules)
-		fmt.Println(stdrules, rfiles)
 	}
 
 	// input sanity check
