@@ -123,12 +123,10 @@ func copyRtime(dst, src []byte) error {
 		backoffs := int(posmap[value])
 		posmap[value] = dpos
 
-		if repeat > 0 {
-			for i := 0; i < int(repeat); i++ {
-				dst[dpos] = dst[backoffs]
-				dpos++
-				backoffs++
-			}
+		for i := 0; i < int(repeat); i++ {
+			dst[dpos] = dst[backoffs]
+			dpos++
+			backoffs++
 		}
 	}
 	return nil
