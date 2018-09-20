@@ -19,7 +19,7 @@ type Analysis struct {
 
 // NewAnalysis create an Analysis with the required format
 func NewAnalysis(name string, result interface{}, params ...interface{}) *Analysis {
-	for d := range params {
+	for _, d := range params {
 		name = fmt.Sprintf("%s__%v", name, d)
 	}
 	return &Analysis{Name: name, Result: result}

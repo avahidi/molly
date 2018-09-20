@@ -38,7 +38,7 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	res := analyzers.NewAnalysis(typ, nil, data)
+	res := analyzers.NewAnalysis(typ, nil, data...)
 
 	f(e.GetFile(), e.Reader, res, data...)
 	e.Current.Analyses[res.Name] = res

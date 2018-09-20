@@ -73,8 +73,10 @@ func help(extended bool, errmsg string, exitcode int) {
 // different paths to see if we can find any rules
 func getStandardRules() string {
 	gopath := os.Getenv("GOPATH")
+	home := os.Getenv("HOME")
 	dirs := []string{
 		path.Join(gopath, "src/bitbucket.org/vahidi/molly/data/rules"),
+		path.Join(home, "go/src/bitbucket.org/vahidi/molly/data/rules"),
 		"/usr/share/molly/rules",
 		"/usr/lib/molly/rules",
 	}
