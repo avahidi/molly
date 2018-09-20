@@ -18,15 +18,19 @@ type Molly struct {
 
 	MaxDepth int
 	Files    map[string]*FileData
+
+	// FilesByHash is mainly need to ignore duplicate files
+	FilesByHash map[string]*FileData
 }
 
 // NewMolly creates a new Molly context
 func NewMolly(outdir string, maxDepth int) *Molly {
 	return &Molly{
-		OutDir:   outdir,
-		Rules:    NewRuleSet(),
-		MaxDepth: maxDepth,
-		Files:    make(map[string]*FileData),
+		OutDir:      outdir,
+		Rules:       NewRuleSet(),
+		MaxDepth:    maxDepth,
+		Files:       make(map[string]*FileData),
+		FilesByHash: make(map[string]*FileData),
 	}
 }
 

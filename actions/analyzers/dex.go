@@ -341,8 +341,7 @@ func extractKeys(m map[interface{}]interface{}, a []interface{}) []interface{} {
 	return a
 }
 
-// DexAnalyzer examines DEX files
-func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interface{}) error {
+func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
 	var header struct {
 		DexMagic    uint32
 		DexVersion  [8]uint8
@@ -352,8 +351,9 @@ func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 		MapOffset   uint32
 	}
 	ctx := &dexContext{Structured: util.Structured{Reader: r, Order: binary.LittleEndian}}
-	if err := ctx.ReadAt(0, &header); err != nil {
-		return err
+	if res.Error = ctx.ReadAt(0, &header); res.Error != nil {
+		return
+
 	}
 	// extract version and check sanity before we do anything
 	for _, c := range header.DexVersion[:3] {
@@ -361,14 +361,16 @@ func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 	}
 	if header.DexMagic != dexMagic ||
 		header.DexVersion[0] != '0' || header.DexVersion[3] != 0 {
-		return fmt.Errorf("Not a dex file or unknown dex version\n")
+		res.Error = fmt.Errorf("Not a dex file or unknown dex version\n")
+		return
 	}
 	if header.EndianTag == 0x78563412 {
 		ctx.Order = binary.BigEndian
 	}
 	mp, err := dexExtractMap(ctx, header.MapOffset)
 	if err != nil {
-		return err
+		res.Error = err
+		return
 	}
 	// process map entries in the order we want
 	handlers := []struct {
@@ -386,10 +388,10 @@ func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 	for _, h := range handlers {
 		if p, found := mp[h.typ]; !found {
 			if !h.optional {
-				return fmt.Errorf("dex internal error: missing type %d", h.typ)
+				res.Error = fmt.Errorf("dex internal error: missing type %d", h.typ)
 			}
-		} else if err := h.f(ctx, int64(p.Offset), int(p.Count)); err != nil {
-			return err
+		} else if res.Error = h.f(ctx, int64(p.Offset), int(p.Count)); res.Error != nil {
+			return
 		}
 	}
 	report := map[string]interface{}{
@@ -397,8 +399,7 @@ func DexAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interfa
 		"00-disclaimer": "dex analyzer is still under construction",
 	}
 	dexCreateReport(ctx, report)
-	rep("", report)
-	return nil
+	res.Result = report
 }
 
 // dexCreateReport generates the report from the extract dexContext

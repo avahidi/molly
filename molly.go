@@ -2,12 +2,15 @@ package lib
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"bitbucket.org/vahidi/molly/actions/analyzers"
 
 	_ "bitbucket.org/vahidi/molly/actions" // import default actions
 	"bitbucket.org/vahidi/molly/report"
@@ -89,18 +92,6 @@ func processTags(m *types.Molly, fr *types.FileData) {
 
 func scanInput(m *types.Molly, env *types.Env, r *types.Report,
 	reader io.ReadSeeker, data *types.FileData) {
-	// update basename to something we can use to create files from
-	if data.Parent == nil {
-		data.FilenameOut = suggestBaseName(m, data)
-
-		// make sure its path is there and we have a soft link to the real file
-		path, _ := filepath.Split(data.FilenameOut)
-		util.SafeMkdir(path)
-
-		// make sure we link to the absolute path
-		filename_abs, _ := filepath.Abs(data.Filename)
-		os.Symlink(filename_abs, data.FilenameOut)
-	}
 
 	env.SetInput(reader, data)
 	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
@@ -152,6 +143,30 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	return report, nil
 }
 
+// checkDuplicate if a file is duplicate and does all the book keeping
+func checkDuplicate(m *types.Molly, file *types.FileData) (bool, error) {
+	hash, err := util.HashFile(file.Filename)
+	if err != nil {
+		return false, err
+	}
+
+	hashtxt := hex.EncodeToString(hash)
+
+	// seen it has been done, add the checksum to our analysis
+	file.Analyses["checksum"] = analyzers.NewAnalysis("checksum", hash)
+
+	// check if we have already seen this checksum:
+	org, alreadyseen := m.FilesByHash[hashtxt]
+	if !alreadyseen {
+		m.FilesByHash[hashtxt] = file
+		return false, nil
+	}
+
+	util.RegisterWarningf("duplicate files: %s and %s", org.Filename, file.Filename)
+	file.Analyses["duplicate-of"] = analyzers.NewAnalysis("duplicate-of", org.Filename)
+	return true, nil
+}
+
 // scanFile opens and scans a single file
 func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 	filename_ string, parent *types.FileData) {
@@ -168,6 +183,19 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		if !found {
 			fr = types.NewFileData(filename, parent)
 			m.Files[filename] = fr
+
+			// update basename to something we can use to create files from
+			if fr.Parent == nil {
+				fr.FilenameOut = suggestBaseName(m, fr)
+
+				// make sure its path is there and we have a soft link to the real file
+				path, _ := filepath.Split(fr.FilenameOut)
+				util.SafeMkdir(path)
+
+				// make sure we link to the absolute path
+				filename_abs, _ := filepath.Abs(fr.Filename)
+				os.Symlink(filename_abs, fr.FilenameOut)
+			}
 		}
 
 		// if we for some reason have done this one before, just skip it
@@ -191,9 +219,18 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 			continue
 		}
 
+		alreadyseen, err := checkDuplicate(m, fr)
+		if err != nil {
+			fr.Errors = append(fr.Errors, err)
+		}
+		if alreadyseen {
+			continue
+		}
+
 		reader, err := os.Open(filename)
 		if err != nil {
 			fr.Errors = append(fr.Errors, err)
+			continue
 		}
 
 		scanInput(m, env, rep, reader, fr)

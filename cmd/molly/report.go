@@ -30,7 +30,12 @@ func inputToReportEntry(file *types.FileData) map[string]interface{} {
 		ret["parent"] = file.Parent.Filename
 	}
 
-	ret["information"] = file.Information
+	// extract the interesting parts from info
+	info := make(map[string]interface{})
+	for k, v := range file.Analyses {
+		info[k] = v.Result
+	}
+	ret["information"] = info
 
 	if tags := report.ExtractTags(file); len(tags) > 0 {
 		ret["tags"] = tags

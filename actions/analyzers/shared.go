@@ -3,15 +3,30 @@ package analyzers
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 )
 
-// Reporter is the callback used to generate the reports from data
-type Reporter func(name string, data interface{})
+// Analysis represents results of an analysis performed on this file
+type Analysis struct {
+	Name   string
+	Result interface{}
+
+	CreateFile bool
+	Error      error
+}
+
+// NewAnalysis create an Analysis with the required format
+func NewAnalysis(name string, result interface{}, params ...interface{}) *Analysis {
+	for d := range params {
+		name = fmt.Sprintf("%s__%v", name, d)
+	}
+	return &Analysis{Name: name, Result: result}
+}
 
 // Analyzer is a function for analyzing a stream and generating one or more reports
-type Analyzer func(filename string, r io.ReadSeeker, gen Reporter, data ...interface{}) error
+type Analyzer func(filename string, r io.ReadSeeker, res *Analysis, data ...interface{})
 
 // extractStrings extract strings from reader, similar to UNIX strings utility
 func extractStrings(r io.Reader, minsize int) ([]string, error) {

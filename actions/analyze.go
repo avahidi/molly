@@ -29,46 +29,6 @@ var analyzersList = map[string]analyzers.Analyzer{
 	"dex":       analyzers.DexAnalyzer,
 }
 
-type logContext struct {
-	env      *types.Env
-	basename string
-	err      error
-}
-
-func (l *logContext) error(err error) {
-	if l.err == nil {
-		l.err = err
-	}
-}
-
-func (l *logContext) newLog(name string, data interface{}) {
-
-	// XXX: assuming two logs wont have the same name:
-	var logname string
-	if name != "" {
-		logname = fmt.Sprintf("%s_%s", l.basename, name)
-	} else {
-		logname = l.basename
-	}
-
-	switch v := data.(type) {
-	case []byte:
-		w, err := l.env.CreateLog(logname)
-		if err != nil {
-			l.error(err)
-			return
-		}
-		defer w.Close()
-		w.Write(v)
-		l.env.Current.Information[logname] = fmt.Sprintf("see external file '%s'", w.Name())
-
-	case map[string]interface{}:
-		l.env.Current.Information[logname] = v
-	default:
-		l.error(fmt.Errorf("Unknown analyzer result, in format %t", v))
-	}
-}
-
 // analyzeFunction performs some type of analysis on the current binary
 func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{}) (string, error) {
 	f, found := analyzersList[typ]
@@ -78,15 +38,11 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	ctx := logContext{env: e, basename: prefix}
-	if ctx.basename == "" {
-		ctx.basename = typ
-	}
-	err := f(e.GetFile(), e.Reader, ctx.newLog, data...)
-	if err != nil {
-		return "", err
-	}
-	return "", ctx.err
+	res := analyzers.NewAnalysis(typ, nil, data)
+
+	f(e.GetFile(), e.Reader, res, data...)
+	e.Current.Analyses[res.Name] = res
+	return "", res.Error
 }
 
 func init() {

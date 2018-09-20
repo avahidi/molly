@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"bitbucket.org/vahidi/molly/actions/analyzers"
 )
 
 type FileData struct {
@@ -16,16 +18,18 @@ type FileData struct {
 
 	time time.Time
 
+	Checksum []byte
+
 	// hierarchy
 	Depth    int
 	Children []*FileData
 
 	// These are filled as we scan the file
-	Processed   bool
-	Matches     []*Match
-	Errors      []error
-	Logs        []string
-	Information map[string]interface{}
+	Processed bool
+	Matches   []*Match
+	Errors    []error
+	Logs      []string
+	Analyses  map[string]*analyzers.Analysis
 }
 
 func NewFileData(filename string, parent *FileData) *FileData {
@@ -34,7 +38,7 @@ func NewFileData(filename string, parent *FileData) *FileData {
 		FilenameOut: filename,
 		Parent:      parent,
 		time:        time.Now(),
-		Information: make(map[string]interface{}),
+		Analyses:    make(map[string]*analyzers.Analysis),
 	}
 	// update parent data and make sure child is not newer than parent
 	if parent != nil {

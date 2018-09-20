@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"io"
 	"os"
@@ -81,4 +82,27 @@ func Process(r io.ByteReader, p func(b uint8, n int) bool) (int, error) {
 			return i, nil
 		}
 	}
+}
+
+// hasher is used by HashFile
+var hasher = sha256.New()
+
+// HashFile generates a hash for a file with an unspecified algorithm
+func HashFile(filename string) ([]byte, error) {
+	reader, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return HashStream(reader)
+}
+
+// HashStream is similar to HashFile but operates on streams
+func HashStream(r io.Reader) ([]byte, error) {
+	hasher.Reset()
+	_, err := io.Copy(hasher, r)
+	if err != nil {
+		return nil, err
+	}
+	return hasher.Sum(nil), nil
 }

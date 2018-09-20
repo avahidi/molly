@@ -2,29 +2,11 @@ package analyzers
 
 import (
 	"bufio"
-	"bytes"
-	"image"
-	"image/color"
-	"image/png"
 	"io"
 )
 
-func histogramToImage(hist []int, max int) image.Image {
-	if max < 1 {
-		max = 1 /* avoid divide by zero */
-	}
-	palette := []color.Color{color.White, color.Black}
-	img := image.NewPaletted(image.Rect(0, 0, 256, 100), palette)
-	for x, y := range hist {
-		n := 100 - (y*100)/max
-		img.SetColorIndex(x, n, 1)
-
-	}
-	return img
-}
-
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...interface{}) error {
+func HistogramAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
 
 	// extract histogram file file
 	count := make([]int, 256)
@@ -35,7 +17,8 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...i
 			break
 		}
 		if err != nil {
-			return err
+			res.Error = err
+			return
 		}
 		count[c]++
 	}
@@ -54,22 +37,11 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, rep Reporter, data ...i
 	avg := sum / len(count)
 
 	// jost report
-	report := map[string]interface{}{
+	res.Result = map[string]interface{}{
 		"histrogram": count,
 		"sum":        sum,
 		"min":        min,
 		"max":        max,
 		"avg":        avg,
 	}
-	rep("", report)
-
-	// PNG image
-	img := histogramToImage(count, max)
-	buff := &bytes.Buffer{}
-	if err := png.Encode(buff, img); err != nil {
-		return err
-	}
-	rep("image.png", buff.Bytes())
-
-	return nil
 }
