@@ -235,18 +235,19 @@ func main() {
 	}
 
 	// calculate some stats
-	totalMatches, totalFiles, totalErrors := 0, 0, len(errors)
+	totalMatches, totalFiles, totalErrors, totalWarns := 0, 0, len(errors), len(util.Warnings())
 	for _, f := range report.Files {
 		if len(f.Matches) > 0 {
 			totalMatches += len(f.Matches)
 			totalFiles++
 		}
 		totalErrors += len(f.Errors)
+		totalWarns += len(f.Warnings)
 	}
 
 	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n",
 		len(molly.Files), len(report.Files), totalMatches)
-	fmt.Printf("%d errors, %d warnings\n", totalErrors, len(util.Warnings()))
+	fmt.Printf("%d errors, %d warnings\n", totalErrors, totalWarns)
 	if totalErrors > 0 {
 		os.Exit(1)
 	}

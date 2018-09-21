@@ -45,7 +45,16 @@ func inputToReportEntry(file *types.FileData) map[string]interface{} {
 	for i, e := range file.Errors {
 		errstrs[i] = e.Error()
 	}
+
 	ret["errors"] = errstrs
+
+	if len(file.Warnings) > 0 {
+		ret["warnings"] = file.Warnings
+	}
+
+	if file.DuplicateOf != nil {
+		ret["duplicate-of"] = file.DuplicateOf.Filename
+	}
 
 	if len(file.Logs) > 0 {
 		ret["logs"] = file.Logs

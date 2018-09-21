@@ -2,6 +2,11 @@
 TODO
 ====
 
+* given the way files are processed and queued, we can process a duplicate before
+  its original and hence be not able to delete the duplicate file
+
+* warnings are registred globally when they should be handled inside each FileData
+
 * RuleEval seems to ignore all errors when evaluating expressions.
 What we want to report anything other than extraction errors (e.g. unexpected EOF)
 

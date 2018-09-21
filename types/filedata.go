@@ -21,13 +21,15 @@ type FileData struct {
 	Checksum []byte
 
 	// hierarchy
-	Depth    int
-	Children []*FileData
+	Depth       int
+	Children    []*FileData
+	DuplicateOf *FileData
 
 	// These are filled as we scan the file
 	Processed bool
 	Matches   []*Match
 	Errors    []error
+	Warnings  []string
 	Logs      []string
 	Analyses  map[string]*analyzers.Analysis
 }
@@ -61,6 +63,21 @@ func (fd *FileData) GetTime() time.Time {
 
 func (fd FileData) Empty() bool {
 	return len(fd.Matches) == 0 && len(fd.Errors) == 0 && len(fd.Logs) == 0
+}
+
+// RegisterErrorf registers an error
+func (fd *FileData) RegisterErrorf(format string, v ...interface{}) {
+	fd.RegisterError(fmt.Errorf(format, v...))
+}
+
+// RegisterError registers an error
+func (fd *FileData) RegisterError(err error) {
+	fd.Errors = append(fd.Errors, err)
+}
+
+// RegisterWarning registers a warning
+func (fd *FileData) RegisterWarning(format string, v ...interface{}) {
+	fd.Warnings = append(fd.Warnings, (fmt.Sprintf(format, v...)))
 }
 
 // Get returns variables associated with this file.

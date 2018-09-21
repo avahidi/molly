@@ -106,7 +106,9 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report,
 				data.Matches = append(data.Matches, match)
 				processMatch(m, data, match)
 			}
-			data.Errors = append(data.Errors, errs...)
+			for _, err := range errs {
+				data.RegisterError(err)
+			}
 		}
 	}
 	processTags(m, data)
@@ -162,8 +164,9 @@ func checkDuplicate(m *types.Molly, file *types.FileData) (bool, error) {
 		return false, nil
 	}
 
-	util.RegisterWarningf("duplicate files: %s and %s", org.Filename, file.Filename)
-	file.Analyses["duplicate-of"] = analyzers.NewAnalysis("duplicate-of", org.Filename)
+	// record it
+	file.DuplicateOf = org
+	file.RegisterWarning("duplicate of %s", org.Filename)
 	return true, nil
 }
 
@@ -206,7 +209,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 
 		// started with an error, no point moving in
 		if err != nil {
-			fr.Errors = append(fr.Errors, err)
+			fr.RegisterError(err)
 			continue
 		}
 
@@ -215,21 +218,27 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		fr.Filesize = fi.Size()
 
 		if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
-			fr.Errors = append(fr.Errors, fmt.Errorf("File depth above %d", m.MaxDepth))
+			fr.RegisterErrorf("File depth above %d", m.MaxDepth)
 			continue
 		}
 
 		alreadyseen, err := checkDuplicate(m, fr)
 		if err != nil {
-			fr.Errors = append(fr.Errors, err)
+			fr.RegisterError(err)
 		}
 		if alreadyseen {
+			// if we already have this guy, just delete it (assuming its ours)
+			// XXX: this does not follow the extraction hierarchy
+			if fr.Parent != nil {
+				os.Remove(fr.FilenameOut)
+				os.Symlink(fr.DuplicateOf.Filename, fr.FilenameOut)
+			}
 			continue
 		}
 
 		reader, err := os.Open(filename)
 		if err != nil {
-			fr.Errors = append(fr.Errors, err)
+			fr.RegisterError(err)
 			continue
 		}
 
