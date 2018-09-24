@@ -114,7 +114,7 @@ func (j jdatalist) generate(ctx *jcontext) ([]byte, error) {
 func copyRtime(dst, src []byte) error {
 	posmap, spos, dpos := make([]int, 256), 0, 0
 
-	for dpos < len(dst) {
+	for dpos < len(dst) && spos < len(src) {
 		value, repeat := src[spos], src[spos+1]
 		spos += 2
 
