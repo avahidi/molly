@@ -22,11 +22,30 @@ func get(e types.Expression) interface{} {
 }
 
 func Simplify(e types.Expression) types.Expression {
-	sim, err := e.Eval(nil)
+	sim, err := e.Simplify()
 	if err == nil && sim != nil {
 		return sim
 	}
 	return e
+}
+
+// simplifyHelper simplifies a list of expressions and check if anything has changed
+func simplifyHelper(es ...types.Expression) ([]types.Expression, error, bool) {
+	var ret []types.Expression
+	changed := false
+	for _, e := range es {
+		if e == nil {
+			ret = append(ret, nil)
+		} else {
+			e2, err := e.Simplify()
+			if err != nil {
+				return ret, err, false
+			}
+			changed = changed || (e2 != e)
+			ret = append(ret, e2)
+		}
+	}
+	return ret, nil, changed
 }
 
 func requireNumberPrimitive(e types.Expression) (int, error) {
@@ -98,6 +117,10 @@ func NewStringExpression(s string) *ValueExpression {
 	return NewValueExpression(ss)
 }
 
+func (ve *ValueExpression) Simplify() (types.Expression, error) {
+	return ve, nil
+}
+
 func (ve *ValueExpression) Eval(env *types.Env) (types.Expression, error) {
 	return ve, nil
 }
@@ -111,10 +134,11 @@ type VariableExpression struct {
 	Id string
 }
 
+func (ve *VariableExpression) Simplify() (types.Expression, error) {
+	return ve, nil
+}
+
 func (ve *VariableExpression) Eval(env *types.Env) (types.Expression, error) {
-	if env == nil {
-		return ve, nil
-	}
 	expr, found, err := EnvLookup(env, ve.Id)
 	if err != nil {
 		return nil, err
@@ -138,6 +162,14 @@ type SliceExpression struct {
 	End   types.Expression
 }
 
+func (se *SliceExpression) Simplify() (types.Expression, error) {
+	es, err, changed := simplifyHelper(se.Expr, se.Start, se.End)
+	if err != nil || !changed {
+		return se, err
+	}
+	return &SliceExpression{Expr: es[0], Start: es[1], End: es[2]}, nil
+}
+
 func (se *SliceExpression) Eval(env *types.Env) (types.Expression, error) {
 	expr, err := se.Expr.Eval(env)
 	if err != nil {
@@ -156,9 +188,6 @@ func (se *SliceExpression) Eval(env *types.Env) (types.Expression, error) {
 		}
 	}
 
-	if env == nil {
-		return NewSliceExpression(expr, start, end), nil
-	}
 	x1, err := requireStringPrimitive(expr)
 	if err != nil {
 		return nil, err
@@ -210,6 +239,40 @@ type OperationExpression struct {
 	Operation prim.Operation
 }
 
+func (oe *OperationExpression) Simplify() (types.Expression, error) {
+	oes, err, changed := simplifyHelper(oe.Left, oe.Right)
+	if err != nil {
+		return oe, err
+	}
+
+	// check if we can perform the OP right away
+	leftval, leftokay := oes[0].(*ValueExpression)
+	if leftokay {
+		if oes[1] == nil { // unary
+			k, err := leftval.Value.Unary(oe.Operation)
+			if err != nil {
+				return nil, err
+			}
+			return NewValueExpression(k), nil
+		} else { // binary
+			rightval, rightokay := oes[1].(*ValueExpression)
+			if rightokay {
+				k, err := leftval.Value.Binary(rightval.Value, oe.Operation)
+				if err != nil {
+					return nil, err
+				}
+				return NewValueExpression(k), err
+			}
+		}
+	}
+
+	if !changed {
+		return oe, nil
+	}
+
+	return &OperationExpression{Left: oes[0], Right: oes[1], Operation: oe.Operation}, nil
+}
+
 func (oe *OperationExpression) Eval(env *types.Env) (types.Expression, error) {
 	left, err := oe.Left.Eval(env)
 	if err != nil {
@@ -217,23 +280,16 @@ func (oe *OperationExpression) Eval(env *types.Env) (types.Expression, error) {
 	}
 	v1, okay1 := left.(*ValueExpression)
 	if !okay1 {
-		if env == nil {
-			return oe, nil
-		}
 		return nil, fmt.Errorf("Invalid LHS in operation")
 	}
 
 	if oe.Right == nil {
 		// UNARY
-		switch n := v1.Value.(type) {
-		case *prim.Number:
-			k, err := n.Unary(oe.Operation)
-			return NewValueExpression(k), err
-		case *prim.Boolean:
-			k, err := n.Unary(oe.Operation)
-			return NewValueExpression(k), err
+		k, err := v1.Value.Unary(oe.Operation)
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("Unknown unary types.Expression")
+		return NewValueExpression(k), nil
 	} else {
 		// binary
 		right, err := oe.Right.Eval(env)
@@ -242,9 +298,6 @@ func (oe *OperationExpression) Eval(env *types.Env) (types.Expression, error) {
 		}
 		v2, okay2 := right.(*ValueExpression)
 		if !okay2 {
-			if env == nil {
-				return oe, nil
-			}
 			return nil, fmt.Errorf("Invalid RHS in operation")
 		}
 
@@ -318,6 +371,15 @@ func NewExtractExpression(o, s types.Expression, m *util.Register, f ExtractForm
 	return &ExtractExpression{Offset: o, Size: s, Metadata: m, Format: f}
 }
 
+func (ee *ExtractExpression) Simplify() (types.Expression, error) {
+	ees, err, changed := simplifyHelper(ee.Offset, ee.Size)
+	if err != nil || !changed {
+		return ee, err
+	}
+	return &ExtractExpression{Offset: ees[0], Size: ees[1],
+		Format: ee.Format, Metadata: ee.Metadata}, nil
+}
+
 func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 	o1, err := ee.Offset.Eval(env)
 	if err != nil {
@@ -326,11 +388,6 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 	s1, err := ee.Size.Eval(env)
 	if err != nil {
 		return nil, err
-	}
-
-	// simplified?
-	if env == nil {
-		return NewExtractExpression(o1, s1, ee.Metadata, ee.Format), nil
 	}
 
 	o := get(o1).(*prim.Number)
@@ -412,19 +469,20 @@ func NewFunctionExpression(name string, m *util.Register,
 	return &FunctionExpression{Name: name, Metadata: m, Func: f, Params: params}, nil
 }
 
-func (fe *FunctionExpression) Eval(env *types.Env) (types.Expression, error) {
-	// simplify:
-	if env == nil {
-		c := &FunctionExpression{Name: fe.Name, Func: fe.Func,
-			Params: make([]types.Expression, len(fe.Params))}
-		for i, p1 := range fe.Params {
-			if p2, err := p1.Eval(nil); err == nil {
-				c.Params[i] = p2
-			}
-		}
-		return c, nil
+func (fe *FunctionExpression) Simplify() (types.Expression, error) {
+	fes, err, changed := simplifyHelper(fe.Params...)
+	if err != nil || !changed {
+		return fe, err
 	}
+	return &FunctionExpression{
+		Name:     fe.Name,
+		Func:     fe.Func,
+		Params:   fes,
+		Metadata: fe.Metadata,
+	}, nil
+}
 
+func (fe *FunctionExpression) Eval(env *types.Env) (types.Expression, error) {
 	// get values instead of types.Expressions
 	ps := make([]interface{}, len(fe.Params))
 	for i, p1 := range fe.Params {
