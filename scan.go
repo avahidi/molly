@@ -1,0 +1,89 @@
+package lib
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+
+	_ "bitbucket.org/vahidi/molly/actions" // import default actions
+	"bitbucket.org/vahidi/molly/report"
+	"bitbucket.org/vahidi/molly/scan"
+	"bitbucket.org/vahidi/molly/types"
+)
+
+// processMatch will process a match on a rule
+func processMatch(m *types.Molly, i *types.FileData, match *types.Match) {
+	if len(match.Children) == 0 {
+		if m.OnMatchRule != nil {
+			m.OnMatchRule(i, match)
+		}
+	}
+	for _, ch := range match.Children {
+		processMatch(m, i, ch)
+	}
+}
+
+// processMatch will process a tag on a file
+func processTags(m *types.Molly, fr *types.FileData) {
+	if m.OnMatchTag != nil {
+		tags := report.ExtractTags(fr)
+		for _, tag := range tags {
+			m.OnMatchTag(fr, tag)
+		}
+	}
+}
+
+func scanInput(m *types.Molly, env *types.Env, r *types.Report,
+	reader io.ReadSeeker, data *types.FileData) {
+
+	env.SetInput(reader, data)
+	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
+		for _, rule := range m.Rules.Top {
+			p, _ := rule.Metadata.GetNumber("pass", uint64(types.RulePassMin))
+			if p != uint64(pass) {
+				continue
+			}
+			env.StartRule(rule)
+			match, errs := scan.AnalyzeFile(rule, env)
+			if match != nil {
+				data.Matches = append(data.Matches, match)
+				processMatch(m, data, match)
+			}
+			for _, err := range errs {
+				data.RegisterError(err)
+			}
+		}
+	}
+	processTags(m, data)
+
+	// this file might have generated a report, so log it
+	if !data.Empty() {
+		r.Add(data)
+	}
+	// this file may have created new files, scan them too
+	for _, offspring := range data.Children {
+		scanFile(m, env, r, offspring.Filename, data)
+	}
+}
+
+// ScanData scans a byte vector for matches.
+func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
+
+	// we need a dummy file name that is unique:
+	var fd *types.FileData
+	for i := 0; fd == nil; i++ {
+		dummyname := fmt.Sprintf("nopath/nofile_%04d", i)
+		if _, found := m.Files[dummyname]; !found {
+			fd = types.NewFileData(dummyname, nil)
+			m.Files[dummyname] = fd
+		}
+	}
+	fd.Filesize = int64(len(data))
+
+	env := types.NewEnv(m)
+	report := types.NewReport()
+	reader := bytes.NewReader(data)
+	scanInput(m, env, report, reader, fd)
+
+	return report, nil
+}
