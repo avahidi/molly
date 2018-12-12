@@ -26,26 +26,20 @@ func (r *Register) Set(name string, val interface{}) {
 	r.data[name] = val
 }
 
-func (r Register) Get(name string) (interface{}, bool) {
+func (r Register) Get(name string, def interface{}) (interface{}, bool) {
 	i, f := r.data[name]
-	if !f && r.parent != nil {
-		i, f = r.parent.Get(name)
+	if !f {
+		i = def
+		if r.parent != nil {
+			i, f = r.parent.Get(name, def)
+		}
 	}
+
 	return i, f
 }
 
-func (r Register) GetNumber(name string, def uint64) (uint64, bool) {
-	i, f := r.Get(name)
-	if f {
-		if n, o := i.(uint64); o {
-			return n, true
-		}
-	}
-	return def, false
-}
-
 func (r Register) GetBoolean(name string, def bool) (bool, bool) {
-	i, f := r.Get(name)
+	i, f := r.Get(name, def)
 	if f {
 		if n, o := i.(bool); o {
 			return n, true
@@ -55,7 +49,7 @@ func (r Register) GetBoolean(name string, def bool) (bool, bool) {
 }
 
 func (r Register) GetString(name string, def string) (string, bool) {
-	i, f := r.Get(name)
+	i, f := r.Get(name, def)
 	if f {
 		if n, o := i.(string); o {
 			return n, true

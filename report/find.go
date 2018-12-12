@@ -1,6 +1,8 @@
 package report
 
-import "bitbucket.org/vahidi/molly/types"
+import (
+	"bitbucket.org/vahidi/molly/types"
+)
 
 // FindInReportFile find a file in a report, filename "" means any
 func FindInReportFile(r *types.Report, filename string) *types.FileData {
@@ -63,17 +65,16 @@ func FindInReportVar(r *types.Report, filename, rulename, varname string) (inter
 			return data, true
 		}
 	}
-
 	return nil, false
 }
 
 // FindInReportVarNumber is a helper for FindInReport when it returns a number
-func FindInReportVarNumber(r *types.Report, filename, rulename, varname string) (uint64, bool) {
+func FindInReportVarNumber(r *types.Report, filename, rulename, varname string) (int64, bool) {
 	data, found := FindInReportVar(r, filename, rulename, varname)
 	if !found {
 		return 0, false
 	}
-	num, valid := data.(uint64)
+	num, valid := data.(int64)
 	return num, valid
 }
 

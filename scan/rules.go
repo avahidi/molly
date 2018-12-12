@@ -517,44 +517,36 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 // returns the corrector extractor for it
 func findExtractFunction(id string, argv []types.Expression, metadata *util.Register) (
 	types.Expression, error) {
-
 	argc := len(argv)
-	format := exp.ExtractFormat{}
 
 	switch id {
 	case "StringZ":
 		if argc == 2 {
-			format.Type = exp.StringZ
-			return exp.NewExtractExpression(argv[0], argv[1], metadata, format), nil
+			return exp.NewExtractExpression(argv[0], argv[1], metadata, exp.StringZ), nil
 		}
 	case "String":
 		if argc == 2 {
-			format.Type = exp.String
-			return exp.NewExtractExpression(argv[0], argv[1], metadata, format), nil
+			return exp.NewExtractExpression(argv[0], argv[1], metadata, exp.String), nil
 		}
 	case "Byte":
 		if argc == 1 {
-			format.Type = exp.UNumber
 			return exp.NewExtractExpression(argv[0],
-				exp.NewNumberExpression(1, 4, false), metadata, format), nil
+				exp.NewNumberExpression(1, 4, false), metadata, exp.Number), nil
 		}
 	case "Short":
 		if argc == 1 {
-			format.Type = exp.UNumber
 			return exp.NewExtractExpression(argv[0],
-				exp.NewNumberExpression(2, 4, false), metadata, format), nil
+				exp.NewNumberExpression(2, 4, false), metadata, exp.Number), nil
 		}
 	case "Long":
 		if argc == 1 {
-			format.Type = exp.UNumber
 			return exp.NewExtractExpression(argv[0],
-				exp.NewNumberExpression(4, 4, false), metadata, format), nil
+				exp.NewNumberExpression(4, 4, false), metadata, exp.Number), nil
 		}
 	case "Quad":
 		if argc == 1 {
-			format.Type = exp.UNumber
 			return exp.NewExtractExpression(argv[0],
-				exp.NewNumberExpression(8, 4, false), metadata, format), nil
+				exp.NewNumberExpression(8, 4, false), metadata, exp.Number), nil
 		}
 	default:
 		// no error but neither an extract function

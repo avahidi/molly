@@ -112,7 +112,7 @@ func (n *Number) Unary(op Operation) (Primitive, error) {
 
 func (n *Number) Get() interface{} {
 
-	if n.Signed {
+	if !n.Signed {
 		switch n.Size {
 		case 1:
 			return uint8(n.Value)

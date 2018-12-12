@@ -39,8 +39,7 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report,
 	env.SetInput(reader, data)
 	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
 		for _, rule := range m.Rules.Top {
-			p, _ := rule.Metadata.GetNumber("pass", uint64(types.RulePassMin))
-			if p != uint64(pass) {
+			if p, _ := rule.Metadata.Get("pass", int64(types.RulePassMin)); p != int64(pass) {
 				continue
 			}
 			env.StartRule(rule)

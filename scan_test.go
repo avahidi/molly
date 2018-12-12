@@ -43,23 +43,27 @@ func TestScanData(t *testing.T) {
 		{ // standard bigendian
 			"rule test { var a = Byte(0); var b = Short(1); var c = Long(2); }",
 			[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			"test", int8(0x00), int16(0x0102), int32(0x02030405)},
+			"test", uint8(0x00), uint16(0x0102), uint32(0x02030405)},
 		{ // little endian
 			"rule test (bigendian = false) { var a = Byte(0); var b = Short(1); var c = Long(2); }",
 			[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			"test", int8(0x00), int16(0x0201), int32(0x05040302)},
+			"test", uint8(0x00), uint16(0x0201), uint32(0x05040302)},
 		{ // little endian, one big
 			"rule test (bigendian = false) { var a = Byte(0); var b = Short(1, bigendian = true); var c = Long(2); }",
 			[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			"test", int8(0x00), int16(0x0102), int32(0x05040302)},
+			"test", uint8(0x00), uint16(0x0102), uint32(0x05040302)},
 		{ // two rules, both little endian
 			"rule r1 (bigendian = false) { var a = Byte(0); var b = Short(1); } rule test : r1 {var c = Long(2); }",
 			[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			"test", int8(0x00), int16(0x0201), int32(0x05040302)},
+			"test", uint8(0x00), uint16(0x0201), uint32(0x05040302)},
 		{ // two rules, different endians endian
 			"rule r1 (bigendian = false) { var a = Byte(0); var b = Short(1); } rule test (bigendian = true) : r1 {var c = Long(2); }",
 			[]byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-			"test", int8(0x00), int16(0x0201), int32(0x02030405)},
+			"test", uint8(0x00), uint16(0x0201), uint32(0x02030405)},
+		{ // signed and unsigned
+			"rule r1 { var a = Short(0); var b = Short(0, signed = false); var c = Short(0, signed = true); }",
+			[]byte{0xFF, 0x01, 0x02, 0x03},
+			"test", uint16(0xFF01), uint16(0xFF01), int16(-255)},
 	}
 
 	for _, test := range testdata {
@@ -67,6 +71,7 @@ func TestScanData(t *testing.T) {
 		if molly == nil {
 			continue
 		}
+
 		mr, err := ScanData(molly, test.input)
 		if err != nil || len(mr.Files) != 1 {
 			t.Errorf("No match in scan data")
@@ -106,7 +111,7 @@ func TestScanPass(t *testing.T) {
 
 	ms := mr.Files[0].Matches
 	if ms[0].Rule.ID != "p0" || ms[1].Rule.ID != "p1" || ms[2].Rule.ID != "p2" {
-		t.Fatalf("Rule pass not respected during scann")
+		t.Fatalf("Rule pass not respected during scan")
 	}
 }
 

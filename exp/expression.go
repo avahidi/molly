@@ -323,42 +323,13 @@ func (oe OperationExpression) String() string {
 }
 
 // extract types.Expression
+type ExtractFormat int
 
 const (
-	UNumber = iota
-	SNumber
+	Number ExtractFormat = iota
 	String
 	StringZ
 )
-
-const (
-	EndianUnknown = iota
-	EndianBig
-	EndianLittle
-)
-
-type ExtractFormat struct {
-	Type  int
-	Order int
-}
-
-func (e ExtractFormat) Signed() bool {
-	return e.Type == SNumber
-}
-
-func (e *ExtractFormat) SetByteOrder(bigendian bool) {
-	if bigendian {
-		e.Order = EndianBig
-	} else {
-		e.Order = EndianLittle
-	}
-}
-func (e ExtractFormat) ByteOrder() binary.ByteOrder {
-	if e.Order == EndianLittle {
-		return binary.LittleEndian
-	}
-	return binary.BigEndian
-}
 
 type ExtractExpression struct {
 	Offset   types.Expression
@@ -396,18 +367,12 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 		return nil, err
 	}
 
-	// endian is not known yet, see if we can figure it out from metadata
-	if ee.Format.Order == EndianUnknown {
-		be, _ := ee.Metadata.GetBoolean("bigendian", true)
-		ee.Format.SetByteOrder(be)
-	}
-
-	if ee.Format.Type == String || ee.Format.Type == StringZ {
+	if ee.Format == String || ee.Format == StringZ {
 		var data []byte
 		var err error
 
 		// zero terminated or fix size?
-		if ee.Format.Type == StringZ {
+		if ee.Format == StringZ {
 			data, _, err = util.ReadUntil(env.Reader, 0, int(s.Value))
 		} else {
 			var n int
@@ -425,12 +390,19 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 		return NewValueExpression(s), nil
 
 	} else {
+		var bo binary.ByteOrder
+		if bigendian, _ := ee.Metadata.GetBoolean("bigendian", true); bigendian {
+			bo = binary.BigEndian
+		} else {
+			bo = binary.LittleEndian
+		}
+		signed, _ := ee.Metadata.GetBoolean("signed", false)
+
 		data := make([]byte, s.Value)
 		if _, err := env.Reader.Read(data); err != nil {
 			return nil, err
 		}
 		val := uint64(0)
-		bo := ee.Format.ByteOrder()
 
 		switch len(data) {
 		case 1:
@@ -444,13 +416,13 @@ func (ee *ExtractExpression) Eval(env *types.Env) (types.Expression, error) {
 		default:
 			return nil, fmt.Errorf("Internal error: invalid number length: %d", len(data))
 		}
-		n := prim.NewNumber(val, len(data), ee.Format.Signed())
+		n := prim.NewNumber(val, len(data), signed)
 		return NewValueExpression(n), nil
 	}
 }
 
 func (ue ExtractExpression) String() string {
-	return fmt.Sprintf("Extract(%s, %s, %d)", ue.Offset, ue.Size, ue.Format)
+	return fmt.Sprintf("Extract(%s, %s, %v)", ue.Offset, ue.Size, ue.Format)
 }
 
 type FunctionExpression struct {

@@ -102,8 +102,8 @@ func TestLoadRuleMetadata(t *testing.T) {
 	if val, found := mt.GetBoolean("bigendian", true); val != false || !found {
 		t.Errorf("Missing boolean metadata")
 	}
-	if val, found := mt.GetNumber("pass", 0); val != 2 || !found {
-		t.Errorf("Missing number metadata: %v %v %v", val, found, mt)
+	if val, found := mt.Get("pass", int64(0)); !(found && val == int64(2)) {
+		t.Errorf("Missing number metadata: %t %v %v", val, found, mt)
 	}
 	if val, found := mt.GetString("tag", ""); val != "testing" || !found {
 		t.Errorf("Missing string metadata")

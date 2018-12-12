@@ -10,8 +10,8 @@ import (
 func TestSimplify(t *testing.T) {
 	var err error
 	var a, b, c, d types.Expression
-	a = NewNumberExpression(100, 32, true)
-	b = NewNumberExpression(51, 32, true)
+	a = NewNumberExpression(100, 4, true)
+	b = NewNumberExpression(51, 4, true)
 	c = NewBinaryExpression(a, b, prim.ADD)
 	d = NewUnaryExpression(a, prim.NEG)
 
@@ -30,7 +30,7 @@ func TestSimplify(t *testing.T) {
 	}
 
 	cv, valid := c.(*ValueExpression)
-	if !valid || cv.Value.Get() != uint64(151) {
+	if !valid || cv.Value.Get() != int32(151) {
 		t.Errorf("Should have simplified %v", c)
 	}
 
@@ -40,7 +40,7 @@ func TestSimplify(t *testing.T) {
 	}
 
 	dv, valid := d.(*ValueExpression)
-	if !valid || dv.Value.Get() != -100 {
+	if !valid || dv.Value.Get() != int32(-100) {
 		t.Errorf("Should have simplified %v", d)
 	}
 }
