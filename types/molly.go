@@ -8,27 +8,35 @@ import (
 	"bitbucket.org/vahidi/molly/util"
 )
 
-// Molly represents the context of a molly program
-type Molly struct {
-	OutDir string
-	Rules  *RuleSet
-
+// Configuration contains all runtime parameters used by molly
+type Configuration struct {
+	OutDir      string
+	MaxDepth    int
+	Verbose     bool
 	OnMatchRule func(file *FileData, match *Match)
 	OnMatchTag  func(file *FileData, tag string)
+}
 
-	MaxDepth int
-	Files    map[string]*FileData
+// Molly represents the context of a molly program
+type Molly struct {
+	Config *Configuration
+	Rules  *RuleSet
 
+	Files map[string]*FileData
 	// FilesByHash is mainly need to ignore duplicate files
 	FilesByHash map[string]*FileData
 }
 
 // NewMolly creates a new Molly context
-func NewMolly(outdir string, maxDepth int) *Molly {
+func NewMolly() *Molly {
+	config := &Configuration{
+		OutDir:   "output",
+		MaxDepth: 12,
+	}
+
 	return &Molly{
-		OutDir:      outdir,
+		Config:      config,
 		Rules:       NewRuleSet(),
-		MaxDepth:    maxDepth,
 		Files:       make(map[string]*FileData),
 		FilesByHash: make(map[string]*FileData),
 	}

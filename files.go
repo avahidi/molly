@@ -13,25 +13,10 @@ import (
 	"bitbucket.org/vahidi/molly/util"
 )
 
-// newEmptyDir accepts a new or empty dir and if new creates it
-func newEmptyDir(dirname string) error {
-	typ := util.GetPathType(dirname)
-	switch typ {
-	case util.File:
-		return fmt.Errorf("'%s' is a file", dirname)
-	case util.NonEmptyDir:
-		return fmt.Errorf("'%s' exists and is not empty", dirname)
-	case util.Error:
-		return fmt.Errorf("'%s' could not be checked", dirname)
-	default:
-		return util.Mkdir(dirname)
-	}
-}
-
 // suggestBaseName picks a new base name for a file
-func suggestBaseName(m *types.Molly, input *types.FileData) string {
+func suggestBaseName(c *types.Configuration, input *types.FileData) string {
 	for i := 0; ; i++ {
-		basename := filepath.Join(m.OutDir, util.SanitizeFilename(input.Filename))
+		basename := filepath.Join(c.OutDir, util.SanitizeFilename(input.Filename))
 		if i != 0 {
 			basename = fmt.Sprintf("%s_%04d", basename, i)
 		}
@@ -85,7 +70,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 
 			// update basename to something we can use to create files from
 			if fr.Parent == nil {
-				fr.FilenameOut = suggestBaseName(m, fr)
+				fr.FilenameOut = suggestBaseName(m.Config, fr)
 
 				// make sure its path is there and we have a soft link to the real file
 				path, _ := filepath.Split(fr.FilenameOut)
@@ -113,8 +98,8 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		fr.SetTime(fi.ModTime())
 		fr.Filesize = fi.Size()
 
-		if m.MaxDepth != 0 && fr.Depth >= m.MaxDepth {
-			fr.RegisterErrorf("File depth above %d", m.MaxDepth)
+		if m.Config.MaxDepth != 0 && fr.Depth >= m.Config.MaxDepth {
+			fr.RegisterErrorf("File depth above %d", m.Config.MaxDepth)
 			continue
 		}
 

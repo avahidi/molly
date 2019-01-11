@@ -67,7 +67,7 @@ func createConfigurationReport(molly *types.Molly) map[string]interface{} {
 	f2 := make(map[string]interface{})
 	f2["command"] = os.Args
 	f2["time"] = time.Now()
-	f2["outdir"] = molly.OutDir
+	f2["outdir"] = molly.Config.OutDir
 	f2["rulecount"] = len(molly.Rules.Flat)
 	maj, min, mnt := lib.Version()
 	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)

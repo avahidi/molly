@@ -30,24 +30,20 @@ func (mf *MultiFlag) Set(val string) error {
 }
 
 // flags and usage
-var outdir = flag.String("outdir", "output", "output directory")
-var verbose = flag.Bool("v", false, "be verbose")
-var showVersion = flag.Bool("V", false, "show version number")
+var showVersion = flag.Bool("version", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
-var showhelpExt = flag.Bool("hh", false, "extended help information")
-var maxDepth = flag.Int("max-depth", 0, "max scan depth")
-var nostdrules = flag.Bool("no-std-rules", false, "Don't include molly standard rules")
+var showhelpExt = flag.Bool("H", false, "extended help information")
 
 var rfiles, rtexts, tagops, matchops MultiFlag
-var penable, pdisable MultiFlag
+
+var params MultiFlag
 
 func init() {
 	flag.Var(&rfiles, "R", "rule files")
 	flag.Var(&rtexts, "r", "inline rule")
 	flag.Var(&tagops, "on-tag", "tag match operations")
 	flag.Var(&matchops, "on-rule", "rule match operations")
-	flag.Var(&penable, "enable", "allow permission")
-	flag.Var(&pdisable, "disable", "remove permission")
+	flag.Var(&params, "p", "set parameter")
 }
 
 func help(extended bool, errmsg string, exitcode int) {
@@ -102,25 +98,24 @@ func main() {
 		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
 		return
 	}
-	// update permissions
-	for i, list := range []MultiFlag{penable, pdisable} {
-		set := (i == 0)
-		for _, name := range list {
-			p, found := util.PermissionNames[name]
-			if !found {
-				fmt.Printf("Unknown permission '%s'. ", name)
-				util.PermissionHelp()
-				help(false, "", 20)
-			}
-			util.PermissionSet(p, set)
+
+	// create context
+	molly := lib.New()
+
+	// parameters
+	for _, param := range params {
+		err := setParameters(molly.Config, param)
+		if err != nil {
+			msg := fmt.Sprintf("Error when processing parameter '%s': %v", param, err)
+			help(false, msg, 20)
 		}
 	}
 
 	// include standrad rules if not exdcluded and we can find them
-	if !*nostdrules {
+	if loadStandardRules {
 		stdrules := getStandardRules()
 		if stdrules == "" {
-			help(false, "Could not find standard rules. You may need to add -no-std-rules", 20)
+			help(false, "Could not find standard rules. You may need to add -p config.standardrules=false", 20)
 		}
 		rfiles = append(rfiles, stdrules)
 	}
@@ -141,15 +136,16 @@ func main() {
 		}
 	}
 
-	// create context
-	molly := lib.New(*outdir, *maxDepth)
+	if err := util.NewEmptyDir(molly.Config.OutDir); err != nil {
+		util.RegisterFatalf("Failed to create output directory: %v", err)
+	}
 
 	// create callbacks
 	listmatch, err := opListParse(matchops)
 	if err != nil {
 		log.Fatalf("match op error: %s", err)
 	}
-	molly.OnMatchRule = func(i *types.FileData, match *types.Match) {
+	molly.Config.OnMatchRule = func(i *types.FileData, match *types.Match) {
 		id := match.Rule.ID
 		if cmd, found := listmatch[id]; found {
 			output, err := opExecute(molly, cmd, i)
@@ -165,7 +161,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("tag op error: %s", err)
 	}
-	molly.OnMatchTag = func(i *types.FileData, tag string) {
+	molly.Config.OnMatchTag = func(i *types.FileData, tag string) {
 		if cmd, found := listtag[tag]; found {
 			output, err := opExecute(molly, cmd, i)
 			fmt.Printf("TAG %s on %s: %s\n", tag, i.Filename, output)
@@ -210,7 +206,7 @@ func main() {
 	}
 
 	// show results
-	dumpResult(molly, report, *verbose)
+	dumpResult(molly, report, molly.Config.Verbose)
 
 	var errors []error
 
@@ -220,17 +216,17 @@ func main() {
 	}
 
 	// generate summary file
-	if err := writeSummaryFile(molly, report, *outdir); err != nil {
+	if err := writeSummaryFile(molly, report, molly.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate match file
-	if err := writeMatchFile(molly, report, *outdir); err != nil {
+	if err := writeMatchFile(molly, report, molly.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate rule file
-	if err := writeRuleFile(molly, *outdir); err != nil {
+	if err := writeRuleFile(molly, molly.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 

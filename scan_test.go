@@ -95,7 +95,7 @@ func TestScanPass(t *testing.T) {
 	rule p1 (pass = 1) { }
 	`
 
-	molly := New("", 0)
+	molly := New()
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestScanNum(t *testing.T) {
 	rule p1 (pass = 1) { var b = $num_matches; }
 	`
 
-	molly := New("", 0)
+	molly := New()
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestScanHas(t *testing.T) {
 	rule p1 (pass = 1) { var b = has("match", "p0"); }
 	`
 
-	molly := New("", 0)
+	molly := New()
 	if err := LoadRulesFromText(molly, ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}

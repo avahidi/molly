@@ -44,18 +44,13 @@ The command-line format is::
 Options are::
 
    -h                           help information
-   -hh	                        extended help information
-   -V                           show version number
-   -v                           be verbose
-   -max-depth  <num>            max extraction depth
+   -H	                        extended help information
+   -version                     show version number
    -R <rule files>              rules to load
    -r <inline rule>             inline rule string
-   -disable <option>
-   -enable <option>
-   -outdir <output directory>   (default "output")
    -on-rule <rulename:cmd>      rule match operation definition
    -on-tag <tagname:cmd>        tag match operation definition
-   -no-std-rules                don't include molly standard rules
+   -p <class>.<name>=<val>      set parameter
 
 A small set of default rules are provided in the distribution.
 
@@ -99,7 +94,7 @@ a large number of other operators and actions ranging from simple string
 manipulation functions (e.g. strlen) to complex analysis and extraction actions.
 Extended help will print complete list ::
 
-    molly -hh
+    molly -H
 
 Special variables
 ~~~~~~~~~~~~~~~~~

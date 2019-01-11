@@ -42,6 +42,21 @@ func SanitizeFilename(filename string) string {
 	return buf.String()
 }
 
+// NewEmptyDir accepts a new or empty dir and if new creates it
+func NewEmptyDir(dirname string) error {
+	typ := GetPathType(dirname)
+	switch typ {
+	case File:
+		return fmt.Errorf("'%s' is a file", dirname)
+	case NonEmptyDir:
+		return fmt.Errorf("'%s' exists and is not empty", dirname)
+	case Error:
+		return fmt.Errorf("'%s' could not be checked", dirname)
+	default:
+		return Mkdir(dirname)
+	}
+}
+
 // Mkdir creates directories in a path
 func Mkdir(path string) error {
 	return os.MkdirAll(path, 0755)

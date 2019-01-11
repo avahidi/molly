@@ -12,23 +12,23 @@ import (
 )
 
 // processMatch will process a match on a rule
-func processMatch(m *types.Molly, i *types.FileData, match *types.Match) {
+func processMatch(c *types.Configuration, i *types.FileData, match *types.Match) {
 	if len(match.Children) == 0 {
-		if m.OnMatchRule != nil {
-			m.OnMatchRule(i, match)
+		if c.OnMatchRule != nil {
+			c.OnMatchRule(i, match)
 		}
 	}
 	for _, ch := range match.Children {
-		processMatch(m, i, ch)
+		processMatch(c, i, ch)
 	}
 }
 
 // processMatch will process a tag on a file
-func processTags(m *types.Molly, fr *types.FileData) {
-	if m.OnMatchTag != nil {
+func processTags(c *types.Configuration, fr *types.FileData) {
+	if c.OnMatchTag != nil {
 		tags := report.ExtractTags(fr)
 		for _, tag := range tags {
-			m.OnMatchTag(fr, tag)
+			c.OnMatchTag(fr, tag)
 		}
 	}
 }
@@ -46,14 +46,14 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report,
 			match, errs := scan.AnalyzeFile(rule, env)
 			if match != nil {
 				data.Matches = append(data.Matches, match)
-				processMatch(m, data, match)
+				processMatch(m.Config, data, match)
 			}
 			for _, err := range errs {
 				data.RegisterError(err)
 			}
 		}
 	}
-	processTags(m, data)
+	processTags(m.Config, data)
 
 	// this file might have generated a report, so log it
 	if !data.Empty() {

@@ -15,10 +15,11 @@ molly:
 run: compile output
 	rm -rf output
 	-./molly $(O) \
-		-outdir output \
-		-enable create-file \
-		-enable execute \
-		-max-depth 12\
+		-p config.outdir=output \
+		-p config.maxdepth=12 \
+		-p config.verbose=false \
+		-p perm.create-file=true \
+		-p perm.execute=true \
 		$(FILES)
 
 show: run

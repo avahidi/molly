@@ -8,7 +8,7 @@ import (
 
 // some helper functions to simplify the code
 func loadRule(t *testing.T, text string, name string) (*types.Molly, *types.Rule) {
-	molly := New("", 0)
+	molly := New()
 	if err := LoadRulesFromText(molly, text); err != nil {
 		t.Errorf("Could not load rule from text: %v", err)
 		return nil, nil
@@ -29,7 +29,7 @@ func TestLoadRuleSeries(t *testing.T) {
 	}
 	totalRules, totalTop := 0, 0
 
-	molly := New("", 0)
+	molly := New()
 	for _, test := range testdata {
 		var err error
 		if err = LoadRulesFromText(molly, test.text); err != nil {
