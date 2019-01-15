@@ -51,7 +51,7 @@ func help(extended bool, errmsg string, exitcode int) {
 		fmt.Printf("%s\n", errmsg)
 	}
 
-	maj, min, mnt := lib.Version()
+	maj, min, mnt := molly.Version()
 	fmt.Printf("This is Molly version %d.%d.%d\n", maj, min, mnt)
 
 	flag.Usage()
@@ -94,17 +94,17 @@ func main() {
 	}
 
 	if *showVersion {
-		maj, min, mnt := lib.Version()
+		maj, min, mnt := molly.Version()
 		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
 		return
 	}
 
 	// create context
-	molly := lib.New()
+	m := molly.New()
 
 	// parameters
 	for _, param := range params {
-		err := setParameters(molly.Config, param)
+		err := setParameters(m.Config, param)
 		if err != nil {
 			msg := fmt.Sprintf("Error when processing parameter '%s': %v", param, err)
 			help(false, msg, 20)
@@ -136,7 +136,7 @@ func main() {
 		}
 	}
 
-	if err := util.NewEmptyDir(molly.Config.OutDir); err != nil {
+	if err := util.NewEmptyDir(m.Config.OutDir); err != nil {
 		util.RegisterFatalf("Failed to create output directory: %v", err)
 	}
 
@@ -145,10 +145,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("match op error: %s", err)
 	}
-	molly.Config.OnMatchRule = func(i *types.FileData, match *types.Match) {
+	m.Config.OnMatchRule = func(i *types.FileData, match *types.Match) {
 		id := match.Rule.ID
 		if cmd, found := listmatch[id]; found {
-			output, err := opExecute(molly, cmd, i)
+			output, err := opExecute(m, cmd, i)
 			fmt.Printf("RULE %s on %s: %s\n", id, i.Filename, output)
 			if err != nil {
 				err = fmt.Errorf("on match %s: %v", id, err)
@@ -161,9 +161,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("tag op error: %s", err)
 	}
-	molly.Config.OnMatchTag = func(i *types.FileData, tag string) {
+	m.Config.OnMatchTag = func(i *types.FileData, tag string) {
 		if cmd, found := listtag[tag]; found {
-			output, err := opExecute(molly, cmd, i)
+			output, err := opExecute(m, cmd, i)
 			fmt.Printf("TAG %s on %s: %s\n", tag, i.Filename, output)
 			if err != nil {
 				err = fmt.Errorf("on tag %s: %v", tag, err)
@@ -180,18 +180,18 @@ func main() {
 	}
 
 	//  scan rules
-	if err := lib.LoadRules(molly, rfiles...); err != nil {
+	if err := molly.LoadRules(m, rfiles...); err != nil {
 		log.Fatalf("ERROR while parsing rule file: %s", err)
 	}
 
 	// add inline rules
 	for _, ruletext := range rtexts {
-		if err := lib.LoadRulesFromText(molly, ruletext); err != nil {
+		if err := molly.LoadRulesFromText(m, ruletext); err != nil {
 			log.Fatalf("ERROR while parsing inline rule: %s", err)
 		}
 	}
 
-	if len(molly.Rules.Top) == 0 {
+	if len(m.Rules.Top) == 0 {
 		help(false, "No rules were loaded", 20)
 	}
 
@@ -200,33 +200,33 @@ func main() {
 		help(false, "No input files", 20)
 	}
 
-	report, err := lib.ScanFiles(molly, ifiles)
+	report, err := molly.ScanFiles(m, ifiles)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}
 
 	// show results
-	dumpResult(molly, report, molly.Config.Verbose)
+	dumpResult(m, report, m.Config.Verbose)
 
 	var errors []error
 
 	// generate scan file
-	if err := writeScanFiles(molly, report); err != nil {
+	if err := writeScanFiles(m, report); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate summary file
-	if err := writeSummaryFile(molly, report, molly.Config.OutDir); err != nil {
+	if err := writeSummaryFile(m, report, m.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate match file
-	if err := writeMatchFile(molly, report, molly.Config.OutDir); err != nil {
+	if err := writeMatchFile(m, report, m.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 
 	// generate rule file
-	if err := writeRuleFile(molly, molly.Config.OutDir); err != nil {
+	if err := writeRuleFile(m, m.Config.OutDir); err != nil {
 		errors = append(errors, err)
 	}
 
@@ -242,7 +242,7 @@ func main() {
 	}
 
 	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n",
-		len(molly.Files), len(report.Files), totalMatches)
+		len(m.Files), len(report.Files), totalMatches)
 	fmt.Printf("%d errors, %d warnings\n", totalErrors, totalWarns)
 	if totalErrors > 0 {
 		os.Exit(1)

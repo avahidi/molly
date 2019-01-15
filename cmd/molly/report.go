@@ -63,13 +63,13 @@ func inputToReportEntry(file *types.FileData) map[string]interface{} {
 	return ret
 }
 
-func createConfigurationReport(molly *types.Molly) map[string]interface{} {
+func createConfigurationReport(m *types.Molly) map[string]interface{} {
 	f2 := make(map[string]interface{})
 	f2["command"] = os.Args
 	f2["time"] = time.Now()
-	f2["outdir"] = molly.Config.OutDir
-	f2["rulecount"] = len(molly.Rules.Flat)
-	maj, min, mnt := lib.Version()
+	f2["outdir"] = m.Config.OutDir
+	f2["rulecount"] = len(m.Rules.Flat)
+	maj, min, mnt := molly.Version()
 	f2["version"] = fmt.Sprintf("%d.%d.%d", maj, min, mnt)
 	dir, err := os.Getwd()
 	if err != nil {
