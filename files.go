@@ -52,8 +52,7 @@ func checkDuplicate(m *types.Molly, file *types.FileData) (bool, error) {
 }
 
 // scanFile opens and scans a single file
-func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
-	filename_ string, parent *types.FileData) {
+func scanFile(m *types.Molly, env *types.Env, filename_ string, parent *types.FileData) {
 
 	fl := &util.FileList{}
 	fl.Push(filename_)
@@ -62,11 +61,11 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		if filename == "" {
 			return
 		}
-
 		fr, found := m.Files[filename]
 		if !found {
 			fr = types.NewFileData(filename, parent)
 			m.Files[filename] = fr
+			m.Report.Add(fr)
 
 			// update basename to something we can use to create files from
 			if fr.Parent == nil {
@@ -88,7 +87,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 		}
 		fr.Processed = true
 
-		// started with an error, no point moving in
+		// started with an error, no point moving on
 		if err != nil {
 			fr.RegisterError(err)
 			continue
@@ -123,7 +122,7 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 			continue
 		}
 
-		scanInput(m, env, rep, reader, fr)
+		scanInput(m, env, reader, fr)
 
 		// manual Close insted of defer Close, or we will have too many files open
 		reader.Close()
@@ -136,13 +135,12 @@ func scanFile(m *types.Molly, env *types.Env, rep *types.Report,
 }
 
 // ScanFiles scans a set of files for matches.
-func ScanFiles(m *types.Molly, files []string) (*types.Report, error) {
+func ScanFiles(m *types.Molly, files ...string) (*types.Report, error) {
 	env := types.NewEnv(m)
-	report := types.NewReport()
-
 	for _, filename := range files {
-		scanFile(m, env, report, filename, nil)
+		scanFile(m, env, filename, nil)
 	}
 
-	return report, nil
+	m.Report = m.Report.RemoveEmpty()
+	return m.Report, nil
 }

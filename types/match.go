@@ -42,7 +42,17 @@ func NewReport() *Report {
 }
 
 // Add adds a FileReport to this report
-func (mr *Report) Add(fr *FileData) {
-	// mr.Current = fr
-	mr.Files = append(mr.Files, fr)
+func (r *Report) Add(fr *FileData) {
+	r.Files = append(r.Files, fr)
+}
+
+// Add adds a FileReport to this report
+func (r Report) RemoveEmpty() *Report {
+	r2 := NewReport()
+	for _, file := range r.Files {
+		if !file.Empty() {
+			r2.Add(file)
+		}
+	}
+	return r2
 }

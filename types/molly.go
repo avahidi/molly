@@ -25,6 +25,8 @@ type Molly struct {
 	Files map[string]*FileData
 	// FilesByHash is mainly need to ignore duplicate files
 	FilesByHash map[string]*FileData
+
+	Report *Report
 }
 
 // NewMolly creates a new Molly context
@@ -37,6 +39,7 @@ func NewMolly() *Molly {
 	return &Molly{
 		Config:      config,
 		Rules:       NewRuleSet(),
+		Report:      NewReport(),
 		Files:       make(map[string]*FileData),
 		FilesByHash: make(map[string]*FileData),
 	}

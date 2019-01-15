@@ -84,6 +84,4 @@ func setParameters(c *types.Configuration, p string) error {
 		return fmt.Errorf("Unknown parameter class '%s' in '%s'", typ, p)
 
 	}
-
-	return nil
 }

@@ -33,8 +33,7 @@ func processTags(c *types.Configuration, fr *types.FileData) {
 	}
 }
 
-func scanInput(m *types.Molly, env *types.Env, r *types.Report,
-	reader io.ReadSeeker, data *types.FileData) {
+func scanInput(m *types.Molly, env *types.Env, reader io.ReadSeeker, data *types.FileData) {
 
 	env.SetInput(reader, data)
 	for pass := types.RulePassMin; pass <= types.RulePassMax; pass++ {
@@ -55,13 +54,9 @@ func scanInput(m *types.Molly, env *types.Env, r *types.Report,
 	}
 	processTags(m.Config, data)
 
-	// this file might have generated a report, so log it
-	if !data.Empty() {
-		r.Add(data)
-	}
 	// this file may have created new files, scan them too
 	for _, offspring := range data.Children {
-		scanFile(m, env, r, offspring.Filename, data)
+		scanFile(m, env, offspring.Filename, data)
 	}
 }
 
@@ -75,14 +70,15 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 		if _, found := m.Files[dummyname]; !found {
 			fd = types.NewFileData(dummyname, nil)
 			m.Files[dummyname] = fd
+			m.Report.Add(fd)
 		}
 	}
 	fd.Filesize = int64(len(data))
 
 	env := types.NewEnv(m)
-	report := types.NewReport()
 	reader := bytes.NewReader(data)
-	scanInput(m, env, report, reader, fd)
+	scanInput(m, env, reader, fd)
+	m.Report = m.Report.RemoveEmpty()
 
-	return report, nil
+	return m.Report, nil
 }
