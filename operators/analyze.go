@@ -2,6 +2,7 @@ package operators
 
 import (
 	"fmt"
+	"io"
 
 	"bitbucket.org/vahidi/molly/operators/analyzers"
 	"bitbucket.org/vahidi/molly/types"
@@ -9,8 +10,8 @@ import (
 )
 
 // AnalyzerRegister registers a user analyzer
-func AnalyzerRegister(typ string, analyzerfunc analyzers.Analyzer) {
-	analyzersList[typ] = analyzerfunc
+func AnalyzerRegister(typ string, f func(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error)) {
+	analyzersList[typ] = f
 }
 
 // AnalyzerHelp outputs list of available analyzers
@@ -21,7 +22,7 @@ func AnalyzerHelp() {
 	}
 }
 
-var analyzersList = map[string]analyzers.Analyzer{
+var analyzersList = map[string]func(string, io.ReadSeeker, ...interface{}) (interface{}, error){
 	"strings":   analyzers.StringAnalyzer,
 	"version":   analyzers.VersionAnalyzer,
 	"histogram": analyzers.HistogramAnalyzer,
@@ -38,11 +39,18 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 		return "", fmt.Errorf("Unknown analyzer: '%s'", typ)
 	}
 
-	res := analyzers.NewAnalysis(typ, nil, data...)
+	// do analysis
+	res, err := f(e.GetFile(), e.Reader, data...)
 
-	f(e.GetFile(), e.Reader, res, data...)
-	e.Current.Analyses[res.Name] = res
-	return "", res.Error
+	// generate analysis name based on type and parameters
+	name := typ
+	for _, d := range data {
+		name = fmt.Sprintf("%s__%v", name, d)
+	}
+
+	// register result
+	e.Current.RegisterAnalysis(name, res, err)
+	return "", err
 }
 
 func init() {

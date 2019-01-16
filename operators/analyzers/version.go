@@ -31,12 +31,10 @@ func filenameIsVersion(str string) bool {
 }
 
 // VersionAnalyzer is a first attempt to extract version information from binaries
-func VersionAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
-
+func VersionAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
 	strs, err := extractStrings(r, 5)
 	if err != nil {
-		res.Error = err
-		return
+		return nil, err
 	}
 
 	hashes := make([]string, 0)
@@ -71,5 +69,5 @@ func VersionAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...in
 		"possible-copyright": copyrights,
 	}
 
-	res.Result = report
+	return report, nil
 }

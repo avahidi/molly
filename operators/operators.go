@@ -6,7 +6,7 @@ import (
 
 // OperatorHelp prints help text including signature for all registred actions
 func Help() {
-	types.FunctionHelp()
+	types.OperatorHelp()
 
 	ChecksumHelp()
 	AnalyzerHelp()
@@ -14,5 +14,5 @@ func Help() {
 }
 
 func Register(name string, fun interface{}) error {
-	return types.FunctionRegister(name, fun)
+	return types.OperatorRegister(name, fun)
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
+func HistogramAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
 
 	// extract histogram file file
 	count := make([]int, 256)
@@ -17,8 +17,7 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...
 			break
 		}
 		if err != nil {
-			res.Error = err
-			return
+			return nil, err
 		}
 		count[c]++
 	}
@@ -37,11 +36,12 @@ func HistogramAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...
 	avg := sum / len(count)
 
 	// jost report
-	res.Result = map[string]interface{}{
+	ret := map[string]interface{}{
 		"histrogram": count,
 		"sum":        sum,
 		"min":        min,
 		"max":        max,
 		"avg":        avg,
 	}
+	return ret, nil
 }

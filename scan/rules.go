@@ -500,9 +500,9 @@ func parseCall(p *parser, id string) (types.Expression, error) {
 	}
 
 	// not an extract function? try a regular one
-	if _, found := types.FunctionFind(id); !found {
+	if _, found := types.OperatorFind(id); !found {
 		fmt.Printf("Unknown function '%s'. ", id)
-		types.FunctionHelp()
+		types.OperatorHelp()
 		util.RegisterFatalf("Unknown function, cannot continue")
 	}
 

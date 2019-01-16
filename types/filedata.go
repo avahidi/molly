@@ -5,9 +5,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"bitbucket.org/vahidi/molly/operators/analyzers"
 )
+
+// Analysis represents results of an analysis performed on a file
+type Analysis struct {
+	Name   string
+	Result interface{}
+	Error  error
+}
 
 type FileData struct {
 	Parent *FileData
@@ -31,7 +36,7 @@ type FileData struct {
 	Errors    []error
 	Warnings  []string
 	Logs      []string
-	Analyses  map[string]*analyzers.Analysis
+	Analyses  map[string]*Analysis
 }
 
 func NewFileData(filename string, parent *FileData) *FileData {
@@ -40,7 +45,7 @@ func NewFileData(filename string, parent *FileData) *FileData {
 		FilenameOut: filename,
 		Parent:      parent,
 		time:        time.Now(),
-		Analyses:    make(map[string]*analyzers.Analysis),
+		Analyses:    make(map[string]*Analysis),
 	}
 	// update parent data and make sure child is not newer than parent
 	if parent != nil {
@@ -78,6 +83,10 @@ func (fd *FileData) RegisterError(err error) {
 // RegisterWarning registers a warning
 func (fd *FileData) RegisterWarning(format string, v ...interface{}) {
 	fd.Warnings = append(fd.Warnings, (fmt.Sprintf(format, v...)))
+}
+
+func (fd *FileData) RegisterAnalysis(name string, data interface{}, err error) {
+	fd.Analyses[name] = &Analysis{Name: name, Result: data, Error: err}
 }
 
 // Get returns variables associated with this file.

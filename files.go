@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"bitbucket.org/vahidi/molly/operators/analyzers"
-
 	_ "bitbucket.org/vahidi/molly/operators" // import default actions
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
@@ -36,7 +34,7 @@ func checkDuplicate(m *types.Molly, file *types.FileData) (bool, error) {
 	hashtxt := hex.EncodeToString(hash)
 
 	// seen it has been done, add the checksum to our analysis
-	file.Analyses["checksum"] = analyzers.NewAnalysis("checksum", hashtxt)
+	file.RegisterAnalysis("checksum", hashtxt, nil)
 
 	// check if we have already seen this checksum:
 	org, alreadyseen := m.FilesByHash[hashtxt]

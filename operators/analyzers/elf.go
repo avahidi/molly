@@ -9,12 +9,11 @@ import (
 )
 
 // ElfAnalyzer examinies ELF binaries
-func ElfAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
+func ElfAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
 	rsa := util.NewReaderAt(r)
 	file, err := elf.NewFile(rsa)
 	if err != nil {
-		res.Error = err
-		return
+		return nil, err
 	}
 	defer file.Close()
 
@@ -52,5 +51,5 @@ func ElfAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interf
 	if libs, err := file.ImportedLibraries(); err == nil && libs != nil {
 		report["libraries"] = libs
 	}
-	res.Result = report
+	return report, nil
 }

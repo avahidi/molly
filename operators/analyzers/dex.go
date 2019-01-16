@@ -341,7 +341,7 @@ func extractKeys(m map[interface{}]interface{}, a []interface{}) []interface{} {
 	return a
 }
 
-func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interface{}) {
+func DexAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
 	var header struct {
 		DexMagic    uint32
 		DexVersion  [8]uint8
@@ -351,8 +351,8 @@ func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interf
 		MapOffset   uint32
 	}
 	ctx := &dexContext{Structured: util.Structured{Reader: r, Order: binary.LittleEndian}}
-	if res.Error = ctx.ReadAt(0, &header); res.Error != nil {
-		return
+	if err := ctx.ReadAt(0, &header); err != nil {
+		return nil, err
 
 	}
 	// extract version and check sanity before we do anything
@@ -361,16 +361,14 @@ func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interf
 	}
 	if header.DexMagic != dexMagic ||
 		header.DexVersion[0] != '0' || header.DexVersion[3] != 0 {
-		res.Error = fmt.Errorf("Not a dex file or unknown dex version\n")
-		return
+		return nil, fmt.Errorf("Not a dex file or unknown dex version\n")
 	}
 	if header.EndianTag == 0x78563412 {
 		ctx.Order = binary.BigEndian
 	}
 	mp, err := dexExtractMap(ctx, header.MapOffset)
 	if err != nil {
-		res.Error = err
-		return
+		return nil, err
 	}
 	// process map entries in the order we want
 	handlers := []struct {
@@ -388,10 +386,10 @@ func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interf
 	for _, h := range handlers {
 		if p, found := mp[h.typ]; !found {
 			if !h.optional {
-				res.Error = fmt.Errorf("dex internal error: missing type %d", h.typ)
+				return nil, fmt.Errorf("dex internal error: missing type %d", h.typ)
 			}
-		} else if res.Error = h.f(ctx, int64(p.Offset), int(p.Count)); res.Error != nil {
-			return
+		} else if err := h.f(ctx, int64(p.Offset), int(p.Count)); err != nil {
+			return nil, err
 		}
 	}
 	report := map[string]interface{}{
@@ -399,7 +397,7 @@ func DexAnalyzer(filename string, r io.ReadSeeker, res *Analysis, data ...interf
 		"00-disclaimer": "dex analyzer is still under construction",
 	}
 	dexCreateReport(ctx, report)
-	res.Result = report
+	return report, err
 }
 
 // dexCreateReport generates the report from the extract dexContext

@@ -427,14 +427,14 @@ func (ue ExtractExpression) String() string {
 
 type FunctionExpression struct {
 	Name     string
-	Func     *types.Function
+	Func     *util.Function
 	Params   []types.Expression
 	Metadata *util.Register
 }
 
 func NewFunctionExpression(name string, m *util.Register,
 	params ...types.Expression) (*FunctionExpression, error) {
-	f, found := types.FunctionFind(name)
+	f, found := types.OperatorFind(name)
 	if !found {
 		return nil, fmt.Errorf("Unknown function: %s", name)
 	}
@@ -455,8 +455,11 @@ func (fe *FunctionExpression) Simplify() (types.Expression, error) {
 }
 
 func (fe *FunctionExpression) Eval(env *types.Env) (types.Expression, error) {
+	// build parameter list
+	ps := make([]interface{}, 1+len(fe.Params))
+	ps[0] = env
+
 	// get values instead of types.Expressions
-	ps := make([]interface{}, len(fe.Params))
 	for i, p1 := range fe.Params {
 		p2, err := p1.Eval(env)
 		if err != nil {
@@ -466,14 +469,25 @@ func (fe *FunctionExpression) Eval(env *types.Env) (types.Expression, error) {
 		if !okay {
 			return nil, fmt.Errorf("function parameter is not a primitive: %v", p2)
 		}
-		ps[i] = v2.Value.Get()
+		ps[i+1] = v2.Value.Get()
 	}
 
-	r, err := fe.Func.Call(env, ps)
+	// call the operator
+	rets, err := fe.Func.Call(ps)
+
+	// sanity check on the returned values
 	if err != nil {
+		util.RegisterFatalf("operator failed: %v", err)
 		return nil, err
 	}
-	return NewValueExpression(prim.ValueToPrimitive(r)), nil
+
+	// error return is a special case since it can be nil
+	var operr error
+	if rets[1] != nil {
+		operr = rets[1].(error)
+	}
+
+	return NewValueExpression(prim.ValueToPrimitive(rets[0])), operr
 
 }
 
