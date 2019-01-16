@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/vahidi/molly/actions/analyzers"
+	"bitbucket.org/vahidi/molly/operators/analyzers"
 )
 
 type FileData struct {

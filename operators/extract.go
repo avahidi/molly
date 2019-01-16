@@ -1,9 +1,9 @@
-package actions
+package operators
 
 import (
 	"fmt"
 
-	"bitbucket.org/vahidi/molly/actions/extractors"
+	"bitbucket.org/vahidi/molly/operators/extractors"
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -76,5 +76,5 @@ func extractFunction(e *types.Env, format string, name string, positions ...uint
 }
 
 func init() {
-	ActionRegister("extract", extractFunction)
+	Register("extract", extractFunction)
 }

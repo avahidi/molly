@@ -8,9 +8,8 @@ import (
 	"path"
 	"strings"
 
-	"bitbucket.org/vahidi/molly/actions"
-
 	"bitbucket.org/vahidi/molly"
+	"bitbucket.org/vahidi/molly/operators"
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -59,7 +58,7 @@ func help(extended bool, errmsg string, exitcode int) {
 	fmt.Printf("  files\n\tinput files to be scanned\n")
 
 	if extended {
-		actions.ActionHelp()
+		operators.Help()
 	}
 	os.Exit(exitcode)
 }

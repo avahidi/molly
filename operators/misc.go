@@ -1,4 +1,4 @@
-package actions
+package operators
 
 import (
 	"fmt"
@@ -58,9 +58,9 @@ func hasFunction(e *types.Env, typ string, val string) (bool, error) {
 }
 
 func init() {
-	ActionRegister("printf", printfFunction)
-	ActionRegister("sprintf", sprintfFunction)
-	ActionRegister("system", systemFunction)
-	ActionRegister("epoch2time", epoch2time)
-	ActionRegister("has", hasFunction)
+	Register("printf", printfFunction)
+	Register("sprintf", sprintfFunction)
+	Register("system", systemFunction)
+	Register("epoch2time", epoch2time)
+	Register("has", hasFunction)
 }

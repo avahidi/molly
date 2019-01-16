@@ -1,4 +1,4 @@
-package actions
+package operators
 
 import (
 	"crypto/md5"
@@ -78,5 +78,5 @@ func checksumFunction(e *types.Env, typ string, positions ...uint64) ([]byte, er
 }
 
 func init() {
-	ActionRegister("checksum", checksumFunction)
+	Register("checksum", checksumFunction)
 }

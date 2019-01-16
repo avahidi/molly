@@ -1,4 +1,4 @@
-package actions
+package operators
 
 import (
 	"bitbucket.org/vahidi/molly/types"
@@ -15,6 +15,6 @@ func dirFunction(e *types.Env, prefix string) (string, error) {
 }
 
 func init() {
-	ActionRegister("file", fileFunction)
-	ActionRegister("dir", dirFunction)
+	Register("file", fileFunction)
+	Register("dir", dirFunction)
 }

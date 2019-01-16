@@ -3,7 +3,6 @@ package molly
 import (
 	"strings"
 
-	_ "bitbucket.org/vahidi/molly/actions" // import default actions
 	"bitbucket.org/vahidi/molly/scan"
 	"bitbucket.org/vahidi/molly/types"
 )

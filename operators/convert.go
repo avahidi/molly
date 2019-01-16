@@ -1,4 +1,4 @@
-package actions
+package operators
 
 import (
 	"fmt"
@@ -16,5 +16,5 @@ func lenFunction(e *types.Env, item interface{}) (int, error) {
 }
 
 func init() {
-	ActionRegister("len", lenFunction)
+	Register("len", lenFunction)
 }

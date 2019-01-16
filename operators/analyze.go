@@ -1,9 +1,9 @@
-package actions
+package operators
 
 import (
 	"fmt"
 
-	"bitbucket.org/vahidi/molly/actions/analyzers"
+	"bitbucket.org/vahidi/molly/operators/analyzers"
 	"bitbucket.org/vahidi/molly/types"
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -46,5 +46,5 @@ func analyzeFunction(e *types.Env, typ string, prefix string, data ...interface{
 }
 
 func init() {
-	ActionRegister("analyze", analyzeFunction)
+	Register("analyze", analyzeFunction)
 }

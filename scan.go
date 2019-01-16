@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	_ "bitbucket.org/vahidi/molly/actions" // import default actions
 	"bitbucket.org/vahidi/molly/report"
 	"bitbucket.org/vahidi/molly/scan"
 	"bitbucket.org/vahidi/molly/types"

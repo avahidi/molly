@@ -1,4 +1,4 @@
-package actions
+package operators
 
 import (
 	"strconv"
@@ -44,15 +44,15 @@ func strsuffixFunction(e *types.Env, str1, str2 string) (bool, error) {
 }
 
 func init() {
-	ActionRegister("strlen", strlenFunction)
-	ActionRegister("strtol", strtoaFunction)
+	Register("strlen", strlenFunction)
+	Register("strtol", strtoaFunction)
 
-	ActionRegister("strstr", strstrFunction)
-	ActionRegister("strcasestr", strcasestrFunction)
-	ActionRegister("stricmp", stricmpFunction)
+	Register("strstr", strstrFunction)
+	Register("strcasestr", strcasestrFunction)
+	Register("stricmp", stricmpFunction)
 
-	ActionRegister("strupper", strupperFunction)
-	ActionRegister("strlower", strlowerFunction)
-	ActionRegister("strprefix", strprefixFunction)
-	ActionRegister("strsuffix", strsuffixFunction)
+	Register("strupper", strupperFunction)
+	Register("strlower", strlowerFunction)
+	Register("strprefix", strprefixFunction)
+	Register("strsuffix", strsuffixFunction)
 }

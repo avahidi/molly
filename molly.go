@@ -3,7 +3,7 @@ package molly
 import (
 	"io/ioutil"
 
-	_ "bitbucket.org/vahidi/molly/actions" // import default actions
+	_ "bitbucket.org/vahidi/molly/operators" // import default actions
 	"bitbucket.org/vahidi/molly/types"
 )
 
