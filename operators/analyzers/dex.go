@@ -341,7 +341,7 @@ func extractKeys(m map[interface{}]interface{}, a []interface{}) []interface{} {
 	return a
 }
 
-func DexAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
+func DexAnalyzer(filename string, r io.ReadSeeker) (interface{}, error) {
 	var header struct {
 		DexMagic    uint32
 		DexVersion  [8]uint8

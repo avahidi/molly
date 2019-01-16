@@ -6,7 +6,7 @@ import (
 )
 
 // HistogramAnalyzer creates histograms out of a binary files
-func HistogramAnalyzer(filename string, r io.ReadSeeker, data ...interface{}) (interface{}, error) {
+func HistogramAnalyzer(filename string, r io.ReadSeeker) (interface{}, error) {
 
 	// extract histogram file file
 	count := make([]int, 256)
