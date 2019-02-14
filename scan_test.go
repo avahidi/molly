@@ -72,8 +72,12 @@ func TestScanData(t *testing.T) {
 			continue
 		}
 
-		mr, err := ScanData(molly, test.input)
-		if err != nil || len(mr.Files) != 1 {
+		if err := ScanData(molly, test.input); err != nil {
+			t.Fatal(err)
+		}
+
+		mr := ExtractReport(molly)
+		if len(mr.Files) != 1 {
 			t.Errorf("No match in scan data")
 			continue
 		}
@@ -100,11 +104,11 @@ func TestScanPass(t *testing.T) {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 
-	mr, err := ScanData(molly, []byte{})
-	if err != nil {
+	if err := ScanData(molly, []byte{}); err != nil {
 		t.Fatal(err)
 	}
 
+	mr := ExtractReport(molly)
 	if len(mr.Files) != 1 || len(mr.Files[0].Matches) != 3 {
 		t.Fatalf("Incorrect number of matches")
 	}
@@ -126,11 +130,11 @@ func TestScanNum(t *testing.T) {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 
-	mr, err := ScanData(molly, []byte{})
-	if err != nil {
+	if err := ScanData(molly, []byte{}); err != nil {
 		t.Fatal(err)
 	}
 
+	mr := ExtractReport(molly)
 	if a, valid := report.FindInReportVarNumber(mr, "", "p0", "a"); !valid || a != 0 {
 		t.Errorf("Num match failed (1)")
 	}
@@ -151,11 +155,11 @@ func TestScanHas(t *testing.T) {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 
-	mr, err := ScanData(molly, []byte{})
-	if err != nil {
+	if err := ScanData(molly, []byte{}); err != nil {
 		t.Fatal(err)
 	}
 
+	mr := ExtractReport(molly)
 	if a, valid := report.FindInReportVarBool(mr, "", "p0", "a"); !valid || a {
 		t.Errorf("has match failed (1)")
 	}
