@@ -63,7 +63,6 @@ func scanFile(m *types.Molly, env *types.Env, filename_ string, parent *types.Fi
 		if !found {
 			fr = types.NewFileData(filename, parent)
 			m.Files[filename] = fr
-			m.Report.Add(fr)
 
 			// update basename to something we can use to create files from
 			if fr.Parent == nil {
@@ -133,12 +132,10 @@ func scanFile(m *types.Molly, env *types.Env, filename_ string, parent *types.Fi
 }
 
 // ScanFiles scans a set of files for matches.
-func ScanFiles(m *types.Molly, files ...string) (*types.Report, error) {
+func ScanFiles(m *types.Molly, files ...string) error {
 	env := types.NewEnv(m)
 	for _, filename := range files {
 		scanFile(m, env, filename, nil)
 	}
-
-	m.Report = m.Report.RemoveEmpty()
-	return m.Report, nil
+	return nil
 }

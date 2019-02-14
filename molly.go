@@ -16,3 +16,14 @@ func New() *types.Molly {
 	}
 	return m
 }
+
+// ExtractReport generates a report
+func ExtractReport(m *types.Molly) *types.Report {
+	r := &types.Report{}
+	for _, file := range m.Files {
+		if !file.Empty() {
+			r.Files = append(r.Files, file)
+		}
+	}
+	return r
+}

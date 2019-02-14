@@ -35,24 +35,3 @@ type FlatMatch struct {
 type Report struct {
 	Files []*FileData
 }
-
-// NewReport creates a new empty report
-func NewReport() *Report {
-	return &Report{}
-}
-
-// Add adds a FileReport to this report
-func (r *Report) Add(fr *FileData) {
-	r.Files = append(r.Files, fr)
-}
-
-// Add adds a FileReport to this report
-func (r Report) RemoveEmpty() *Report {
-	r2 := NewReport()
-	for _, file := range r.Files {
-		if !file.Empty() {
-			r2.Add(file)
-		}
-	}
-	return r2
-}

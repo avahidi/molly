@@ -199,12 +199,13 @@ func main() {
 		help(false, "No input files", 20)
 	}
 
-	report, err := molly.ScanFiles(m, ifiles...)
+	err = molly.ScanFiles(m, ifiles...)
 	if err != nil {
 		fmt.Println("SCAN while parsing file: ", err)
 	}
 
 	// show results
+	report := molly.ExtractReport(m)
 	dumpResult(m, report, m.Config.Verbose)
 
 	var errors []error

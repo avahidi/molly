@@ -60,7 +60,7 @@ func scanInput(m *types.Molly, env *types.Env, reader io.ReadSeeker, data *types
 }
 
 // ScanData scans a byte vector for matches.
-func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
+func ScanData(m *types.Molly, data []byte) error {
 
 	// we need a dummy file name that is unique:
 	var fd *types.FileData
@@ -69,7 +69,6 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 		if _, found := m.Files[dummyname]; !found {
 			fd = types.NewFileData(dummyname, nil)
 			m.Files[dummyname] = fd
-			m.Report.Add(fd)
 		}
 	}
 	fd.Filesize = int64(len(data))
@@ -77,7 +76,5 @@ func ScanData(m *types.Molly, data []byte) (*types.Report, error) {
 	env := types.NewEnv(m)
 	reader := bytes.NewReader(data)
 	scanInput(m, env, reader, fd)
-	m.Report = m.Report.RemoveEmpty()
-
-	return m.Report, nil
+	return nil
 }
