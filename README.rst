@@ -5,7 +5,7 @@ molly is an automated file analysis and extraction tool. It can search files for
 user-defined patterns and perform various actions when those patterns are found.
 
 
-molly was initially developed in the `Seconds <http://www.secondssolutions.com/>`_
+molly was initially developed in the SECONDS (Secure Connected Devices)
 project for binary extraction from firmware images.
 
 
@@ -160,9 +160,11 @@ that can be used separately. Using the library in your own code is quite simple:
     import "bitbucket.org/vahidi/molly"
     ...
     // error handling not shown
-    molly := lib.New(... )
-    lib.LoadRules(molly, "my-rule-file", ...)
-    report, _ := lib.ScanFiles(molly, "my-binary-file", ...)
+    m := molly.New(... )
+    lib.LoadRules(m, "my-rule-file", ...)
+    molly.ScanFiles(molly, "my-binary-file", ...)
+    report := molly.ExtractReport(m)
+
 
 
 Extending molly
