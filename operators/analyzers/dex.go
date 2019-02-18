@@ -475,7 +475,7 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 		typenames[ctx.strings[idx]] = true
 	}
 
-	// extract STRINGS, exclude empty strings and tyenames
+	// extract STRINGS, exclude empty strings and typenames
 	var strs []string
 	for _, str := range ctx.strings {
 		if _, found := typenames[str]; !found && len(str) > 0 {
@@ -485,37 +485,26 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 	sort.Strings(strs)
 	report["strings"] = strs
 
-	// extract CLASSNAMES and PACKAGENAMES
-	packagesmap := make(map[string]bool)
-	var classNames, packageNames []string
+	// extract CLASSNAMES
+	var classNames []string
 	for _, cls := range ctx.clss {
 		if !javaIsInnerName(cls.name) {
 			classNames = append(classNames, cls.name)
-			packagesmap[javaExtractPackageName(cls.name)] = true
 		}
 	}
-	for name, _ := range packagesmap {
-		packageNames = append(packageNames, name)
-	}
 	sort.Strings(classNames)
-	sort.Strings(packageNames)
 	report["classes"] = classNames
-	report["packages"] = packageNames
 
 	// extract method and types seen in each class/package
 	// we use sets of strings since we can have doubles due to polymorphism etc
 	typemap_class := make(map[string]map[string]bool)
 	callmap_class := make(map[string]map[string]bool)
-	typemap_package := make(map[string]map[string]bool)
-	callmap_package := make(map[string]map[string]bool)
 
 	for _, cls := range ctx.clss {
-		packageName := cls.packageName
 		methods, objects := dexExtractRefs(ctx, cls)
 
 		// record types
 		helperAddMapMap(typemap_class, cls.name, objects...)
-		helperAddMapMap(typemap_package, packageName, objects...)
 
 		// record calls
 		for _, method := range methods {
@@ -524,18 +513,14 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 			calleeClass, _ := javaTypeToClassName(ctx.getTypeName(uint32(method.ClassIdx)))
 			call := fmt.Sprintf("%s.%s", calleeClass, calleeName)
 			helperAddMapMap(callmap_class, cls.name, call)
-			helperAddMapMap(callmap_package, packageName, call)
 		}
 	}
 
 	// simplify it, because it is mostly garbage
 	callmap_class = helperFilterMapMap(callmap_class, javaIsInnerName, uninterestingcall)
 	typemap_class = helperFilterMapMap(typemap_class, javaIsInnerName, uninterestingcall)
-	callmap_package = helperFilterMapMap(callmap_package, javaIsInnerName, uninterestingcall)
-	typemap_package = helperFilterMapMap(typemap_package, javaIsInnerName, uninterestingcall)
 
 	report["callmap-class"] = helperConvertMapMap(callmap_class)
 	report["typemap-class"] = helperConvertMapMap(typemap_class)
-	report["callmap-package"] = helperConvertMapMap(callmap_package)
-	report["typemap-package"] = helperConvertMapMap(typemap_package)
+
 }
