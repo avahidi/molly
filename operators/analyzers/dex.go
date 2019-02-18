@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"bitbucket.org/vahidi/molly/util"
 )
@@ -20,6 +21,26 @@ func helperAddMapMap(mm map[string]map[string]bool, key string, values ...string
 		m1[value] = true
 	}
 	mm[key] = m1
+}
+
+// helperFilterMapMap remove items based on filter functions
+func helperFilterMapMap(mm map[string]map[string]bool, f1 func(key string) bool,
+	f2 func(key, value string) bool) map[string]map[string]bool {
+	ret := make(map[string]map[string]bool)
+	for k, vs1 := range mm {
+		if !f1(k) {
+			vs2 := make(map[string]bool)
+			for v := range vs1 {
+				if !f2(k, v) {
+					vs2[v] = true
+				}
+			}
+			if len(vs2) != 0 {
+				ret[k] = vs2
+			}
+		}
+	}
+	return ret
 }
 
 // helperConvertMapMap is a helper function convert map-map to map-array
@@ -434,6 +455,7 @@ func DexAnalyzer(filename string, r io.ReadSeeker) (interface{}, error) {
 	report := map[string]interface{}{
 		"dex-version":   header.DexVersion,
 		"00-disclaimer": "dex analyzer is still under construction",
+		"01-note":       "innerclasses and subpackage classes are excluded",
 	}
 	dexCreateReport(ctx, report)
 	return report, err
@@ -441,6 +463,12 @@ func DexAnalyzer(filename string, r io.ReadSeeker) (interface{}, error) {
 
 // dexCreateReport generates the report from the extract dexContext
 func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
+	// some helper functions used for filtering
+	uninterestingcall := func(caller, callee string) bool {
+		return javaIsInnerName(callee) || strings.HasPrefix(callee, caller) ||
+			strings.HasSuffix(callee, "init>") // .<init> and .<cinit>
+	}
+
 	// extract typenames as set
 	typenames := make(map[string]bool)
 	for _, idx := range ctx.type_ids {
@@ -461,8 +489,10 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 	packagesmap := make(map[string]bool)
 	var classNames, packageNames []string
 	for _, cls := range ctx.clss {
-		classNames = append(classNames, cls.name)
-		packagesmap[javaExtractPackageName(cls.name)] = true
+		if !javaIsInnerName(cls.name) {
+			classNames = append(classNames, cls.name)
+			packagesmap[javaExtractPackageName(cls.name)] = true
+		}
 	}
 	for name, _ := range packagesmap {
 		packageNames = append(packageNames, name)
@@ -497,6 +527,12 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 			helperAddMapMap(callmap_package, packageName, call)
 		}
 	}
+
+	// simplify it, because it is mostly garbage
+	callmap_class = helperFilterMapMap(callmap_class, javaIsInnerName, uninterestingcall)
+	typemap_class = helperFilterMapMap(typemap_class, javaIsInnerName, uninterestingcall)
+	callmap_package = helperFilterMapMap(callmap_package, javaIsInnerName, uninterestingcall)
+	typemap_package = helperFilterMapMap(typemap_package, javaIsInnerName, uninterestingcall)
 
 	report["callmap-class"] = helperConvertMapMap(callmap_class)
 	report["typemap-class"] = helperConvertMapMap(typemap_class)

@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// javaIsInnerName return true if this is a inner-class or a member of one
+func javaIsInnerName(name string) bool {
+	return strings.Contains(name, "$")
+}
+
 // javaTypeToClassName extracts class complete name from type name
 // i.e. "Lcom/example/<someclass>;" to "com.example.someclass"
 func javaTypeToClassName(typename string) (string, error) {
