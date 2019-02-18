@@ -1,5 +1,8 @@
 package analyzers
 
+// dalvik bytecode functions,
+// see https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
+
 import (
 	"fmt"
 	"strings"
@@ -100,20 +103,59 @@ func dalvikType(op uint16) string {
 	return "" // should not reach this
 }
 
-func dalvikAnalyze(inst uint16) (uint8, int, string) {
+func dalvikAnalyze(insts []uint16, index int) (uint8, int, string) {
+	inst := insts[index]
 	typ := dalvikType(inst)
-	return uint8(inst & 0xFF), int(typ[0] - '0'), typ
+	op := uint8(inst & 0xFF)
+	size := int(typ[0] - '0')
+
+	// special cases where NOP contains data
+	if op == 0x00 {
+		// get instruction after this
+		count := 0
+		if index < len(insts)-2 {
+			count = int(insts[index+1])
+		}
+
+		switch inst >> 8 {
+		// packed-switch-payload format
+		case 0x01:
+			size = count*2 + 4
+
+		// sparse-switch-payload format
+		case 0x02:
+			size = count*4 + 2
+
+		case 0x03:
+			if index < len(insts)-4 {
+				usize := (int(insts[index+2])) + (int(insts[index+3]) << 16)
+				size = (usize*count+1)/2 + 4
+			}
+		}
+	}
+
+	// this must be an error
+	if size < 1 {
+		size = 1
+	}
+
+	return op, size, typ
 }
 
-// dalvikExtractRef returns a method_ids index for a method reference
-// in this instruction or -1 if non found
-func dalvikExtractRef(op uint8, inst []uint16) int {
+// dalvikOpNew returns type index if this is a new() operation
+func dalvikOpNew(op uint8, inst []uint16) (bool, uint16) {
+	if op == 0x22 {
+		return true, inst[1]
+	}
+	return false, 0
+}
+
+// dalvikOpInvoke returns method index if this is a invoke operation
+func dalvikOpInvoke(op uint8, inst []uint16) (bool, uint16) {
 	switch op {
 	case 0x6e, 0x6f, 0x70, 0x71, 0x72: // invoke
-		return int(inst[1])
-	case 0x22: // new
-		return int(inst[1])
+		return true, inst[1]
 	default:
-		return -1
+		return false, 0
 	}
 }

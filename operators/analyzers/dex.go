@@ -10,6 +10,32 @@ import (
 	"bitbucket.org/vahidi/molly/util"
 )
 
+// helperAddMapMap is a helper function to insert items in a map-map
+func helperAddMapMap(mm map[string]map[string]bool, key string, values ...string) {
+	m1, found := mm[key]
+	if !found {
+		m1 = make(map[string]bool)
+	}
+	for _, value := range values {
+		m1[value] = true
+	}
+	mm[key] = m1
+}
+
+// helperConvertMapMap is a helper function convert map-map to map-array
+func helperConvertMapMap(mm map[string]map[string]bool) map[string][]string {
+	ret := make(map[string][]string)
+	for k, v1 := range mm {
+		var v2 []string
+		for v, _ := range v1 {
+			v2 = append(v2, v)
+		}
+		sort.Strings(v2)
+		ret[k] = v2
+	}
+	return ret
+}
+
 // DEX class analyzer based on
 // https://source.android.com/devices/tech/dalvik/dex-format
 //
@@ -20,14 +46,14 @@ const dexMagic uint32 = 0x0A786564 // dex\n little-endian
 
 type dexContext struct {
 	util.Structured
-	version     int
-	clss        map[string]*dexClass
-	clssFromIdx map[uint32]*dexClass
-	strings     []string
-	type_ids    []uint32
-	proto_ids   []dexProtoId
-	method_ids  []dexFieldMethod
-	field_ids   []dexFieldMethod
+	version    int
+	clss       []*dexClass
+	clssIdMap  map[uint32]*dexClass
+	strings    []string
+	type_ids   []uint32
+	proto_ids  []dexProtoId
+	method_ids []dexFieldMethod
+	field_ids  []dexFieldMethod
 }
 
 type dexClassDef struct {
@@ -120,30 +146,54 @@ func uleb128ReadN(r *bufio.Reader, n int) (ret []uint64, err error) {
 	}
 	return
 }
-func dexExtractRefs(c *dexContext, cls *dexClass) []*dexFieldMethod {
+
+// dexExtractRefs returns list if methods this class invokes and types it uses
+// some trivial cases will be excluded (e.g. call own methods)
+func dexExtractRefs(c *dexContext, cls *dexClass) ([]*dexFieldMethod, []string) {
 	idx := cls.classDef.ClassIdx
-	set := make(map[*dexFieldMethod]bool)
+	sset := make(map[uint32]bool)
+	mset := make(map[uint16]bool)
+
 	mss := [][]*dexMethodData{cls.directMethods, cls.virtualMethods}
 	for _, ms := range mss {
 		for _, m := range ms {
 			for i := 0; i < len(m.insts); {
-				op, size, _ := dalvikAnalyze(m.insts[i])
-				midx := dalvikExtractRef(op, m.insts[i:])
-				if midx >= 0 && midx < len(c.method_ids) {
-					method := &c.method_ids[midx]
-					if uint32(method.ClassIdx) != idx { // exclude myself
-						set[method] = true
+				op, size, _ := dalvikAnalyze(m.insts, i)
+				inst := m.insts[i : i+size]
+				i += size
+
+				if isNew, typeIdx := dalvikOpNew(op, inst); isNew {
+					sset[c.type_ids[typeIdx]] = true
+				}
+
+				if isInvoke, methodIdx := dalvikOpInvoke(op, inst); isInvoke {
+					m := &c.method_ids[methodIdx]
+					if uint32(m.ClassIdx) != idx { // no point recording out own class
+						mset[methodIdx] = true
+
+						// obviously, if we invoke a method we should know its type
+						sset[c.type_ids[m.ClassIdx]] = true
 					}
 				}
-				i += size
 			}
 		}
 	}
-	ret := make([]*dexFieldMethod, 0)
-	for k := range set {
-		ret = append(ret, k)
+
+	// convert sets to arrays of correct type and return
+	var mret []*dexFieldMethod
+	for methodIdx := range mset {
+		mret = append(mret, &c.method_ids[methodIdx])
 	}
-	return ret
+
+	var sret []string
+	for stringIdx := range sset {
+		name, err := javaTypeToClassName(c.strings[stringIdx])
+		if err == nil {
+			sret = append(sret, name)
+		}
+	}
+
+	return mret, sret
 }
 
 func dexLoadClass(c *dexContext, offset int64) (*dexClass, error) {
@@ -253,16 +303,13 @@ func dexExtractStrings(c *dexContext, offset int64, count int) error {
 		strs[i] = string(data)
 	}
 	c.strings = strs
+
 	return nil
 }
 
 func dexExtractTypes(c *dexContext, offset int64, count int) error {
-	idx := make([]uint32, count)
-	if err := c.ReadAt(offset, &idx); err != nil {
-		return err
-	}
-	c.type_ids = idx
-	return nil
+	c.type_ids = make([]uint32, count)
+	return c.ReadAt(offset, &c.type_ids)
 }
 
 func dexExtractClasses(c *dexContext, offset int64, count int) error {
@@ -270,15 +317,15 @@ func dexExtractClasses(c *dexContext, offset int64, count int) error {
 	if err := c.ReadAt(offset, &defs); err != nil {
 		return err
 	}
-
-	c.clss = make(map[string]*dexClass)
-	c.clssFromIdx = make(map[uint32]*dexClass)
-	for _, def := range defs {
+	c.clss = make([]*dexClass, count)
+	c.clssIdMap = make(map[uint32]*dexClass)
+	for i, _ := range defs {
+		def := &defs[i] // don't use "for i, def := range ... "!
 		cls, err := dexLoadClass(c, int64(def.ClassDataOff))
 		if err != nil {
 			return err
 		}
-		cls.classDef = &def
+		cls.classDef = def
 		classname, err := javaTypeToClassName(c.getTypeName(def.ClassIdx))
 		if err != nil {
 			return err
@@ -287,34 +334,26 @@ func dexExtractClasses(c *dexContext, offset int64, count int) error {
 		cls.name = classname
 		cls.packageName = javaExtractPackageName(classname)
 
-		c.clss[classname] = cls
-		c.clssFromIdx[cls.classDef.ClassIdx] = cls
+		c.clss[i] = cls
+		c.clssIdMap[cls.classDef.ClassIdx] = cls
 	}
+
 	return nil
 }
 
 func dexExtractProtos(c *dexContext, offset int64, count int) error {
 	c.proto_ids = make([]dexProtoId, count)
-	if err := c.ReadAt(offset, &c.proto_ids); err != nil {
-		return err
-	}
-	return nil
+	return c.ReadAt(offset, &c.proto_ids)
 }
 
 func dexExtractMethods(c *dexContext, offset int64, count int) error {
 	c.method_ids = make([]dexFieldMethod, count)
-	if err := c.ReadAt(offset, &c.method_ids); err != nil {
-		return err
-	}
-	return nil
+	return c.ReadAt(offset, &c.method_ids)
 }
 
 func dexExtractFields(c *dexContext, offset int64, count int) error {
 	c.field_ids = make([]dexFieldMethod, count)
-	if err := c.ReadAt(offset, &c.field_ids); err != nil {
-		return err
-	}
-	return nil
+	return c.ReadAt(offset, &c.field_ids)
 }
 
 // dexExtractMap extracts file map searchable by type
@@ -421,9 +460,9 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 	// extract CLASSNAMES and PACKAGENAMES
 	packagesmap := make(map[string]bool)
 	var classNames, packageNames []string
-	for name, _ := range ctx.clss {
-		classNames = append(classNames, name)
-		packagesmap[javaExtractPackageName(name)] = true
+	for _, cls := range ctx.clss {
+		classNames = append(classNames, cls.name)
+		packagesmap[javaExtractPackageName(cls.name)] = true
 	}
 	for name, _ := range packagesmap {
 		packageNames = append(packageNames, name)
@@ -433,36 +472,34 @@ func dexCreateReport(ctx *dexContext, report map[string]interface{}) {
 	report["classes"] = classNames
 	report["packages"] = packageNames
 
-	// extract inter-package call list
-	callmap := make(map[string][]string)
-	callpackageset := make(map[string]map[string]bool)
-	for cname, cls := range ctx.clss {
-		calls := make([]string, 0)
-		refList := dexExtractRefs(ctx, cls)
-		for _, ref := range refList {
-			cls2, found := ctx.clssFromIdx[uint32(ref.ClassIdx)]
-			if !found || cls.packageName == cls2.packageName {
-				continue
-			}
-			if callpackageset[cls.packageName] == nil {
-				callpackageset[cls.packageName] = make(map[string]bool)
-			}
-			callpackageset[cls.packageName][cls2.packageName] = true
-			call := fmt.Sprintf("%s.%s", cls2.name, ctx.getString(ref.NameIdx))
-			calls = append(calls, call)
-		}
-		if len(calls) != 0 {
-			callmap[cname] = calls
-		}
-	}
-	report["callmap"] = callmap
+	// extract method and types seen in each class/package
+	// we use sets of strings since we can have doubles due to polymorphism etc
+	typemap_class := make(map[string]map[string]bool)
+	callmap_class := make(map[string]map[string]bool)
+	typemap_package := make(map[string]map[string]bool)
+	callmap_package := make(map[string]map[string]bool)
 
-	// convert callpackageset to map of arrays for nicer output
-	callpackagemap := make(map[string][]string)
-	for pname, pcalles := range callpackageset {
-		for pcallename := range pcalles {
-			callpackagemap[pname] = append(callpackagemap[pname], pcallename)
+	for _, cls := range ctx.clss {
+		packageName := cls.packageName
+		methods, objects := dexExtractRefs(ctx, cls)
+
+		// record types
+		helperAddMapMap(typemap_class, cls.name, objects...)
+		helperAddMapMap(typemap_package, packageName, objects...)
+
+		// record calls
+		for _, method := range methods {
+			// extract target, but don't use ctx.clss since target class  might be a foreign type
+			calleeName := ctx.getString(uint32(method.NameIdx))
+			calleeClass, _ := javaTypeToClassName(ctx.getTypeName(uint32(method.ClassIdx)))
+			call := fmt.Sprintf("%s.%s", calleeClass, calleeName)
+			helperAddMapMap(callmap_class, cls.name, call)
+			helperAddMapMap(callmap_package, packageName, call)
 		}
 	}
-	report["callmap-package"] = callpackagemap
+
+	report["callmap-class"] = helperConvertMapMap(callmap_class)
+	report["typemap-class"] = helperConvertMapMap(typemap_class)
+	report["callmap-package"] = helperConvertMapMap(callmap_package)
+	report["typemap-package"] = helperConvertMapMap(typemap_package)
 }
