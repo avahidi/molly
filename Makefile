@@ -41,7 +41,7 @@ report:
 # published files are created here
 dist: build compile
 	mkdir -p build/dist
-	VERSION=`./molly -V` make dist1
+	VERSION=`./molly -version` make dist1
 
 dist1:
 	git archive master --format tar | bzip2 > build/dist/sources_$(VERSION).tar.bz2
@@ -53,12 +53,12 @@ dist1:
 #	GOOS=linux GOARCH=mipsel make dist2
 	GOOS=freebsd GOARCH=amd64 make dist2
 	GOOS=openbsd GOARCH=amd64 make dist2
-	GOOS=windows GOARCH=amd64 make dist2
+	GOOS=windows GOARCH=amd64 EXT=.exe make dist2
 	GOOS=darwin GOARCH=amd64 make dist2
 
 dist2: build
 	mkdir -p build/dist/$(GOOS)_$(GOARCH)_$(VERSION)
-	go build -o build/dist/$(GOOS)_$(GOARCH)_$(VERSION)/molly
+	go build -o build/dist/$(GOOS)_$(GOARCH)_$(VERSION)/molly$(EXT) ./cmd/...
 	cp -r README.rst COPYING data/rules build/dist/$(GOOS)_$(GOARCH)_$(VERSION)
 	cd build/dist/ && tar cjf $(GOOS)_$(GOARCH)_$(VERSION).tar.bz2 $(GOOS)_$(GOARCH)_$(VERSION)
 	rm -rf "build/dist/$(GOOS)_$(GOARCH)_$(VERSION)"
