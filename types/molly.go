@@ -8,13 +8,36 @@ import (
 	"bitbucket.org/vahidi/molly/util"
 )
 
+// Permission defines a molly permission such as the ability to create new files
+type Permission uint32
+
+const (
+	Create Permission = iota
+	Execute
+)
+
 // Configuration contains all runtime parameters used by molly
 type Configuration struct {
 	OutDir      string
 	MaxDepth    int
 	Verbose     bool
+	Permissions Permission
 	OnMatchRule func(file *FileData, match *Match)
 	OnMatchTag  func(file *FileData, tag string)
+}
+
+// HasPermission checks if a permission is set
+func (c Configuration) HasPermission(p Permission) bool {
+	return (c.Permissions & (1 << p)) != 0
+}
+
+// SetPermission sets or clears a Permission
+func (c *Configuration) SetPermission(p Permission, val bool) {
+	if val {
+		c.Permissions |= 1 << (uint64)(p)
+	} else {
+		c.Permissions &= ^(1 << (uint64)(p))
+	}
 }
 
 // Molly represents the context of a molly program
@@ -30,8 +53,9 @@ type Molly struct {
 // NewMolly creates a new Molly context
 func NewMolly() *Molly {
 	config := &Configuration{
-		OutDir:   "output",
-		MaxDepth: 12,
+		OutDir:      "output",
+		MaxDepth:    12,
+		Permissions: Create,
 	}
 
 	return &Molly{
@@ -42,7 +66,11 @@ func NewMolly() *Molly {
 	}
 }
 
-func (m *Molly) New(parent *FileData, name string, isdir, islog bool) (string, *FileData) {
+func (m *Molly) New(parent *FileData, name string, isdir, islog bool) (*FileData, error) {
+	if !m.Config.HasPermission(Create) {
+		return nil, fmt.Errorf("Not allowed to create files/dirs")
+	}
+
 	name = util.SanitizeFilename(name)
 	var newname string
 	var newdata *FileData
@@ -69,31 +97,36 @@ func (m *Molly) New(parent *FileData, name string, isdir, islog bool) (string, *
 
 	// make sure parent folders exist
 	if isdir {
-		util.SafeMkdir(newname)
+		util.Mkdir(newname)
 	} else {
 		base, _ := path.Split(newname)
-		util.SafeMkdir(base)
+		util.Mkdir(base)
 	}
 
 	// remember it:
+	newdata = NewFileData(newname, parent)
 	if islog {
 		parent.Logs = append(parent.Logs, newname)
 	} else {
-		newdata = NewFileData(newname, parent)
 		m.Files[newname] = newdata
 		parent.Children = append(parent.Children, newdata)
 	}
 
-	return newname, newdata
+	return newdata, nil
 }
 
-func (m *Molly) CreateFile(parent *FileData, name string, islog bool) (*os.File, *FileData, error) {
-	newfile, newdata := m.New(parent, name, false, islog)
-	f, err := util.SafeCreateFile(newfile)
-	return f, newdata, err
+func (m *Molly) CreateFile(parent *FileData, name string, islog bool) (file *os.File, data *FileData, err error) {
+	data, err = m.New(parent, name, false, islog)
+	if err == nil {
+		file, err = util.CreateFile(data.Filename)
+	}
+	return
 }
 
-func (m *Molly) CreateDir(parent *FileData, name string) (string, *FileData, error) {
-	newdir, newdata := m.New(parent, name, true, false)
-	return newdir, newdata, util.SafeMkdir(newdir)
+func (m *Molly) CreateDir(parent *FileData, name string) (data *FileData, err error) {
+	data, err = m.New(parent, name, true, false)
+	if err == nil {
+		err = util.Mkdir(data.Filename)
+	}
+	return
 }

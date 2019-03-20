@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
 )
 
 var loadStandardRules = true
@@ -37,8 +36,6 @@ func setConfig(c *types.Configuration, key, val string) error {
 		return setIntCheck(&c.MaxDepth, val)
 	case "verbose":
 		return setBooleanCheck(&c.Verbose, val)
-	case "outdir":
-		c.OutDir = val
 	case "standardrules":
 		return setBooleanCheck(&loadStandardRules, val)
 	default:
@@ -47,17 +44,19 @@ func setConfig(c *types.Configuration, key, val string) error {
 	return nil
 }
 
-func setPermission(perm, val string) error {
+func setPermission(c *types.Configuration, perm, val string) error {
 	b, err := strconv.ParseBool(val)
 	if err != nil {
 		return err
 	}
-	p, okay := util.PermissionNames[perm]
-	if !okay {
-		util.PermissionHelp()
+	switch perm {
+	case "create":
+		c.SetPermission(types.Create, b)
+	case "execute":
+		c.SetPermission(types.Execute, b)
+	default:
 		return fmt.Errorf("Unknown permission: '%s'", perm)
 	}
-	util.PermissionSet(p, b)
 	return nil
 }
 
@@ -65,7 +64,7 @@ func setParameters(c *types.Configuration, p string) error {
 	strs := strings.SplitN(p, "=", 2)
 
 	if len(strs) != 2 {
-		return fmt.Errorf("Bad configuration, expected key=value")
+		return fmt.Errorf("Bad parameter, expected key=value got '%s'", p)
 	}
 
 	keys := strings.SplitN(strs[0], ".", 2)
@@ -79,7 +78,7 @@ func setParameters(c *types.Configuration, p string) error {
 	case "config":
 		return setConfig(c, key, val)
 	case "perm":
-		return setPermission(key, val)
+		return setPermission(c, key, val)
 	default:
 		return fmt.Errorf("Unknown parameter class '%s' in '%s'", typ, p)
 

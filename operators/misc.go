@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
 )
 
 func epoch2time(e *types.Env, epoch int64) (string, error) {
@@ -24,7 +23,7 @@ func printfFunction(e *types.Env, format string, args ...interface{}) (string, e
 }
 
 func systemFunction(e *types.Env, format string, args ...interface{}) (string, error) {
-	if !util.PermissionGet(util.Execute) {
+	if !e.HasPermission(types.Execute) {
 		return "", fmt.Errorf("system actions are not allowed, action ignored (%s)", e)
 	}
 

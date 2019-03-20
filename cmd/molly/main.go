@@ -32,7 +32,7 @@ func (mf *MultiFlag) Set(val string) error {
 var showVersion = flag.Bool("version", false, "show version number")
 var showhelp = flag.Bool("h", false, "help information")
 var showhelpExt = flag.Bool("H", false, "extended help information")
-
+var outdir = flag.String("o", "output", "output directory")
 var rfiles, rtexts, tagops, matchops MultiFlag
 
 var params MultiFlag
@@ -100,6 +100,7 @@ func main() {
 
 	// create context
 	m := molly.New()
+	m.Config.OutDir = *outdir
 
 	// parameters
 	for _, param := range params {

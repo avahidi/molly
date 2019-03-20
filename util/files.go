@@ -62,20 +62,8 @@ func Mkdir(path string) error {
 	return os.MkdirAll(path, 0755)
 }
 
-// SafeMkdir creates directories in a path, fails if CreateFile permission is missing
-func SafeMkdir(path string) error {
-	if !PermissionGet(CreateFile) {
-		return fmt.Errorf("Not allowed to create files (mkdir)")
-	}
-	return Mkdir(path)
-}
-
-// SafeCreateFile creates a file, fails if CreateFile permission is missing
-func SafeCreateFile(filename string) (*os.File, error) {
-	if !PermissionGet(CreateFile) {
-		return nil, fmt.Errorf("Not allowed to create file '%s'", filename)
-	}
-
+// CreateFile creates a file, adds missing directories
+func CreateFile(filename string) (*os.File, error) {
 	// make sure its path also exists
 	dir, _ := filepath.Split(filename)
 	if err := Mkdir(dir); err != nil {

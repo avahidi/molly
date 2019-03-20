@@ -61,16 +61,15 @@ func (e Env) GetSize() uint64 {
 	return uint64(e.Current.Filesize)
 }
 
-func (e *Env) New(name string, islog bool) (string, *FileData, error) {
-	newname, newdata := e.m.New(e.Current, name, false, islog)
-	return newname, newdata, nil
+func (e *Env) New(name string, islog bool) (*FileData, error) {
+	return e.m.New(e.Current, name, false, islog)
 }
 
 func (e *Env) Create(name string) (*os.File, *FileData, error) {
 	return e.m.CreateFile(e.Current, name, false)
 }
 
-func (e *Env) Mkdir(path string) (string, *FileData, error) {
+func (e *Env) Mkdir(path string) (*FileData, error) {
 	return e.m.CreateDir(e.Current, path)
 }
 
@@ -78,4 +77,8 @@ func (e *Env) Mkdir(path string) (string, *FileData, error) {
 func (e *Env) CreateLog(name string) (*os.File, error) {
 	newfile, _, err := e.m.CreateFile(e.Current, name, true)
 	return newfile, err
+}
+
+func (e Env) HasPermission(p Permission) bool {
+	return e.m.Config.HasPermission(p)
 }

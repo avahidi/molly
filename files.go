@@ -70,7 +70,7 @@ func scanFile(m *types.Molly, env *types.Env, filename_ string, parent *types.Fi
 
 				// make sure its path is there and we have a soft link to the real file
 				path, _ := filepath.Split(fr.FilenameOut)
-				util.SafeMkdir(path)
+				util.Mkdir(path)
 
 				// make sure we link to the absolute path
 				filename_abs, _ := filepath.Abs(fr.Filename)

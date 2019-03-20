@@ -5,13 +5,19 @@ import (
 )
 
 func fileFunction(e *types.Env, prefix string) (string, error) {
-	newname, _, err := e.New(prefix, false)
-	return newname, err
+	data, err := e.New(prefix, false)
+	if err != nil {
+		return "", err
+	}
+	return data.Filename, err
 }
 
 func dirFunction(e *types.Env, prefix string) (string, error) {
-	newname, _, err := e.Mkdir(prefix)
-	return newname, err
+	data, err := e.Mkdir(prefix)
+	if err != nil {
+		return "", err
+	}
+	return data.Filename, err
 }
 
 func init() {
