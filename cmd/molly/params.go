@@ -41,7 +41,6 @@ func setConfig(c *types.Configuration, key, val string) error {
 	default:
 		return fmt.Errorf("Unknown configuration: '%s'", key)
 	}
-	return nil
 }
 
 func setPermission(c *types.Configuration, perm, val string) error {

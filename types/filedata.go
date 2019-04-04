@@ -142,7 +142,7 @@ func FileDataGetHelp() {
 		"filesize", "depth", "parent",
 		"num_matches", "num_errors", "num_logs",
 	}
-	fmt.Printf("Valid special variables are:\n")
+	fmt.Printf("Valid environment variables are:\n")
 	for _, v := range list {
 		fmt.Printf("\t%s\n", v)
 	}

@@ -12,7 +12,7 @@ import (
 type Permission uint32
 
 const (
-	Create Permission = iota
+	Create Permission = 1 << iota
 	Execute
 )
 
@@ -28,15 +28,16 @@ type Configuration struct {
 
 // HasPermission checks if a permission is set
 func (c Configuration) HasPermission(p Permission) bool {
-	return (c.Permissions & (1 << p)) != 0
+	// return (c.Permissions & (1 << p)) != 0
+	return (c.Permissions & p) != 0
 }
 
 // SetPermission sets or clears a Permission
 func (c *Configuration) SetPermission(p Permission, val bool) {
 	if val {
-		c.Permissions |= 1 << (uint64)(p)
+		c.Permissions |= p
 	} else {
-		c.Permissions &= ^(1 << (uint64)(p))
+		c.Permissions &= ^(p)
 	}
 }
 

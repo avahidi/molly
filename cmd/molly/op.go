@@ -23,7 +23,7 @@ func opListParse(opstrs []string) (map[string]string, error) {
 }
 
 func opLookupVariable(m *types.Molly, i *types.FileData, cmd, data string) (interface{}, error) {
-	// simple variables coming from the input file?
+	// environment variables coming from the input file?
 	if o, found := i.Get(cmd); found {
 		return o, nil
 	}

@@ -8,8 +8,8 @@ import (
 	"bitbucket.org/vahidi/molly/util"
 )
 
-// envLookupSpecial checks for special variables that are from other sources
-func envLookupSpecial(e *types.Env, id string) (interface{}, bool) {
+// envLookupEnvironment checks for environment variables instead of rules
+func envLookupEnvironment(e *types.Env, id string) (interface{}, bool) {
 	if strings.HasPrefix(id, "$") {
 		if val, found := e.Current.Get(id[1:]); found {
 			return val, true
@@ -41,10 +41,10 @@ func EnvLookup(e *types.Env, id string) (types.Expression, bool, error) {
 		}
 	}
 
-	// maybe a special variable?
+	// maybe a environment variable?
 	if !found {
 		var val interface{}
-		val, found = envLookupSpecial(e, id)
+		val, found = envLookupEnvironment(e, id)
 		if found {
 			exp = NewValueExpression(prim.ValueToPrimitive(val))
 		}
