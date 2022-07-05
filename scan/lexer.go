@@ -32,6 +32,7 @@ func (l *lexer) second(if_ rune, then_ rune, else_ rune) bool {
 		l.scan.Scan()
 		l.text = l.text + l.scan.TokenText()
 		l.typ = then_
+		return true
 	}
 	l.typ = else_
 	return false
