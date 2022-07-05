@@ -13,7 +13,7 @@ func RegisterFatalf(format string, v ...interface{}) {
 }
 
 // RegisterFatal regiters a fatal error
-func RegisterFatal(v ...interface{}) {
+func RegisterFatal(v interface{}) {
 	log.Fatal(v)
 }
 

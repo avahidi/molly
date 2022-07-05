@@ -74,6 +74,7 @@ func getStandardRules() string {
 		path.Join(home, "go/src/bitbucket.org/vahidi/molly/data/rules"),
 		"/usr/share/molly/rules",
 		"/usr/lib/molly/rules",
+		"data/rules",
 	}
 
 	for _, dir := range dirs {

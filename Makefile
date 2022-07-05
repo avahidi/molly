@@ -1,6 +1,6 @@
 
 # default location for files to scan
-FILES ?= ~/tmp/fw
+FILES ?= molly
 
 all: compile
 	@echo valid targets are: compile, test, fmt, dist, clean and run

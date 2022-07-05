@@ -53,9 +53,9 @@ func TestVersionCopyright(t *testing.T) {
 		"(c) 2077-2016 Free Stuff Company":                          true,
 		"BusyBox is copyrighted by many authors between 1998-2012,": true,
 		"Copyright (c) 2001-3 Shane Hyde and others":                true,
-		"copyright.not":                                             false,
-		"(C)(D)":                                                    false,
-		"":                                                          false,
+		"copyright.not": false,
+		"(C)(D)":        false,
+		"":              false,
 	}
 
 	for str, ret := range testdata {
