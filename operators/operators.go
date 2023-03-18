@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // OperatorHelp prints help text including signature for all registred actions

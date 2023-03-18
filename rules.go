@@ -3,8 +3,8 @@ package molly
 import (
 	"strings"
 
-	"bitbucket.org/vahidi/molly/scan"
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/scan"
+	"github.com/avahidi/molly/types"
 )
 
 // LoadRules reads rules from files

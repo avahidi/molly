@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // TODO: this currently handles simplified LBA without looking at the extended partition

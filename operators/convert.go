@@ -3,7 +3,7 @@ package operators
 import (
 	"fmt"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 func lenFunction(e *types.Env, item interface{}) (int, error) {

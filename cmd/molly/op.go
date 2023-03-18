@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 func opListParse(opstrs []string) (map[string]string, error) {

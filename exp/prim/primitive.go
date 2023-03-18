@@ -1,6 +1,6 @@
 package prim
 
-import "bitbucket.org/vahidi/molly/util"
+import "github.com/avahidi/molly/util"
 
 type Primitive interface {
 	Get() interface{}

@@ -3,8 +3,8 @@ package molly
 import (
 	"testing"
 
-	"bitbucket.org/vahidi/molly/report"
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/report"
+	"github.com/avahidi/molly/types"
 )
 
 func getVar(match *types.Match, name string) (interface{}, bool) {

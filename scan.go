@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"bitbucket.org/vahidi/molly/report"
-	"bitbucket.org/vahidi/molly/scan"
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/report"
+	"github.com/avahidi/molly/scan"
+	"github.com/avahidi/molly/types"
 )
 
 // processMatch will process a match on a rule

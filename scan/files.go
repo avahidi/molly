@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/vahidi/molly/exp"
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/exp"
+	"github.com/avahidi/molly/types"
 )
 
 // executeRuleActions runs actions while taking into account their failure modes

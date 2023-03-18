@@ -1,7 +1,7 @@
 package report
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // flattenMatch extracts variables from a match entry and its parents.

@@ -1,7 +1,7 @@
 package report
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // FindInReportFile find a file in a report, filename "" means any

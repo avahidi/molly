@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/util"
 )
 
 // helperAddMapMap is a helper function to insert items in a map-map

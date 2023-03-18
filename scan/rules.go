@@ -6,10 +6,10 @@ import (
 	"os"
 	"text/scanner"
 
-	"bitbucket.org/vahidi/molly/exp"
-	"bitbucket.org/vahidi/molly/exp/prim"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/exp"
+	"github.com/avahidi/molly/exp/prim"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 func precedence(op string) int {

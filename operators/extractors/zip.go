@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"io"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 func extractOneFile(e *types.Env, f *zip.File, prefix string) error {

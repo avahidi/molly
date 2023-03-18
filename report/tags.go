@@ -1,7 +1,7 @@
 package report
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // ExtractTags gathers tags from a file match

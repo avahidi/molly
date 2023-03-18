@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 var hashlist = map[string]func() hash.Hash{

@@ -3,7 +3,7 @@ package report
 import (
 	"strings"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // ExtractTagsFromRule extracts tags from a rule

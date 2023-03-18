@@ -3,7 +3,7 @@ package molly
 import (
 	"testing"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // some helper functions to simplify the code

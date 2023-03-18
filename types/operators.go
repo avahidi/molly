@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/util"
 )
 
 // operatorPrototype is a template for molly operators

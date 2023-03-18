@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 type cpioFileHead struct {

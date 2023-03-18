@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // BinarySlice creates a file from a slice

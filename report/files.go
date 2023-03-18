@@ -1,7 +1,7 @@
 package report
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 // ExtractFileHierarchy creates file hierarchy for generated files

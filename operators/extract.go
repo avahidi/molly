@@ -3,9 +3,9 @@ package operators
 import (
 	"fmt"
 
-	"bitbucket.org/vahidi/molly/operators/extractors"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/operators/extractors"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 // extractor holds both kind of extractor because right now we can not

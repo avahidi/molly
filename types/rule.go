@@ -1,6 +1,6 @@
 package types
 
-import "bitbucket.org/vahidi/molly/util"
+import "github.com/avahidi/molly/util"
 
 const (
 	ActionModeNormal = 0

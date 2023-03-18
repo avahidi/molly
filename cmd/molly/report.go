@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"bitbucket.org/vahidi/molly"
-	"bitbucket.org/vahidi/molly/report"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly"
+	"github.com/avahidi/molly/report"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 // inputToReportEntry converts an input structure to a more readable format

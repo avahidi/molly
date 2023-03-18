@@ -8,10 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"bitbucket.org/vahidi/molly"
-	"bitbucket.org/vahidi/molly/operators"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly"
+	"github.com/avahidi/molly/operators"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 // MultiFlag is used allow multiple values with flag:
@@ -70,8 +70,8 @@ func getStandardRules() string {
 	gopath := os.Getenv("GOPATH")
 	home := os.Getenv("HOME")
 	dirs := []string{
-		path.Join(gopath, "src/bitbucket.org/vahidi/molly/data/rules"),
-		path.Join(home, "go/src/bitbucket.org/vahidi/molly/data/rules"),
+		path.Join(gopath, "src/github.com/avahidi/molly/data/rules"),
+		path.Join(home, "go/src/github.com/avahidi/molly/data/rules"),
 		"/usr/share/molly/rules",
 		"/usr/lib/molly/rules",
 		"data/rules",

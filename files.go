@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "bitbucket.org/vahidi/molly/operators" // import default actions
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	_ "github.com/avahidi/molly/operators" // import default actions
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 // suggestBaseName picks a new base name for a file

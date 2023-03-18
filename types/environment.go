@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/util"
 )
 
 // Env is the current environment during scanning

@@ -3,9 +3,9 @@ package exp
 import (
 	"fmt"
 
-	"bitbucket.org/vahidi/molly/exp/prim"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/exp/prim"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 func RuleEval(rule *types.Rule, env *types.Env) (bool, error) {

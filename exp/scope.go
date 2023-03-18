@@ -1,6 +1,6 @@
 package exp
 
-import "bitbucket.org/vahidi/molly/types"
+import "github.com/avahidi/molly/types"
 
 // ScopeExtract extracts value from a scope
 func ScopeExtract(s *types.Scope) map[string]interface{} {

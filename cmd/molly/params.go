@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 var loadStandardRules = true

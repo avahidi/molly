@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 const (

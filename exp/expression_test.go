@@ -3,8 +3,8 @@ package exp
 import (
 	"testing"
 
-	"bitbucket.org/vahidi/molly/exp/prim"
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/exp/prim"
+	"github.com/avahidi/molly/types"
 )
 
 func TestSimplify(t *testing.T) {

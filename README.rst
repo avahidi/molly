@@ -10,12 +10,12 @@ Molly was initially developed in the SECONDS (Secure Connected Devices) project 
 Installation
 ------------
 
-Binaries are found on the `download page <https://bitbucket.org/vahidi/molly/downloads/>`_, but might be slightly out of date.
+Binaries are found on the `download page <https://github.com/avahidi/molly/downloads/>`_, but might be slightly out of date.
 
 To build from source::
 
     sudo apt install golang build-essential git
-    git clone https://bitbucket.org/vahidi/molly
+    git clone https://github.com/avahidi/molly
     cd molly
     make && make test && make run
 

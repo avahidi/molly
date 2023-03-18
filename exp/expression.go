@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/vahidi/molly/exp/prim"
-	"bitbucket.org/vahidi/molly/types"
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/exp/prim"
+	"github.com/avahidi/molly/types"
+	"github.com/avahidi/molly/util"
 )
 
 func get(e types.Expression) interface{} {

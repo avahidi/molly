@@ -4,7 +4,7 @@ import (
 	"archive/tar"
 	"io"
 
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 func Untar(e *types.Env, prefix string) (string, error) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/util"
 )
 
 // ElfAnalyzer examinies ELF binaries

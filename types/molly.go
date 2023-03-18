@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"bitbucket.org/vahidi/molly/util"
+	"github.com/avahidi/molly/util"
 )
 
 // Permission defines a molly permission such as the ability to create new files

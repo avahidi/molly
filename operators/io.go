@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"bitbucket.org/vahidi/molly/types"
+	"github.com/avahidi/molly/types"
 )
 
 func fileFunction(e *types.Env, prefix string) (string, error) {

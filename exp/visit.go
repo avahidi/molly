@@ -1,6 +1,6 @@
 package exp
 
-import "bitbucket.org/vahidi/molly/types"
+import "github.com/avahidi/molly/types"
 
 // visitor can visit a node in an expression
 type visitor func(types.Expression) visitor
