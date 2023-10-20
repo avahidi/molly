@@ -1,9 +1,9 @@
 Molly
 =====
 
-Molly (after Molly Hooper in Sherlock Holmes, not the drug) is an automated file analysis and extraction tool. It can search files for user-defined patterns and perform various actions when a match is found.  
+Molly (after Molly Hooper in Sherlock Holmes, not the drug) is an automated file analysis and extraction tool. It can search files for user-defined patterns and perform various actions when a match is found.
 
-Molly comes with a number of operators for analyzing and files in addition to a simple API for adding custom ones.
+Molly comes with a number of operators for analysing files, and a simple API for adding custom ones.
 
 Molly was initially developed in the SECONDS (Secure Connected Devices) project for binary extraction from foreign firmware images.
 
@@ -19,10 +19,14 @@ To build from source::
     cd molly
     make && make test && make run
 
+To build command-line tool from go::
+
+    go install github.com/avahidi/molly/cmd/molly@latest
+
 Rules
 -----
 
-Molly uses a rule database to store known patterns. The rules have a simple and familiar syntax, for example the following will recognize ZIP files)::
+Molly uses a rule database to store known patterns. The rules have a simple and familiar (?) syntax, for example the following will recognize ZIP files)::
 
     rule ZIP (bigendian = false, tag = "archive") {
         var header = String(0, 4); /* extract 4-byte string at position 0 */
@@ -31,5 +35,3 @@ Molly uses a rule database to store known patterns. The rules have a simple and 
         if header == { 'P', 'K', 0x05, 0x06} || header == {'P', 'K', 0x03, 0x04};
         extract("zip", "");       /* apply the ZIP extractor on this file */
     }
-
-For more detailed information refer to the `manual <manual.pdf>`_.
