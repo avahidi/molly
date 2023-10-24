@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/avahidi/molly"
@@ -63,28 +62,6 @@ func help(extended bool, errmsg string, exitcode int) {
 	os.Exit(exitcode)
 }
 
-// getStandardRules attempts to find the standard rules included in molly.
-// We don't know how molly is installed on this system so we will try a few
-// different paths to see if we can find any rules
-func getStandardRules() string {
-	gopath := os.Getenv("GOPATH")
-	home := os.Getenv("HOME")
-	dirs := []string{
-		path.Join(gopath, "src/github.com/avahidi/molly/data/rules"),
-		path.Join(home, "go/src/github.com/avahidi/molly/data/rules"),
-		"/usr/share/molly/rules",
-		"/usr/lib/molly/rules",
-		"data/rules",
-	}
-
-	for _, dir := range dirs {
-		if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
-			return dir
-		}
-	}
-	return ""
-}
-
 func main() {
 	// 	parse arguments
 	flag.Parse()
@@ -114,11 +91,8 @@ func main() {
 
 	// include standrad rules if not exdcluded and we can find them
 	if loadStandardRules {
-		stdrules := getStandardRules()
-		if stdrules == "" {
-			help(false, "Could not find standard rules. You may need to add -p config.standardrules=false", 20)
-		}
-		rfiles = append(rfiles, stdrules)
+		_, content := molly.LoadBuiltinRules()
+		rtexts = append(rtexts, content...)
 	}
 
 	// input sanity check
