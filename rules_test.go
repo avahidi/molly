@@ -9,7 +9,7 @@ import (
 // some helper functions to simplify the code
 func loadRule(t *testing.T, text string, name string) (*types.Molly, *types.Rule) {
 	molly := New()
-	if err := LoadRulesFromText(molly, text); err != nil {
+	if err := LoadRulesFromText(molly, "<test>", text); err != nil {
 		t.Errorf("Could not load rule from text: %v", err)
 		return nil, nil
 	}
@@ -32,7 +32,7 @@ func TestLoadRuleSeries(t *testing.T) {
 	molly := New()
 	for _, test := range testdata {
 		var err error
-		if err = LoadRulesFromText(molly, test.text); err != nil {
+		if err = LoadRulesFromText(molly, "<test>", test.text); err != nil {
 			t.Errorf("Could not load rule from text: %v", err)
 			return
 		}

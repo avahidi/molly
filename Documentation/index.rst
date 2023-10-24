@@ -41,7 +41,7 @@ The syntax for defining this format with Molly is::
 
 Using this *rule*, Molly can identify FreeBSD binaries in a heap of files::
 
-    $ molly -R bsdelf.rule -o output files/
+    $ mh -R bsdelf.rule -o output files/
     SCAN RESULTS:
         * File files/libavl.so.2 (0 errors):
              => bsdelf
@@ -71,6 +71,6 @@ When a match is found, a rule may also perform some actions. This could for exam
 
 Actions can also be selected from the command line::
 
-    $ molly -R bsdelf.rule -on-rule "bsdelf:ls -l {filename}" somefile
+    $ mh -R bsdelf.rule -on-rule "bsdelf:ls -l {filename}" somefile
     RULE any on file1: -rw-rw-r-- 1 mh mh 6 mar  2310 13:55 somefile
 

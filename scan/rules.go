@@ -142,8 +142,8 @@ func ParseRuleFiles(db *types.Molly, files ...string) error {
 }
 
 // ParseRuleStream loads rules from a stream
-func ParseRuleStream(db *types.Molly, r io.Reader) error {
-	rules, err := parseRuleStream(r, "")
+func ParseRuleStream(db *types.Molly, source string, r io.Reader) error {
+	rules, err := parseRuleStream(r, source)
 	if err != nil {
 		return err
 	}

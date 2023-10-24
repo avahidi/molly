@@ -27,9 +27,9 @@ func (p parser) String() string {
 
 // parser helpers
 func (p *parser) errorf(format string, args ...interface{}) error {
-	return fmt.Errorf("parser: %s (L='%v' T='%s')",
-		fmt.Sprintf(format, args...),
+	return fmt.Errorf("At %v, token '%s': parser error '%s'",
 		p.lex.scan.Pos(), p.Text(),
+		fmt.Sprintf(format, args...),
 	)
 }
 

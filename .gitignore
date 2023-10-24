@@ -3,6 +3,6 @@ build
 *.exe
 core
 main
-/molly
+/mh
 output
 *.patch

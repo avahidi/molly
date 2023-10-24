@@ -3,7 +3,7 @@ Reports
 
 Assume we ran the BSD ELF example on some FreeBSD binaries and got this output::
 
-    $ molly -R bsdelf.rule -o output files/
+    $ mh -R bsdelf.rule -o output files/
     SCAN RESULTS:
         * File files/libavl.so.2 (0 errors):
              => bsdelf

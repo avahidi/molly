@@ -58,6 +58,7 @@ func help(extended bool, errmsg string, exitcode int) {
 
 	if extended {
 		operators.Help()
+		parametersHelp()
 	}
 	os.Exit(exitcode)
 }
@@ -90,14 +91,14 @@ func main() {
 	}
 
 	// include standrad rules if not exdcluded and we can find them
-	if loadStandardRules {
-		_, content := molly.LoadBuiltinRules()
-		rtexts = append(rtexts, content...)
+	var builtin_filenames, builtin_rules []string
+	if loadBuiltinRules {
+		builtin_filenames, builtin_rules = molly.LoadBuiltinRules()
 	}
 
 	// input sanity check
 	ifiles := flag.Args()
-	if len(rfiles) == 0 && len(rtexts) == 0 {
+	if len(rfiles) == 0 && len(rtexts) == 0 && len(builtin_rules) == 0 {
 		help(false, "No rules were given", 20)
 	}
 
@@ -154,16 +155,25 @@ func main() {
 		fmt.Println("TAG", k, v)
 	}
 
-	//  scan rules
-	if err := molly.LoadRules(m, rfiles...); err != nil {
-		log.Fatalf("ERROR while parsing rule file: %s", err)
+	// load rules:
+	// 1. load builtin-rules, of any
+	for i, builtin_rule := range builtin_rules {
+		filename := fmt.Sprintf("<builtin>/%s", builtin_filenames[i])
+		if err := molly.LoadRulesFromText(m, filename, builtin_rule); err != nil {
+			log.Fatalf("ERROR while parsing built-in rule: %s", err)
+		}
 	}
 
-	// add inline rules
-	for _, ruletext := range rtexts {
-		if err := molly.LoadRulesFromText(m, ruletext); err != nil {
+	// 2. load inline rules from command-line
+	for i, ruletext := range rtexts {
+		filename := fmt.Sprintf("<inline>/%d", i)
+		if err := molly.LoadRulesFromText(m, filename, ruletext); err != nil {
 			log.Fatalf("ERROR while parsing inline rule: %s", err)
 		}
+	}
+	// 3. load rules from file
+	if err := molly.LoadRules(m, rfiles...); err != nil {
+		log.Fatalf("ERROR while parsing rule file: %s", err)
 	}
 
 	if len(m.Rules.Top) == 0 {

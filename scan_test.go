@@ -100,7 +100,7 @@ func TestScanPass(t *testing.T) {
 	`
 
 	molly := New()
-	if err := LoadRulesFromText(molly, ruletext); err != nil {
+	if err := LoadRulesFromText(molly, "<test>", ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 
@@ -126,7 +126,7 @@ func TestScanNum(t *testing.T) {
 	`
 
 	molly := New()
-	if err := LoadRulesFromText(molly, ruletext); err != nil {
+	if err := LoadRulesFromText(molly, "<test>", ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 
@@ -151,7 +151,7 @@ func TestScanHas(t *testing.T) {
 	`
 
 	molly := New()
-	if err := LoadRulesFromText(molly, ruletext); err != nil {
+	if err := LoadRulesFromText(molly, "<test>", ruletext); err != nil {
 		t.Fatalf("Could not load rule from text: %v", err)
 	}
 

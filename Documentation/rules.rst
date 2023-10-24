@@ -39,7 +39,7 @@ In a rule, such variables have a "$" prefix::
 
 To avoid confusion with shell environment variables curly brackets are instead used on the command-line::
 
-    $ molly -r 'rule cfiles { if $ext == ".c"; }' -on-rule "cfiles:gcc {filename} -o {newfile:compiled.o}" src/
+    $ mh -r 'rule cfiles { if $ext == ".c"; }' -on-rule "cfiles:gcc {filename} -o {newfile:compiled.o}" src/
 
 
 The following environment variables are available with rules:

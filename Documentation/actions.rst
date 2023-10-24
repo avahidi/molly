@@ -9,7 +9,7 @@ Actions from command-line
 You may want to automatically perform an action once a match has been found.
 From the command line this is done using "-on-rule" parameter as demonstrated below::
 
-    $ molly -R bsdelf.rule -o output \
+    $ mh -R bsdelf.rule -o output \
         -on-rule "bsdelf:echo Found {filename} with {filesize} bytes" files
     ...
     RULE bsdelf on files/libavl.so.2: Found files/libavl.so.2 with 14896 bytes

@@ -1,6 +1,6 @@
 
 # default location for files to scan
-FILES ?= molly
+FILES ?= mh
 
 all: compile
 	@echo valid targets are: compile, test, fmt, dist, clean and run
@@ -14,12 +14,13 @@ molly:
 
 run: compile output
 	rm -rf output
-	-./molly $(O) \
+	-./mh $(O) \
 		-o output \
 		-p config.maxdepth=12 \
 		-p config.verbose=false \
 		-p perm.create=true \
 		-p perm.execute=true \
+		-p config.builtin=true \
 		$(FILES)
 
 show: run
@@ -41,7 +42,7 @@ report:
 # published files are created here
 dist: build compile
 	mkdir -p build/dist
-	VERSION=`./molly -version` make dist1
+	VERSION=`./mh -version` make dist1
 
 dist1:
 	git archive master --format tar | bzip2 > build/dist/sources_$(VERSION).tar.bz2
@@ -59,7 +60,7 @@ dist1:
 dist2: build
 	mkdir -p build/dist/$(GOOS)_$(GOARCH)_$(VERSION)
 	go build -o build/dist/$(GOOS)_$(GOARCH)_$(VERSION)/molly$(EXT) ./cmd/...
-	cp -r README.rst COPYING data/rules build/dist/$(GOOS)_$(GOARCH)_$(VERSION)
+	cp -r README.rst COPYING rules build/dist/$(GOOS)_$(GOARCH)_$(VERSION)
 	cd build/dist/ && tar cjf $(GOOS)_$(GOARCH)_$(VERSION).tar.bz2 $(GOOS)_$(GOARCH)_$(VERSION)
 	rm -rf "build/dist/$(GOOS)_$(GOARCH)_$(VERSION)"
 
@@ -72,6 +73,6 @@ output:
 clean:
 	go clean
 	rm -rf build output
-	rm -f molly
+	rm -f mh
 
 .PHYONY: fmt clean run compile test molly
