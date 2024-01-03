@@ -63,64 +63,44 @@ func help(extended bool, errmsg string, exitcode int) {
 	os.Exit(exitcode)
 }
 
-func main() {
-	// 	parse arguments
-	flag.Parse()
-
-	if *showhelpExt || *showhelp {
-		help(*showhelpExt, "", 0)
-	}
-
-	if *showVersion {
-		maj, min, mnt := molly.Version()
-		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
-		return
-	}
-
-	// create context
-	m := molly.New()
-	m.Config.OutDir = *outdir
-
-	// parameters
-	for _, param := range params {
-		err := setParameters(m.Config, param)
-		if err != nil {
-			msg := fmt.Sprintf("Error when processing parameter '%s': %v", param, err)
-			help(false, msg, 20)
+// load rules from built-in, text and file
+func loadRules(m *types.Molly, loadBuitin bool, fromText []string, fromFile []string) error {
+	// 1. load builtin rules if enabled
+	if loadBuitin {
+		builtinFiles, builtinData := molly.LoadBuiltinRules()
+		for i, file := range builtinFiles {
+			source := fmt.Sprintf("<builtin>/%s", file)
+			if err := molly.LoadRulesFromText(m, source, builtinData[i]); err != nil {
+				return fmt.Errorf("ERROR while parsing built-in rule: %s", err)
+			}
 		}
 	}
 
-	// include standrad rules if not exdcluded and we can find them
-	var builtin_filenames, builtin_rules []string
-	if loadBuiltinRules {
-		builtin_filenames, builtin_rules = molly.LoadBuiltinRules()
-	}
-
-	// input sanity check
-	ifiles := flag.Args()
-	if len(rfiles) == 0 && len(rtexts) == 0 && len(builtin_rules) == 0 {
-		help(false, "No rules were given", 20)
-	}
-
-	if len(ifiles) == 0 {
-		help(false, "No input was given", 20)
-	}
-
-	for _, filename := range ifiles {
-		if strings.HasPrefix(filename, "-") {
-			help(false, "Options must come first", 20)
+	// 2. load inline rules from command-line
+	for i, ruletext := range fromText {
+		filename := fmt.Sprintf("<inline>/%d", i)
+		if err := molly.LoadRulesFromText(m, filename, ruletext); err != nil {
+			return fmt.Errorf("ERROR while parsing inline rule: %s", err)
 		}
 	}
-
-	if err := util.NewEmptyDir(m.Config.OutDir); err != nil {
-		util.RegisterFatalf("Failed to create output directory: %v", err)
+	// 3. load rules from file
+	if err := molly.LoadRules(m, fromFile...); err != nil {
+		return fmt.Errorf("ERROR while parsing rule file: %s", err)
 	}
+	return nil
+}
 
-	// create callbacks
+func installCallbacks(m *types.Molly, onMatch, onTag []string) error {
 	listmatch, err := opListParse(matchops)
 	if err != nil {
-		log.Fatalf("match op error: %s", err)
+		return err
 	}
+	listtag, err := opListParse(tagops)
+	if err != nil {
+		return err
+
+	}
+
 	m.Config.OnMatchRule = func(i *types.FileData, match *types.Match) {
 		id := match.Rule.ID
 		if cmd, found := listmatch[id]; found {
@@ -133,10 +113,6 @@ func main() {
 		}
 	}
 
-	listtag, err := opListParse(tagops)
-	if err != nil {
-		log.Fatalf("tag op error: %s", err)
-	}
 	m.Config.OnMatchTag = func(i *types.FileData, tag string) {
 		if cmd, found := listtag[tag]; found {
 			output, err := opExecute(m, cmd, i)
@@ -154,43 +130,10 @@ func main() {
 	for k, v := range listtag {
 		fmt.Println("TAG", k, v)
 	}
+	return nil
+}
 
-	// load rules:
-	// 1. load builtin-rules, of any
-	for i, builtin_rule := range builtin_rules {
-		filename := fmt.Sprintf("<builtin>/%s", builtin_filenames[i])
-		if err := molly.LoadRulesFromText(m, filename, builtin_rule); err != nil {
-			log.Fatalf("ERROR while parsing built-in rule: %s", err)
-		}
-	}
-
-	// 2. load inline rules from command-line
-	for i, ruletext := range rtexts {
-		filename := fmt.Sprintf("<inline>/%d", i)
-		if err := molly.LoadRulesFromText(m, filename, ruletext); err != nil {
-			log.Fatalf("ERROR while parsing inline rule: %s", err)
-		}
-	}
-	// 3. load rules from file
-	if err := molly.LoadRules(m, rfiles...); err != nil {
-		log.Fatalf("ERROR while parsing rule file: %s", err)
-	}
-
-	if len(m.Rules.Top) == 0 {
-		help(false, "No rules were loaded", 20)
-	}
-
-	// scan input files
-	if len(ifiles) == 0 {
-		help(false, "No input files", 20)
-	}
-
-	err = molly.ScanFiles(m, ifiles...)
-	if err != nil {
-		fmt.Println("SCAN while parsing file: ", err)
-	}
-
-	// show results
+func showResults(m *types.Molly) int {
 	report := molly.ExtractReport(m)
 	dumpResult(m, report, m.Config.Verbose)
 
@@ -230,6 +173,78 @@ func main() {
 	fmt.Printf("Scanned %d files, %d of which matched %d rules...\n",
 		len(m.Files), len(report.Files), totalMatches)
 	fmt.Printf("%d errors, %d warnings\n", totalErrors, totalWarns)
+	return totalErrors
+}
+
+func main() {
+	// 	parse arguments
+	flag.Parse()
+
+	if *showhelpExt || *showhelp {
+		help(*showhelpExt, "", 0)
+	}
+
+	if *showVersion {
+		maj, min, mnt := molly.Version()
+		fmt.Printf("%d.%d.%d\n", maj, min, mnt)
+		return
+	}
+
+	// create context
+	m := molly.New()
+	m.Config.OutDir = *outdir
+
+	if err := util.NewEmptyDir(m.Config.OutDir); err != nil {
+		log.Fatalf("Failed to create output directory: %v", err)
+	}
+
+	// set params
+	for _, param := range params {
+		err := setParameters(m.Config, param)
+		if err != nil {
+			msg := fmt.Sprintf("Error when processing parameter '%s': %v", param, err)
+			help(false, msg, 20)
+		}
+	}
+
+	// input sanity check. This must come after creating context and setting parameters
+	ifiles := flag.Args()
+	if len(ifiles) == 0 {
+		help(false, "No input files", 20)
+	}
+	for _, filename := range ifiles {
+		if strings.HasPrefix(filename, "-") {
+			help(false, "Options must come first", 20)
+		}
+	}
+
+	if len(rfiles) == 0 && len(rtexts) == 0 && !loadBuiltinRules {
+		help(false, "No rules were given", 20)
+	}
+
+	// Create and install callbacks when a rule or tag match is found
+	err := installCallbacks(m, matchops, tagops)
+	if err != nil {
+		log.Fatalf("ERROR when creating callbacks: %v", err)
+	}
+
+	// Load rules
+	err = loadRules(m, loadBuiltinRules, rtexts, rfiles)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(m.Rules.Top) == 0 {
+		help(false, "No rules were loaded", 20)
+	}
+
+	// scan input files
+	err = molly.ScanFiles(m, ifiles...)
+	if err != nil {
+		fmt.Println("SCAN while parsing file: ", err)
+	}
+
+	// and show results
+	totalErrors := showResults(m)
 	if totalErrors > 0 {
 		os.Exit(1)
 	}

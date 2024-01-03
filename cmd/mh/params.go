@@ -8,10 +8,10 @@ import (
 	"github.com/avahidi/molly/types"
 )
 
-var loadBuiltinRules = false
+var loadBuiltinRules = true
 
 var parameters = map[string]any{
-	"config.builtin":  false,
+	"config.builtin":  loadBuiltinRules,
 	"config.maxdepth": 12,
 	"config.verbose":  false,
 	"perm.create":     true,

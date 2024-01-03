@@ -52,6 +52,6 @@ func LoadRules(m *types.Molly, files ...string) error {
 }
 
 // LoadRulesFromText reads rules from a string
-func LoadRulesFromText(m *types.Molly, filename, text string) error {
-	return scan.ParseRuleStream(m, filename, strings.NewReader(text))
+func LoadRulesFromText(m *types.Molly, source, text string) error {
+	return scan.ParseRuleStream(m, source, strings.NewReader(text))
 }
